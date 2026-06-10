@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Super Admin — Mutualité de Santé{% endblock %}
+
+{% block sidebar_nav %}
+    <li class="nav-header">Général</li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:dashboard' %}" class="nav-link {% block nav_dashboard %}{% endblock %}">
+            <i class="nav-icon bi bi-grid-1x2-fill"></i>
+            <p>Tableau de bord</p>
+        </a>
+    </li>
+
+    <li class="nav-header">Mutualités</li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:mutualites_liste' %}" class="nav-link {% block nav_mutualites %}{% endblock %}">
+            <i class="nav-icon bi bi-building"></i>
+            <p>Liste des mutualités</p>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:mutualite_creer' %}" class="nav-link {% block nav_mutualite_creer %}{% endblock %}">
+            <i class="nav-icon bi bi-plus-square-fill"></i>
+            <p>Ajouter une mutualité</p>
+        </a>
+    </li>
+
+    <li class="nav-header">Licences & Clés</li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:cles_liste' %}" class="nav-link {% block nav_cles %}{% endblock %}">
+            <i class="nav-icon bi bi-key-fill"></i>
+            <p>Clés d'activation</p>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:cles_generer' %}" class="nav-link {% block nav_cles_generer %}{% endblock %}">
+            <i class="nav-icon bi bi-plus-circle-fill"></i>
+            <p>Générer une clé</p>
+        </a>
+    </li>
+
+    <li class="nav-header">Utilisateurs</li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:utilisateurs_liste' %}" class="nav-link {% block nav_utilisateurs %}{% endblock %}">
+            <i class="nav-icon bi bi-people-fill"></i>
+            <p>Liste des utilisateurs</p>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:utilisateur_creer' %}" class="nav-link {% block nav_utilisateur_creer %}{% endblock %}">
+            <i class="nav-icon bi bi-person-plus-fill"></i>
+            <p>Ajouter un utilisateur</p>
+        </a>
+    </li>
+
+    <li class="nav-header">Suivi</li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:suivi_factures' %}" class="nav-link {% block nav_suivi_factures %}{% endblock %}">
+            <i class="nav-icon bi bi-receipt-cutoff"></i>
+            <p>Suivi des factures</p>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:suivi_membres' %}" class="nav-link {% block nav_membres %}{% endblock %}">
+            <i class="nav-icon bi bi-person-badge"></i>
+            <p>Membres</p>
+        </a>
+    </li>
+
+    <li class="nav-header">Sécurité</li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:audit_connexions' %}" class="nav-link {% block nav_audit %}{% endblock %}">
+            <i class="nav-icon bi bi-shield-lock-fill"></i>
+            <p>Audit des connexions</p>
+        </a>
+    </li>
+{% endblock %}
+
+{% block page_subtitle %}Panneau d'administration centrale{% endblock %}
+{% block page_icon %}bi bi-shield-fill-check{% endblock %}

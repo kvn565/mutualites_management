@@ -1,0 +1,139 @@
+{% extends 'base_auth.html' %}
+{% block title %}Connexion Superadmin — WIBABI{% endblock %}
+
+{% block extra_css %}
+<style>
+    .superadmin-wrap {
+        width: 100%;
+        max-width: 860px;
+        display: flex;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+    }
+    .superadmin-left {
+        width: 360px;
+        background: linear-gradient(155deg, var(--vert-fonce) 0%, var(--vert) 100%);
+        padding: 60px 40px;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        position: relative;
+    }
+    .superadmin-left .icon-box {
+        width: 80px; height: 80px;
+        background: rgba(201,168,76,0.2);
+        border: 3px solid rgba(201,168,76,0.4);
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        color: #c9a84c;
+        margin-bottom: 30px;
+        position: relative;
+    }
+    .superadmin-left .icon-box .cross-plus {
+        position: absolute;
+        bottom: -6px; right: -6px;
+        width: 26px; height: 26px;
+        background: var(--or);
+        color: var(--vert-fonce);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        font-weight: 700;
+        border: 3px solid var(--vert-fonce);
+    }
+    .superadmin-left h2 {
+        font-family: 'Outfit', sans-serif;
+        color: #fff;
+        margin-bottom: 12px;
+    }
+    .superadmin-left p {
+        opacity: 0.85;
+        line-height: 1.6;
+    }
+    .superadmin-left .brand-footer {
+        margin-top: 50px;
+        background: rgba(255,255,255,0.1);
+        padding: 18px;
+        border-radius: 12px;
+        text-align: center;
+    }
+    .superadmin-right {
+        flex: 1;
+        background: #fff;
+        padding: 50px 45px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .superadmin-right h3 {
+        font-family: 'Outfit', sans-serif;
+        color: var(--vert);
+        margin-bottom: 8px;
+    }
+    @media (max-width: 768px) {
+        .superadmin-wrap { flex-direction: column; max-width: 420px; }
+        .superadmin-left { width: 100%; padding: 40px 30px; }
+        .superadmin-right { padding: 40px 30px; }
+    }
+</style>
+{% endblock %}
+
+{% block auth_body %}
+<div class="superadmin-wrap">
+    <div class="superadmin-left">
+        <div class="icon-box">
+            <i class="bi bi-shield-lock"></i>
+            <span class="cross-plus">+</span>
+        </div>
+        <h2>Superadmin</h2>
+        <p>Accès restreint à l'administration centrale du système de gestion des mutualités</p>
+        <div class="brand-footer">
+            <small style="display:block; color:rgba(255,255,255,0.6);">WIBABI v1.0</small>
+            <small style="color:#c9a84c;">Système de gestion des mutualités</small>
+        </div>
+    </div>
+    <div class="superadmin-right">
+        <h3>Connexion</h3>
+        <p style="color:#8a9aaa; margin-bottom:30px;">Entrez vos identifiants superadmin</p>
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            <i class="bi bi-x-circle-fill me-2"></i>
+            {{ form.non_field_errors.0 }}
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'admin:login' %}">
+            {% csrf_token %}
+
+            <div class="input-group mb-4">
+                {{ form.username }}
+                <div class="input-group-text"><i class="bi bi-person"></i></div>
+            </div>
+
+            <div class="input-group mb-4">
+                {{ form.password }}
+                <div class="input-group-text"><i class="bi bi-lock-fill"></i></div>
+            </div>
+
+            <button type="submit" class="btn w-100 py-3" style="background:var(--vert); border:none; font-weight:600;">
+                <i class="bi bi-box-arrow-in-right me-2"></i> Se connecter
+            </button>
+
+            <input type="hidden" name="next" value="{{ next }}">
+        </form>
+
+        <div style="text-align:center; margin-top:30px; font-size:0.85rem; color:#8a9aaa;">
+            Vous n'êtes pas superadmin ?
+            <a href="{% url 'core:login' %}" style="color:#c9a84c;">Aller à la connexion standard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

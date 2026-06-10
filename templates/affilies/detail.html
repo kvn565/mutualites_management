@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ affilie.nom_complet }} — Mutualité de Santé{% endblock %}
+{% block page_title %}Fiche Affilié{% endblock %}
+{% block page_icon %}bi bi-person-lines-fill{% endblock %}
+{% block nav_affilies %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{% url 'affilies:liste' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+    <div class="btn-group">
+        {% if user.peut_modifier %}
+        <a href="{% url 'affilies:modifier' affilie.pk %}" class="btn btn-primary"><i class="bi bi-pencil"></i> Modifier</a>
+        {% endif %}
+        <a href="{% url 'affilies:fiche_pdf' affilie.pk %}" class="btn btn-outline-success"><i class="bi bi-printer"></i> Imprimer fiche</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Profil Affilié -->
+    <div class="col-lg-4">
+        <div class="card mb-4 border-0 shadow-sm" style="overflow: hidden;">
+            <div class="bg-vert" style="height: 100px;"></div>
+            <div class="card-body text-center position-relative pt-0">
+                <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 110px; height: 110px; margin-top: -55px; border: 4px solid #fff;">
+                    {% if affilie.photo %}
+                    <img src="{{ affilie.photo.url }}" class="rounded-circle w-100 h-100" style="object-fit: cover;">
+                    {% else %}
+                    <i class="bi bi-person text-secondary" style="font-size: 3.5rem;"></i>
+                    {% endif %}
+                </div>
+                
+                <h4 class="mt-3 mb-1">{{ affilie.nom_complet }}</h4>
+                <div class="text-muted mb-3">{{ affilie.numero_affiliation }}</div>
+                
+                <div class="mb-3">
+                    {% if affilie.statut == 'ACTIF' %}<span class="badge-actif px-3 py-2">Actif</span>
+                    {% elif affilie.statut == 'EN_ATTENTE' %}<span class="badge bg-secondary px-3 py-2">En attente</span>
+                    {% elif affilie.statut == 'SUSPENDU' %}<span class="badge bg-warning text-dark px-3 py-2">Suspendu</span>
+                    {% elif affilie.statut == 'EXPIRE' %}<span class="badge bg-dark px-3 py-2">Expiré</span>
+                    {% elif affilie.statut == 'RADIE' %}<span class="badge bg-danger px-3 py-2">Radié</span>
+                    {% else %}<span class="badge bg-dark px-3 py-2">{{ affilie.get_statut_display }}</span>{% endif %}
+                </div>
+            </div>
+            <div class="card-footer bg-white p-0">
+                <ul class="list-group list-group-flush text-start">
+                    <li class="list-group-item px-4 py-3 d-flex justify-content-between">
+                        <span class="text-muted"><i class="bi bi-calendar-heart me-2"></i> Naissance</span>
+                        <strong>{{ affilie.date_naissance|date:"d/m/Y" }} ({{ affilie.age }} ans)</strong>
+                    </li>
+                    <li class="list-group-item px-4 py-3 d-flex justify-content-between">
+                        <span class="text-muted"><i class="bi bi-gender-ambiguous me-2"></i> Sexe</span>
+                        <strong>{{ affilie.get_sexe_display }}</strong>
+                    </li>
+                    <li class="list-group-item px-4 py-3 d-flex justify-content-between">
+                        <span class="text-muted"><i class="bi bi-heart me-2"></i> État civil</span>
+                        <strong>{{ affilie.get_etat_civil_display|default:"-" }}</strong>
+                    </li>
+                    <li class="list-group-item px-4 py-3 d-flex justify-content-between">
+                        <span class="text-muted"><i class="bi bi-credit-card me-2"></i> CIN/NIF</span>
+                        <strong>{{ affilie.numero_carte_identite|default:"-" }}</strong>
+                    </li>
+                    <li class="list-group-item px-4 py-3 d-flex justify-content-between">
+                        <span class="text-muted"><i class="bi bi-droplet me-2"></i> Groupe sanguin</span>
+                        <strong>{{ affilie.get_groupe_sanguin_display|default:"-" }}</strong>
+                    </li>
+                    <li class="list-group-item px-4 py-3 d-flex justify-content-between">
+                        <span class="text-muted"><i class="bi bi-telephone me-2"></i> Téléphone</span>
+                        <strong>{{ affilie.telephone|default:"-" }}</strong>
+                    </li>
+                    <li class="list-group-item px-4 py-3 d-flex justify-content-between">
+                        <span class="text-muted"><i class="bi bi-briefcase me-2"></i> Profession</span>
+                        <strong>{{ affilie.profession|default:"-" }}</strong>
+                    </li>
+                    <li class="list-group-item px-4 py-3 d-flex justify-content-between">
+                        <span class="text-muted"><i class="bi bi-shield-check me-2"></i> Adhésion</span>
+                        <strong>{{ affilie.date_adhesion|date:"d/m/Y" }}</strong>
+                    </li>
+                    <li class="list-group-item px-4 py-3 d-flex justify-content-between">
+                        <span class="text-muted"><i class="bi bi-tag me-2"></i> Section</span>
+                        <strong>{{ affilie.section_antenne|default:"-" }}</strong>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><i class="bi bi-info-circle me-2"></i> Localisation</div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <div class="text-muted small">Province</div>
+                    <div>{{ affilie.province|default:"-" }}</div>
+                </div>
+                <div class="mb-2">
+                    <div class="text-muted small">Commune</div>
+                    <div>{{ affilie.commune|default:"-" }}</div>
+                </div>
+                <div class="mb-2">
+                    <div class="text-muted small">Zone</div>
+                    <div>{{ affilie.zone|default:"-" }}</div>
+                </div>
+                <div class="mb-2">
+                    <div class="text-muted small">Colline/Quartier</div>
+                    <div>{{ affilie.colline|default:"-" }}</div>
+                </div>
+                <div class="mb-0">
+                    <div class="text-muted small">Adresse complément</div>
+                    <div>{{ affilie.adresse|default:"-" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mt-3">
+            <div class="card-header bg-white"><i class="bi bi-heart-pulse me-2"></i> Médical</div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <div class="text-muted small">Contact urgence</div>
+                    <div>{{ affilie.contact_urgence_nom|default:"-" }} {% if affilie.contact_urgence_telephone %}({{ affilie.contact_urgence_telephone }}){% endif %}</div>
+                </div>
+                <div class="mb-2">
+                    <div class="text-muted small">Centre de santé réf.</div>
+                    <div>{{ affilie.centre_sante_reference|default:"-" }}</div>
+                </div>
+                <div class="mb-0">
+                    <div class="text-muted small">Hôpital de réf.</div>
+                    <div>{{ affilie.hopital_reference|default:"-" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mt-3">
+            <div class="card-header bg-white"><i class="bi bi-shield-check me-2"></i> Adhésion</div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <div class="text-muted small">Type</div>
+                    <div>{{ affilie.get_type_adhesion_display }}</div>
+                </div>
+                <div class="mb-0">
+                    <div class="text-muted small">Origine</div>
+                    <div>{{ affilie.origine.nom|default:"Individuelle" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ayants droit & Cotisations -->
+    <div class="col-lg-8">
+        
+        <!-- Ayants Droit -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <span class="fw-bold text-vert"><i class="bi bi-people me-2"></i> Ayants droit ({{ ayants_droit.count|default:"0" }})</span>
+                {% if user.peut_modifier %}
+                <a href="{% url 'ayants_droit:ajouter' %}?affilie={{ affilie.pk }}" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-plus"></i> Ajouter
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 border-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Nom complet</th>
+                                <th>Lien</th>
+                                <th>Âge</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ad in ayants_droit %}
+                            <tr>
+                                <td class="fw-medium">{{ ad.nom_complet }}</td>
+                                <td>{{ ad.get_lien_parente_display }}</td>
+                                <td>{{ ad.age }} ans</td>
+                                <td>
+                                    {% if ad.statut == 'ACTIF' %}<span class="badge-actif">Actif</span>
+                                    {% else %}<span class="badge-inactif">{{ ad.get_statut_display }}</span>{% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">Aucun ayant droit enregistré</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Cotisations récentes -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <span class="fw-bold text-vert"><i class="bi bi-wallet2 me-2"></i> Dernières cotisations</span>
+                <a href="#" class="btn btn-sm btn-outline-secondary">Voir tout</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 border-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Période</th>
+                                <th>Montant</th>
+                                <th>Date paiement</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cot in cotisations %}
+                            <tr>
+                                <td>{{ cot.mois|stringformat:"02d" }}/{{ cot.annee }}</td>
+                                <td class="fw-bold">{{ cot.montant|floatformat:0|intcomma }} BIF</td>
+                                <td>{{ cot.date_paiement|date:"d/m/Y" }}</td>
+                                <td>
+                                    {% if cot.statut == 'PAYE' %}<span class="badge-paye">Payé</span>
+                                    {% elif cot.statut == 'EN_ATTENTE' %}<span class="badge-en-attente">En attente</span>
+                                    {% else %}<span class="badge-rejete">Annulé</span>{% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">Aucune cotisation enregistrée</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

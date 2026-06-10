@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Services de Santé — Mutualité de Santé{% endblock %}
+{% block page_title %}Services de Santé{% endblock %}
+{% block page_subtitle %}Gérez les actes médicaux, consultations, et la prise en charge de la mutualité{% endblock %}
+{% block page_icon %}bi bi-hospital-fill{% endblock %}
+{% block nav_services %}active{% endblock %}
+
+{% block page_actions %}
+    {% if user.peut_modifier %}
+    <a href="{% url 'services_sante:ajouter' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle"></i> Ajouter
+    </a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-7">
+                <div class="search-bar">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" name="q" class="form-control" placeholder="Rechercher (nom, code)..." value="{{ q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="categorie" class="form-select">
+                    <option value="">Toutes les catégories</option>
+                    {% for val, label in categorie_choices %}
+                    <option value="{{ val }}" {% if categorie == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filtrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul"></i> Liste des services ({{ total }})</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Nom du service</th>
+                    <th>Catégorie</th>
+                    <th class="text-end">Taux Prise en Charge</th>
+                    <th class="text-end">Plafond</th>
+                    <th>Statut</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for service in services %}
+                <tr>
+                    <td class="fw-medium text-muted">{{ service.code }}</td>
+                    <td class="fw-bold">
+                        <a href="{% url 'services_sante:detail' service.pk %}" class="text-decoration-none text-vert">{{ service.nom }}</a>
+                    </td>
+                    <td>{{ service.get_categorie_display }}</td>
+                    <td class="text-end">
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 fs-6">
+                            {{ service.taux_prise_en_charge }} %
+                        </span>
+                    </td>
+                    <td class="text-end fw-medium">
+                        {% if service.plafond > 0 %}
+                        {{ service.plafond|floatformat:0|intcomma }} BIF
+                        {% else %}
+                        <span class="text-muted fst-italic" style="font-size:0.75rem;">Illimité</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if service.actif %}
+                        <span class="badge-actif">Actif</span>
+                        {% else %}
+                        <span class="badge-inactif">Inactif</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group">
+                            <a href="{% url 'services_sante:detail' service.pk %}" class="btn btn-sm btn-outline-primary" title="Détails">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if user.peut_modifier %}
+                            <a href="{% url 'services_sante:modifier' service.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                            {% if user.peut_supprimer %}
+                            <a href="{% url 'services_sante:supprimer' service.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5">
+                        <div class="text-muted mb-2"><i class="bi bi-inbox fs-1"></i></div>
+                        <h6>Aucun service de santé trouvé</h6>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if services.has_other_pages %}
+    <div class="card-footer bg-white border-top-0 pt-3">
+        <nav>
+            <ul class="pagination justify-content-center mb-0">
+                {% if services.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ services.previous_page_number }}&q={{ q }}&categorie={{ categorie }}">Précédent</a></li>
+                {% endif %}
+                
+                <li class="page-item active"><span class="page-link">{{ services.number }} / {{ services.paginator.num_pages }}</span></li>
+                
+                {% if services.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ services.next_page_number }}&q={{ q }}&categorie={{ categorie }}">Suivant</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

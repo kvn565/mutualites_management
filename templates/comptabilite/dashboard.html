@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Bilan Comptable — Mutualité{% endblock %}
+{% block page_title %}Bilan Comptable{% endblock %}
+{% block page_icon %}bi bi-bank{% endblock %}
+{% block nav_compta %}active{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="text-white-50 text-uppercase">Total Actifs</h6>
+                <h3 class="mb-0">{{ total_actif|floatformat:0|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="text-white-50 text-uppercase">Total Passifs</h6>
+                <h3 class="mb-0">{{ total_passif|floatformat:0|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="text-white-50 text-uppercase">Total Produits</h6>
+                <h3 class="mb-0">{{ total_produit|floatformat:0|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="text-dark text-opacity-50 text-uppercase">Total Charges</h6>
+                <h3 class="mb-0">{{ total_charge|floatformat:0|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 {% if resultat >= 0 %}border-success{% else %}border-danger{% endif %} border-top border-4">
+            <div class="card-body text-center p-5">
+                <h5 class="text-muted text-uppercase mb-3">Résultat Net d'Exploitation</h5>
+                <h1 class="display-4 fw-bold {% if resultat >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ resultat|floatformat:0|intcomma }} BIF
+                </h1>
+                {% if resultat >= 0 %}
+                <div class="text-success mt-2"><i class="bi bi-arrow-up-circle"></i> Excédentaire</div>
+                {% else %}
+                <div class="text-danger mt-2"><i class="bi bi-arrow-down-circle"></i> Déficitaire</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

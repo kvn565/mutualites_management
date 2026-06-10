@@ -1,0 +1,170 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | WIBABI — Administration{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}" style="display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;">
+        <span style="width:36px;height:36px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:#c9a84c;font-size:1.1rem;">
+            <i class="bi bi-shield-lock-fill"></i>
+        </span>
+        <span style="font-family:'Outfit',sans-serif;font-weight:600;">WIBABI Admin</span>
+    </a>
+</h1>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="{% static 'vendor/adminlte/css/adminlte.min.css' %}" rel="stylesheet">
+<link href="{% static 'vendor/bootstrap-icons/css/bootstrap-icons.min.css' %}" rel="stylesheet">
+<style>
+    :root {
+        --vert: #0a5c36;
+        --vert-clair: #0d7a48;
+        --or: #c9a84c;
+        --bs-primary: #0a5c36;
+        --bs-primary-rgb: 10, 92, 54;
+    }
+    body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        --djinja-primary: #0a5c36;
+        --djinja-primary-fg: #fff;
+        --djinja-primary-dark: #062c1a;
+        --djinja-accent: #c9a84c;
+        --djinja-header-bg: #0a5c36;
+        --djinja-header-color: #fff;
+        --djinja-breadcrumbs-bg: #0d7a48;
+    }
+    #header {
+        background: #0a5c36;
+        color: #fff;
+        padding: 14px 30px;
+    }
+    #header a:link, #header a:visited {
+        color: rgba(255,255,255,0.85);
+    }
+    #header a:hover {
+        color: #c9a84c;
+    }
+    #user-tools a {
+        color: rgba(255,255,255,0.7);
+    }
+    #user-tools a:focus, #user-tools a:hover {
+        color: #c9a84c;
+    }
+    .module caption, .module h2, .inline-group h2 {
+        background: #0a5c36;
+        color: #fff;
+        font-family: 'Outfit', sans-serif;
+        padding: 10px 14px;
+        border-radius: 8px 8px 0 0;
+    }
+    div.breadcrumbs {
+        background: #0d7a48;
+        color: rgba(255,255,255,0.8);
+        padding: 10px 30px;
+    }
+    div.breadcrumbs a {
+        color: #fff;
+    }
+    .button, input[type=submit], input[type=button], .submit-row input, a.button {
+        background: #0a5c36;
+        border-color: #0a5c36;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+    }
+    .button:hover, input[type=submit]:hover, input[type=button]:hover {
+        background: #0d7a48;
+        border-color: #0d7a48;
+    }
+    .button.default, input[type=submit].default, .submit-row input.default {
+        background: #0d7a48;
+        border-color: #0d7a48;
+    }
+    .button.default:hover, input[type=submit].default:hover {
+        background: #10a060;
+        border-color: #10a060;
+    }
+    .selector-chosen h2 {
+        background: #0a5c36 !important;
+    }
+    #changelist-filter li.selected a {
+        color: #0a5c36 !important;
+    }
+    #changelist-filter a:hover {
+        color: #c9a84c !important;
+    }
+    .paginator a:link, .paginator a:visited {
+        color: #0a5c36;
+    }
+    .paginator a:hover {
+        color: #0d7a48;
+    }
+    a:link, a:visited {
+        color: #0a5c36;
+    }
+    a:hover {
+        color: #c9a84c;
+    }
+    #content-related {
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+    #content-related .module h2 {
+        background: #0a5c36;
+        border-radius: 12px 12px 0 0;
+    }
+    .module {
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+    }
+    table thead th {
+        background: #e8f5ee;
+        color: #0a5c36;
+        font-weight: 700;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: none;
+        padding: 12px 14px;
+    }
+    table tbody td {
+        padding: 12px 14px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f4f8;
+    }
+    #content {
+        padding: 20px 30px;
+    }
+    .dashboard #content {
+        max-width: 1200px;
+    }
+    .dashboard .module table th {
+        width: 100%;
+    }
+    @media (max-width: 768px) {
+        #header { padding: 10px 16px; }
+        #content { padding: 12px 16px; }
+        div.breadcrumbs { padding: 8px 16px; }
+    }
+</style>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% endblock %}
+
+{% block footer %}
+{{ block.super }}
+<script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'vendor/adminlte/js/adminlte.min.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,317 @@
+{% extends "superadmin/base_superadmin.html" %}
+{% load static %}
+{% block title %}Dashboard — Super Admin{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+{% block page_subtitle %}Vue d'ensemble du système de gestion des mutualités{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+
+{% if essai_expirant %}
+<div class="alert alert-warning d-flex align-items-center gap-3 mb-4" style="border-left:4px solid #f59e0b;">
+    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+    <div>
+        <strong>{{ essai_expirant|length }} mutualité(s) en essai expirent dans moins de 3 jours.</strong>
+        {% for m in essai_expirant %}
+        <a href="{% url 'superadmin:mutualite_detail' m.pk %}" class="badge bg-warning text-dark ms-1">{{ m.nom }}</a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if mutualites_sans_licence %}
+<div class="alert alert-danger d-flex align-items-center gap-3 mb-4" style="border-left:4px solid #ef4444;">
+    <i class="bi bi-x-octagon-fill fs-5"></i>
+    <div>
+        <strong>{{ mutualites_sans_licence|length }} mutualité(s) sans licence active :</strong>
+        {% for m in mutualites_sans_licence %}
+        <a href="{% url 'superadmin:mutualite_detail' m.pk %}" class="badge bg-danger ms-1 text-white">{{ m.nom }}</a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-icon vert"><i class="bi bi-building"></i></div>
+            <div>
+                <div class="stat-label">Mutualités</div>
+                <div class="stat-value">{{ stats.total_mutualites }}</div>
+                <div class="stat-sub">{{ stats.mutualites_actives }} actives</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-icon bleu"><i class="bi bi-people-fill"></i></div>
+            <div>
+                <div class="stat-label">Membres</div>
+                <div class="stat-value">{{ stats.total_membres }}</div>
+                <div class="stat-sub">affiliés enregistrés</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-icon cyan"><i class="bi bi-receipt-cutoff"></i></div>
+            <div>
+                <div class="stat-label">Factures</div>
+                <div class="stat-value">{{ stats.total_factures }}</div>
+                <div class="stat-sub">factures émises</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-icon or"><i class="bi bi-people-fill"></i></div>
+            <div>
+                <div class="stat-label">Utilisateurs</div>
+                <div class="stat-value">{{ stats.total_utilisateurs }}</div>
+                <div class="stat-sub">comptes créés</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-icon or"><i class="bi bi-clock"></i></div>
+            <div>
+                <div class="stat-label">En essai</div>
+                <div class="stat-value">{{ stats.mutualites_essai }}</div>
+                <div class="stat-sub">période d'essai</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-icon violet"><i class="bi bi-exclamation-triangle"></i></div>
+            <div>
+                <div class="stat-label">Suspendues / Expirées</div>
+                <div class="stat-value">{{ stats.mutualites_suspendues|add:stats.mutualites_expirees }}</div>
+                <div class="stat-sub">{{ stats.mutualites_suspendues }} suspendues, {{ stats.mutualites_expirees }} expirées</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Graphiques -->
+<div class="row mt-5">
+    <div class="col-12 mb-3">
+        <div class="d-flex align-items-center gap-3">
+            <h5 class="mb-0"><i class="bi bi-bar-chart-fill me-2"></i>Statistiques par mutualité</h5>
+            <select id="mutualiteFilter" class="form-select" style="width:280px;height:42px;" onchange="filterCharts()">
+                <option value="all">Toutes les mutualités</option>
+                {% for m in mutualites_liste %}
+                <option value="{{ m.nom }}">{{ m.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-people-fill me-2"></i>Membres par mutualité</div>
+            <div class="card-body">
+                <canvas id="chartMembres" height="280"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-receipt-cutoff me-2"></i>Factures par mutualité</div>
+            <div class="card-body">
+                <canvas id="chartFactures" height="280"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Expirations proches -->
+{% if expiration_proche %}
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-clock-history"></i> Licences expirant dans les 7 jours
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Mutualité</th>
+                            <th>Code</th>
+                            <th>Statut</th>
+                            <th>Expire le</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in expiration_proche %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'superadmin:mutualite_detail' m.pk %}" class="text-decoration-none fw-semibold">
+                                    {{ m.nom }}
+                                </a>
+                            </td>
+                            <td><code>{{ m.code_mutualite|default:"—" }}</code></td>
+                            <td><span class="badge {% if m.statut == 'ACTIF' %}bg-success{% else %}bg-info{% endif %}">{{ m.get_statut_display }}</span></td>
+                            <td>{{ m.date_expiration|date:"d/m/Y"|default:"—" }}</td>
+                            <td>
+                                <a href="{% url 'superadmin:mutualite_renouveler_licence' m.pk %}" class="btn btn-sm btn-gold">
+                                    <i class="bi bi-arrow-repeat"></i> Renouveler
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Derniers audits -->
+{% if derniers_audits %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-journal-text"></i> Dernières actions
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Mutualité</th>
+                            <th>Action</th>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for audit in derniers_audits %}
+                        <tr>
+                            <td>{{ audit.date_action|date:"d/m/Y H:i" }}</td>
+                            <td>{{ audit.mutualite.nom|default:"—" }}</td>
+                            <td><span class="badge bg-secondary">{{ audit.action }}</span></td>
+                            <td style="font-size:0.82rem;">{{ audit.message|truncatechars:60 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+const chartData = {{ chart_mutualites|safe }};
+
+let chartMembres, chartFactures;
+
+function buildLabels(data) {
+    return data.map(function(d) { return d.nom; });
+}
+
+function initCharts(data) {
+    const labels = buildLabels(data);
+    const couleur = '#0a5c36';
+    const couleurOr = '#c9a84c';
+
+    if (chartMembres) chartMembres.destroy();
+    if (chartFactures) chartFactures.destroy();
+
+    const membresCtx = document.getElementById('chartMembres').getContext('2d');
+    chartMembres = new Chart(membresCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Membres',
+                data: data.map(function(d) { return d.nb_membres; }),
+                backgroundColor: 'rgba(10, 92, 54, 0.7)',
+                borderColor: couleur,
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                },
+                x: {
+                    ticks: { maxRotation: 45, font: { size: 10 } }
+                }
+            }
+        }
+    });
+
+    const facturesCtx = document.getElementById('chartFactures').getContext('2d');
+    chartFactures = new Chart(facturesCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Factures',
+                data: data.map(function(d) { return d.nb_factures; }),
+                backgroundColor: 'rgba(201, 168, 76, 0.7)',
+                borderColor: couleurOr,
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                },
+                x: {
+                    ticks: { maxRotation: 45, font: { size: 10 } }
+                }
+            }
+        }
+    });
+}
+
+function filterCharts() {
+    const val = document.getElementById('mutualiteFilter').value;
+    if (val === 'all') {
+        initCharts(chartData);
+    } else {
+        const filtered = chartData.filter(function(d) { return d.nom === val; });
+        initCharts(filtered);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initCharts(chartData);
+});
+</script>
+{% endblock %}

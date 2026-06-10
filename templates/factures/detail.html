@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Détail Facture {{ facture.numero }} — Mutualité{% endblock %}
+{% block page_title %}Facture {{ facture.numero }}{% endblock %}
+{% block page_icon %}bi bi-receipt{% endblock %}
+{% block nav_factures %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{% url 'factures:liste' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+    <div class="d-flex gap-2 flex-wrap">
+        {% if user.peut_modifier and facture.statut == 'BROUILLON' %}
+        <form method="post" action="{% url 'factures:soumettre' facture.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-info text-white" onclick="return confirm('Soumettre cette facture pour validation ?')">
+                <i class="bi bi-send"></i> Soumettre
+            </button>
+        </form>
+        {% endif %}
+        {% if user.peut_valider and facture.statut == 'SOUMIS' %}
+        <form method="post" action="{% url 'factures:valider' facture.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success" onclick="return confirm('Valider cette facture ?')">
+                <i class="bi bi-check-circle"></i> Valider
+            </button>
+        </form>
+        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejetModal">
+            <i class="bi bi-x-circle"></i> Rejeter
+        </button>
+        {% endif %}
+        {% if user.peut_valider and facture.statut == 'VALIDE' %}
+        <form method="post" action="{% url 'factures:marquer_paye' facture.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary" onclick="return confirm('Marquer comme payée ?')">
+                <i class="bi bi-credit-card"></i> Marquer Payée
+            </button>
+        </form>
+        {% endif %}
+        {% if user.peut_modifier and facture.statut != 'VALIDE' and facture.statut != 'PAYE' and facture.statut != 'REJETE' %}
+        <a href="{% url 'factures:modifier' facture.pk %}" class="btn btn-primary"><i class="bi bi-pencil"></i> Modifier</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Rejet -->
+{% if user.peut_valider and facture.statut == 'SOUMIS' %}
+<div class="modal fade" id="rejetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger"><i class="bi bi-x-circle"></i> Rejeter la facture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'factures:rejeter' facture.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Motif du rejet <span class="text-danger">*</span></label>
+                        <textarea name="motif_rejet" class="form-control" rows="4" required
+                            placeholder="Expliquez la raison du rejet..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle"></i> Confirmer le rejet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-vert fw-bold"><i class="bi bi-file-text me-2"></i> Facture n° {{ facture.numero }}</h5>
+                <div>
+                    {% if facture.statut == 'BROUILLON' %}<span class="badge bg-secondary fs-6">Brouillon</span>
+                    {% elif facture.statut == 'SOUMIS' %}<span class="badge bg-info text-dark fs-6">Soumise</span>
+                    {% elif facture.statut == 'VALIDE' %}<span class="badge bg-success fs-6">Validée</span>
+                    {% elif facture.statut == 'PAYE' %}<span class="badge bg-primary fs-6">Payée</span>
+                    {% elif facture.statut == 'REJETE' %}<span class="badge bg-danger fs-6">Rejetée</span>{% endif %}
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row mb-4 pb-4 border-bottom">
+                    <div class="col-sm-6">
+                        <h6 class="text-muted text-uppercase small mb-2">Prestateur (Partenaire)</h6>
+                        <div class="fw-bold fs-5 mb-1">{{ facture.partenaire.nom }}</div>
+                        <div class="text-muted small">{{ facture.partenaire.adresse|default:"" }}</div>
+                    </div>
+                    <div class="col-sm-6 text-sm-end mt-4 mt-sm-0">
+                        <h6 class="text-muted text-uppercase small mb-2">Informations Facture</h6>
+                        <div class="mb-1"><strong>Date :</strong> {{ facture.date|date:"d M Y" }}</div>
+                        <div class="mb-1"><strong>Saisie le :</strong> {{ facture.date_creation|date:"d M Y H:i" }}</div>
+                        {% if facture.fichier_joint %}
+                        <div class="mt-2"><a href="{{ facture.fichier_joint.url }}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-file-pdf"></i> Voir le scan</a></div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row mb-4 pb-4 border-bottom">
+                    <div class="col-12">
+                        <h6 class="text-muted text-uppercase small mb-3">Patient bénéficiaire</h6>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="bi bi-person-badge fs-4 text-vert"></i>
+                            <div>
+                                <div class="small text-muted">Affilié principal</div>
+                                <div class="fw-bold">{{ facture.affilie.nom_complet }}</div>
+                                <div class="small text-muted">{{ facture.affilie.numero_affiliation }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% if facture.ayant_droit %}
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="bi bi-person fs-4 text-info"></i>
+                            <div>
+                                <div class="small text-muted">Patient réel (Ayant Droit)</div>
+                                <div class="fw-bold">{{ facture.ayant_droit.nom_complet }}</div>
+                                <div class="small text-muted">{{ facture.ayant_droit.lien_parente }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <h6 class="text-muted text-uppercase small mb-3">Détail des prestations</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered table-striped mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Acte/Médicament</th>
+                                <th class="text-center">Qté</th>
+                                <th class="text-end">P.U.</th>
+                                <th class="text-end">Total</th>
+                                <th class="text-center">% Mut.</th>
+                                <th class="text-end text-success">Part Mut.</th>
+                                <th class="text-end text-warning">Patient</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ligne in facture.lignes.all %}
+                            <tr>
+                                <td>
+                                    <div class="fw-medium">{{ ligne.service.nom }}</div>
+                                    <div class="text-muted small">{{ ligne.designation }}</div>
+                                </td>
+                                <td class="text-center">{{ ligne.quantite }}</td>
+                                <td class="text-end">{{ ligne.prix_unitaire|floatformat:0|intcomma }}</td>
+                                <td class="text-end fw-medium">{{ ligne.total_ligne|floatformat:0|intcomma }}</td>
+                                <td class="text-center">{{ ligne.taux_applique }}%</td>
+                                <td class="text-end text-success fw-bold">{{ ligne.part_mutualite|floatformat:0|intcomma }}</td>
+                                <td class="text-end text-warning text-dark fw-bold">{{ ligne.part_patient|floatformat:0|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-3 text-muted">Aucune ligne de facturation</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="bg-light fw-bold">
+                            <tr>
+                                <td colspan="3" class="text-end">TOTAUX :</td>
+                                <td class="text-end fs-5">{{ facture.montant_total|floatformat:0|intcomma }}</td>
+                                <td></td>
+                                <td class="text-end text-success fs-5">{{ facture.montant_mutualite|floatformat:0|intcomma }}</td>
+                                <td class="text-end text-warning text-dark fs-5">{{ facture.montant_ticket_moderateur|floatformat:0|intcomma }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-8">
+                        {% if facture.diagnostic %}
+                        <h6 class="text-muted small">Diagnostic / Raison</h6>
+                        <p class="small bg-light p-2 rounded border">{{ facture.diagnostic }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions Rapides -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm bg-vert text-white mb-4">
+            <div class="card-body text-center py-4">
+                <h6 class="text-white-50 text-uppercase mb-2">Montant à payer (Mut.)</h6>
+                <h2 class="display-5 fw-bold mb-0 text-white">{{ facture.montant_mutualite|floatformat:0|intcomma }} <span class="fs-4">BIF</span></h2>
+            </div>
+        </div>
+        
+        {% if facture.motif_rejet %}
+        <div class="alert alert-danger shadow-sm border-0 mb-4">
+            <h6 class="alert-heading fw-bold"><i class="bi bi-exclamation-octagon me-2"></i> Motif de rejet</h6>
+            <p class="mb-0 small">{{ facture.motif_rejet }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

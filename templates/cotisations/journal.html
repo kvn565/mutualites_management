@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Journal des Cotisations — Mutualité de Santé{% endblock %}
+{% block page_title %}Journal des Cotisations{% endblock %}
+{% block page_subtitle %}Récapitulatif des cotisations payées par période{% endblock %}
+{% block page_icon %}bi bi-journal-check{% endblock %}
+{% block nav_journal_cotisations %}active{% endblock %}
+
+{% block page_actions %}
+    <a href="{% url 'cotisations:liste' %}" class="btn btn-outline-success btn-sm">
+        <i class="bi bi-list-ul"></i> Toutes les cotisations
+    </a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Filtres -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Année</label>
+                <select name="annee" class="form-select">
+                    {% for a in annees %}
+                    <option value="{{ a }}" {% if a == annee %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Mois (optionnel)</label>
+                <select name="mois" class="form-select">
+                    <option value="">Tous les mois</option>
+                    {% for m, mn in mois_choices %}
+                    <option value="{{ m }}" {% if mois == m|stringformat:"s" %}selected{% endif %}>{{ mn }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Filtrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Totaux récap -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon vert"><i class="bi bi-wallet2"></i></div>
+            <div>
+                <div class="stat-label">Total encaissé</div>
+                <div class="stat-value" style="font-size:1.2rem;">{{ total_montant|floatformat:0|intcomma }} BIF</div>
+                <div class="stat-sub">cotisations payées</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon cyan"><i class="bi bi-people-fill"></i></div>
+            <div>
+                <div class="stat-label">Nombre de paiements</div>
+                <div class="stat-value">{{ nb_paiements }}</div>
+                <div class="stat-sub">transactions enregistrées</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon or"><i class="bi bi-calendar3"></i></div>
+            <div>
+                <div class="stat-label">Période</div>
+                <div class="stat-value" style="font-size:1.1rem;">{{ annee }}{% if mois %}/{{ mois }}{% endif %}</div>
+                <div class="stat-sub">{% if mois %}mois sélectionné{% else %}année complète{% endif %}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-journal-check"></i> Journal ({{ nb_paiements }} paiements)</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Référence</th>
+                    <th>Affilié</th>
+                    <th>Période</th>
+                    <th class="text-end">Montant</th>
+                    <th>Date paiement</th>
+                    <th>Mode</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cot in cotisations %}
+                <tr>
+                    <td>
+                        <a href="{% url 'cotisations:detail' cot.pk %}" class="fw-bold text-decoration-none text-vert">{{ cot.reference }}</a>
+                    </td>
+                    <td>
+                        <div class="fw-medium">{{ cot.affilie.nom_complet }}</div>
+                        <div class="text-muted small">{{ cot.affilie.numero_affiliation }}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ cot.get_periode_type_display }}</span>
+                        {% if cot.mois %}<div class="text-muted small mt-1">{{ cot.mois|stringformat:"02d" }}/{{ cot.annee }}</div>{% endif %}
+                    </td>
+                    <td class="text-end fw-bold text-vert">{{ cot.montant|floatformat:0|intcomma }} BIF</td>
+                    <td>{{ cot.date_paiement|date:"d/m/Y"|default:"—" }}</td>
+                    <td>
+                        {% if cot.mode_paiement %}
+                        <span class="badge bg-light text-dark border">{{ cot.get_mode_paiement_display }}</span>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <div class="text-muted mb-2"><i class="bi bi-inbox fs-1"></i></div>
+                        <h6>Aucune cotisation payée pour cette période</h6>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if cotisations %}
+            <tfoot style="background: var(--vert-leger);">
+                <tr>
+                    <td colspan="3" class="fw-bold text-vert py-3 px-4">TOTAL PÉRIODE</td>
+                    <td class="text-end fw-bold text-vert py-3 px-4" style="font-size:1.05rem;">{{ total_montant|floatformat:0|intcomma }} BIF</td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+    {% if cotisations.has_other_pages %}
+    <div class="card-footer bg-white border-top-0 pt-3">
+        <nav>
+            <ul class="pagination justify-content-center mb-0">
+                {% if cotisations.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ cotisations.previous_page_number }}&annee={{ annee }}&mois={{ mois }}">Précédent</a></li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">{{ cotisations.number }} / {{ cotisations.paginator.num_pages }}</span></li>
+                {% if cotisations.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ cotisations.next_page_number }}&annee={{ annee }}&mois={{ mois }}">Suivant</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

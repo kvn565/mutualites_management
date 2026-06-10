@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Mutualité de Santé{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-cash-coin{% endblock %}
+{% block nav_cotisations %}active{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-vert text-white border-0">
+                <i class="bi bi-wallet2 me-2"></i> Informations du paiement
+            </div>
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data" class="row g-3">
+                    {% csrf_token %}
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.reference.label }}</label>
+                        {{ form.reference }}
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">{{ form.affilie.label }} <span class="text-danger">*</span></label>
+                        {{ form.affilie }}
+                        {% if form.affilie.errors %}<div class="text-danger small">{{ form.affilie.errors.0 }}</div>{% endif %}
+                    </div>
+                    
+                    <div class="col-12 mt-4 mb-2">
+                        <h6 class="text-muted border-bottom pb-2">Période Couverte</h6>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.periode_type.label }} <span class="text-danger">*</span></label>
+                        {{ form.periode_type }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.mois.label }}</label>
+                        {{ form.mois }}
+                        <div class="form-text small">De 1 (Jan) à 12 (Déc)</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.annee.label }} <span class="text-danger">*</span></label>
+                        {{ form.annee }}
+                    </div>
+                    
+                    <div class="col-12 mt-4 mb-2">
+                        <h6 class="text-muted border-bottom pb-2">Détails financiers</h6>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">{{ form.montant.label }} <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            {{ form.montant }}
+                            <span class="input-group-text bg-light">BIF</span>
+                        </div>
+                        {% if form.montant.errors %}<div class="text-danger small">{{ form.montant.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">{{ form.statut.label }} <span class="text-danger">*</span></label>
+                        {{ form.statut }}
+                    </div>
+                    
+                    <div class="col-md-4 mt-3">
+                        <label class="form-label">{{ form.date_emission.label }}</label>
+                        {{ form.date_emission }}
+                    </div>
+                    <div class="col-md-4 mt-3">
+                        <label class="form-label">{{ form.date_echeance.label }}</label>
+                        {{ form.date_echeance }}
+                    </div>
+                    <div class="col-md-4 mt-3">
+                        <label class="form-label">{{ form.date_paiement.label }}</label>
+                        {{ form.date_paiement }}
+                    </div>
+                    
+                    <div class="col-md-6 mt-3">
+                        <label class="form-label">{{ form.mode_paiement.label }}</label>
+                        {{ form.mode_paiement }}
+                    </div>
+                    <div class="col-md-6 mt-3">
+                        <label class="form-label">{{ form.recu_fichier.label }}</label>
+                        {{ form.recu_fichier }}
+                        {% if obj and obj.recu_fichier %}
+                        <div class="mt-1 small"><a href="{{ obj.recu_fichier.url }}" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Voir le reçu actuel</a></div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-12 mt-3">
+                        <label class="form-label">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                    </div>
+                    
+                    <div class="col-12 mt-4 d-flex justify-content-end gap-2 border-top pt-3">
+                        <a href="{% url 'cotisations:liste' %}" class="btn btn-outline-secondary">Annuler</a>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i> Enregistrer le paiement</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

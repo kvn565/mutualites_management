@@ -1,0 +1,37 @@
+{% extends 'superadmin/base_superadmin.html' %}
+{% block title %}Renouveler la licence — {{ mutualite.nom }}{% endblock %}
+{% block page_title %}Renouveler la licence{% endblock %}
+{% block page_subtitle %}{{ mutualite.nom }} — {{ mutualite.code_mutualite }}{% endblock %}
+{% block nav_mutualites %}active{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-arrow-repeat"></i> Renouvellement de licence</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Type d'abonnement</label>
+                        <select name="type_abonnement" class="form-select" required>
+                            <option value="MENSUEL">Mensuel</option>
+                            <option value="TRIMESTRIEL">Trimestriel</option>
+                            <option value="SEMESTRIEL">Semestriel</option>
+                            <option value="ANNUEL" selected>Annuel</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Durée (jours)</label>
+                        <input type="number" name="duree_jours" class="form-control" value="365" min="1" required>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Confirmer</button>
+                        <a href="{% url 'superadmin:mutualite_detail' mutualite.pk %}" class="btn btn-outline-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

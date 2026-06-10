@@ -1,0 +1,147 @@
+{% extends 'base_auth.html' %}
+{% block title %}Inscription — Mutualité de Santé{% endblock %}
+
+{% block auth_body %}
+<div class="login-box login-box-wide">
+    <div class="login-logo">
+        <div class="logo-icon">
+            <div class="medical-cross"></div>
+            <span class="cross-badge">+</span>
+        </div>
+        <div>
+            <div class="logo-text">Créer votre mutualité</div>
+            <span class="logo-sub">Inscrivez votre organisation pour démarrer</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body login-card-body">
+
+            {% if form.non_field_errors %}
+            <div class="error-msg">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post" autocomplete="off">
+                {% csrf_token %}
+
+                <h5 class="mb-3 fw-bold" style="color:var(--vert);">
+                    <i class="bi bi-buildings me-2" style="color:var(--or);"></i>Informations de la mutualité
+                </h5>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small" for="{{ form.nom_mutualite.id_for_label }}">{{ form.nom_mutualite.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-building"></i></span>
+                        {{ form.nom_mutualite }}
+                    </div>
+                    {% if form.nom_mutualite.errors %}<div class="field-error">{{ form.nom_mutualite.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small" for="{{ form.sigle.id_for_label }}">{{ form.sigle.label }}</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-fonts"></i></span>
+                            {{ form.sigle }}
+                        </div>
+                        {% if form.sigle.errors %}<div class="field-error">{{ form.sigle.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold small" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            {{ form.email }}
+                        </div>
+                        {% if form.email.errors %}<div class="field-error">{{ form.email.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold small" for="{{ form.telephone.id_for_label }}">{{ form.telephone.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                        {{ form.telephone }}
+                    </div>
+                    {% if form.telephone.errors %}<div class="field-error">{{ form.telephone.errors.0 }}</div>{% endif %}
+                </div>
+
+                <hr class="opacity-25 my-4">
+
+                <h5 class="mb-3 fw-bold" style="color:var(--vert);">
+                    <i class="bi bi-person-badge me-2" style="color:var(--or);"></i>Administrateur
+                </h5>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small" for="{{ form.prenom_admin.id_for_label }}">{{ form.prenom_admin.label }}</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            {{ form.prenom_admin }}
+                        </div>
+                        {% if form.prenom_admin.errors %}<div class="field-error">{{ form.prenom_admin.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small" for="{{ form.nom_admin.id_for_label }}">{{ form.nom_admin.label }}</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            {{ form.nom_admin }}
+                        </div>
+                        {% if form.nom_admin.errors %}<div class="field-error">{{ form.nom_admin.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small" for="{{ form.email_admin.id_for_label }}">{{ form.email_admin.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-envelope-at"></i></span>
+                        {{ form.email_admin }}
+                    </div>
+                    {% if form.email_admin.errors %}<div class="field-error">{{ form.email_admin.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person-vcard"></i></span>
+                        {{ form.username }}
+                    </div>
+                    {% if form.username.errors %}<div class="field-error">{{ form.username.errors.0 }}</div>{% endif %}
+                    {% if form.username.help_text %}<div class="small text-secondary mt-1">{{ form.username.help_text }}</div>{% endif %}
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            {{ form.password }}
+                        </div>
+                        {% if form.password.errors %}<div class="field-error">{{ form.password.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small" for="{{ form.confirm_password.id_for_label }}">{{ form.confirm_password.label }}</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                            {{ form.confirm_password }}
+                        </div>
+                        {% if form.confirm_password.errors %}<div class="field-error">{{ form.confirm_password.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-login">
+                    <i class="bi bi-rocket-takeoff me-2"></i> Créer ma mutualité
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <a href="{% url 'core:login' %}">
+                    <i class="bi bi-arrow-left me-1"></i> Déjà inscrit ? Connectez-vous
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

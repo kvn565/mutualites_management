@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Supprimer — {{ obj.nom_etablissement }}{% endblock %}
+
+{% block page_title %}Confirmer la suppression{% endblock %}
+{% block page_subtitle %}{{ obj.code_partenaire }} — {{ obj.nom_etablissement }}{% endblock %}
+{% block nav_partenaire %}active{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card text-center">
+            <div class="card-body p-5">
+                <div style="width:64px;height:64px;background:#fdecea;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                    <i class="bi bi-exclamation-triangle-fill" style="font-size:1.6rem;color:#e74c3c;"></i>
+                </div>
+                <h5 style="font-weight:600;color:var(--bleu);">Supprimer ce partenaire ?</h5>
+                <p style="color:#8a9aaa;font-size:0.88rem;max-width:360px;margin:8px auto 20px;">
+                    Cette action est irréversible. Toutes les données associées à ce partenaire seront définitivement supprimées.
+                </p>
+
+                {% if obj.nb_factures > 0 %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Impossible de supprimer {{ obj.nom_etablissement }} car il a <strong>{{ obj.nb_factures }} facture(s)</strong> associée(s).
+                </div>
+                <a href="{% url 'partenaires:detail' obj.pk %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Retour
+                </a>
+                {% else %}
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-1"></i>Confirmer la suppression
+                        </button>
+                        <a href="{% url 'partenaires:detail' obj.pk %}" class="btn btn-outline-secondary">Annuler</a>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

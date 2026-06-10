@@ -1,0 +1,130 @@
+{% extends 'superadmin/base_superadmin.html' %}
+{% block title %}Utilisateurs — Administration{% endblock %}
+{% block page_title %}Utilisateurs{% endblock %}
+{% block page_subtitle %}Gérer tous les utilisateurs de la plateforme{% endblock %}
+{% block nav_utilisateurs %}active{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'superadmin:utilisateur_creer' %}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Nouvel utilisateur
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body py-3">
+                <form method="get" class="d-flex flex-wrap gap-3 align-items-end">
+                    <div style="flex:1;min-width:200px;">
+                        <label class="form-label mb-1">Recherche</label>
+                        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Nom, email ou téléphone..." style="height:42px;">
+                    </div>
+                    <div style="min-width:160px;">
+                        <label class="form-label mb-1">Rôle</label>
+                        <select name="role" class="form-select" style="height:42px;">
+                            <option value="">Tous</option>
+                            <option value="SUPER_ADMIN" {% if role == 'SUPER_ADMIN' %}selected{% endif %}>Super Admin</option>
+                            <option value="ADMIN_MUTUALITE" {% if role == 'ADMIN_MUTUALITE' %}selected{% endif %}>Admin Mutualité</option>
+                            <option value="COMPTABLE" {% if role == 'COMPTABLE' %}selected{% endif %}>Comptable</option>
+                            <option value="AGENT" {% if role == 'AGENT' %}selected{% endif %}>Agent</option>
+                            <option value="CONSULTATION" {% if role == 'CONSULTATION' %}selected{% endif %}>Consultation</option>
+                        </select>
+                    </div>
+                    <div style="min-width:200px;">
+                        <label class="form-label mb-1">Mutualité</label>
+                        <select name="mutualite" class="form-select" style="height:42px;">
+                            <option value="">Toutes</option>
+                            {% for m in mutualites %}
+                            <option value="{{ m.pk }}" {% if mutualite_id|stringformat:"s" == m.pk|stringformat:"s" %}selected{% endif %}>{{ m.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="height:42px;">
+                        <i class="bi bi-search"></i> Filtrer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Identifiant</th>
+                            <th>Nom complet</th>
+                            <th>Rôle</th>
+                            <th>Mutualité</th>
+                            <th>Email</th>
+                            <th>Téléphone</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in utilisateurs %}
+                        <tr>
+                            <td><code>{{ u.username }}</code></td>
+                            <td class="fw-semibold">{{ u.nom_complet|default:"—" }}</td>
+                            <td>
+                                <span class="badge {% if u.role == 'SUPER_ADMIN' %}bg-dark{% elif u.role == 'ADMIN_MUTUALITE' %}bg-primary{% elif u.role == 'COMPTABLE' %}bg-info{% elif u.role == 'AGENT' %}bg-secondary{% else %}bg-light text-dark{% endif %}">
+                                    {{ u.get_role_display }}
+                                </span>
+                            </td>
+                            <td>{{ u.mutualite.nom|default:"—" }}</td>
+                            <td>{{ u.email|default:"—" }}</td>
+                            <td>{{ u.telephone|default:"—" }}</td>
+                            <td>
+                                {% if u.actif %}
+                                <span class="badge bg-success">Actif</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactif</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'superadmin:utilisateur_modifier' u.pk %}" class="btn btn-sm btn-outline-vert" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if u != request.user and not u.est_super_admin %}
+                                <a href="{% url 'superadmin:utilisateur_supprimer' u.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-people fs-1 d-block mb-2"></i>
+                                Aucun utilisateur trouvé
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if paginator.num_pages > 1 %}
+    <div class="col-12">
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if utilisateurs.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1{% if q %}&q={{ q }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if mutualite_id %}&mutualite={{ mutualite_id }}{% endif %}">«</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ utilisateurs.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if mutualite_id %}&mutualite={{ mutualite_id }}{% endif %}">‹</a></li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">{{ utilisateurs.number }}/{{ paginator.num_pages }}</span></li>
+                {% if utilisateurs.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ utilisateurs.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if mutualite_id %}&mutualite={{ mutualite_id }}{% endif %}">›</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ paginator.num_pages }}{% if q %}&q={{ q }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if mutualite_id %}&mutualite={{ mutualite_id }}{% endif %}">»</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

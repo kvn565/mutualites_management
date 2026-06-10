@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Journal Validé — Factures{% endblock %}
+{% block page_title %}Journal des Factures Validées{% endblock %}
+{% block page_icon %}bi bi-journal-text{% endblock %}
+{% block nav_journal_factures %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{% url 'factures:liste' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour aux factures</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm bg-white h-100 border-start border-4 border-primary">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase" style="font-size:0.75rem;">Total Global Validé</h6>
+                <h3 class="text-dark mb-0 mt-2">{{ total_global|floatformat:0|intcomma }} <span class="fs-6 text-muted">BIF</span></h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm bg-white h-100 border-start border-4 border-success">
+            <div class="card-body">
+                <h6 class="text-success fw-bold text-uppercase" style="font-size:0.75rem;">À payer par la Mutualité</h6>
+                <h3 class="text-success mb-0 mt-2">{{ total_mut|floatformat:0|intcomma }} <span class="fs-6 text-muted">BIF</span></h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm bg-white h-100 border-start border-4 border-warning">
+            <div class="card-body">
+                <h6 class="text-warning text-dark fw-bold text-uppercase" style="font-size:0.75rem;">Part Patients (Ticket Mod.)</h6>
+                <h3 class="text-dark mb-0 mt-2">{{ total_patient|floatformat:0|intcomma }} <span class="fs-6 text-muted">BIF</span></h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>N° Facture</th>
+                        <th>Partenaire</th>
+                        <th>Affilié</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-end text-success">Part Mut.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fac in factures %}
+                    <tr>
+                        <td>{{ fac.date|date:"d/m/Y" }}</td>
+                        <td class="fw-bold"><a href="{% url 'factures:detail' fac.pk %}" class="text-decoration-none">{{ fac.numero }}</a></td>
+                        <td>{{ fac.partenaire.nom }}</td>
+                        <td>{{ fac.affilie.numero_affiliation }}</td>
+                        <td class="text-end">{{ fac.montant_total|floatformat:0|intcomma }}</td>
+                        <td class="text-end fw-bold text-success">{{ fac.montant_mutualite|floatformat:0|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">Aucune facture validée dans le journal</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

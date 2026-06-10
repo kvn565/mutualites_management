@@ -1,0 +1,108 @@
+{% extends 'superadmin/base_superadmin.html' %}
+{% block title %}Membres — {{ mutualite.nom }}{% endblock %}
+{% block page_title %}Membres{% endblock %}
+{% block page_subtitle %}{{ mutualite.nom }} — Affiliation des membres{% endblock %}
+{% block nav_membres %}active{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+    <div class="col-12">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center py-3">
+                        <div class="fs-3 fw-bold">{{ stats.total|default:"0" }}</div>
+                        <div class="small opacity-75">Total membres</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center py-3">
+                        <div class="fs-3 fw-bold">{{ stats.actifs|default:"0" }}</div>
+                        <div class="small opacity-75">Actifs</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-dark">
+                    <div class="card-body text-center py-3">
+                        <div class="fs-3 fw-bold">{{ stats.en_attente|default:"0" }}</div>
+                        <div class="small opacity-75">En attente</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body text-center py-3">
+                        <div class="fs-3 fw-bold">{{ stats.suspendus|default:"0" }}</div>
+                        <div class="small opacity-75">Suspendus</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>N° Affiliation</th>
+                            <th>Nom complet</th>
+                            <th>Téléphone</th>
+                            <th>Date adhésion</th>
+                            <th>Type</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in affilies %}
+                        <tr>
+                            <td><code>{{ a.numero_affiliation }}</code></td>
+                            <td class="fw-semibold">{{ a.nom_complet }}</td>
+                            <td>{{ a.telephone|default:"—" }}</td>
+                            <td>{{ a.date_adhesion|date:"d/m/Y" }}</td>
+                            <td>{{ a.get_type_adhesion_display }}</td>
+                            <td>
+                                <span class="badge {% if a.statut == 'ACTIF' %}bg-success{% elif a.statut == 'EN_ATTENTE' %}bg-warning text-dark{% elif a.statut == 'SUSPENDU' %}bg-secondary{% elif a.statut == 'EXPIRE' %}bg-danger{% elif a.statut == 'RADIE' %}bg-dark{% endif %}">
+                                    {{ a.get_statut_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-people fs-1 d-block mb-2"></i>
+                                Aucun membre pour cette mutualité
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if paginator.num_pages > 1 %}
+    <div class="col-12">
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if affilies.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1">«</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ affilies.previous_page_number }}">‹</a></li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">{{ affilies.number }}/{{ paginator.num_pages }}</span></li>
+                {% if affilies.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ affilies.next_page_number }}">›</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ paginator.num_pages }}">»</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}Affiliés — Mutualité de Santé{% endblock %}
+{% block page_title %}Affiliés{% endblock %}
+{% block page_subtitle %}Consultez, ajoutez et modifiez les membres de la mutualité{% endblock %}
+{% block page_icon %}bi bi-people-fill{% endblock %}
+{% block nav_affilies %}active{% endblock %}
+
+{% block page_actions %}
+    {% if user.peut_exporter %}
+    <a href="{% url 'affilies:export_excel' %}" class="btn btn-outline-success btn-sm"><i class="bi bi-file-earmark-excel"></i> Exporter</a>
+    {% endif %}
+    {% if user.peut_modifier %}
+    <a href="{% url 'affilies:ajouter' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle"></i> Ajouter
+    </a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-5">
+                <input type="text" name="q" class="form-control" placeholder="Rechercher par nom, prénom ou n° d'affiliation..." value="{{ q }}" style="height:42px;">
+            </div>
+            <div class="col-md-3">
+                <select name="statut" class="form-select" style="height:42px;">
+                    <option value="">Tous les statuts</option>
+                    {% for val, label in statut_choices %}
+                    <option value="{{ val }}" {% if statut == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100" style="height:42px;">
+                    <i class="bi bi-search me-1"></i> Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul"></i> Liste des affiliés ({{ total }})</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>N° Affiliation</th>
+                    <th>Nom complet</th>
+                    <th>Catégorie / Origine</th>
+                    <th>Contact</th>
+                    <th>Statut</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for aff in affilies %}
+                <tr>
+                    <td><span class="badge bg-light text-dark border">{{ aff.numero_affiliation }}</span></td>
+                    <td>
+                        <a href="{% url 'affilies:detail' aff.pk %}" class="text-decoration-none fw-medium text-vert">{{ aff.nom_complet }}</a>
+                        <div class="text-muted" style="font-size:0.75rem;">{{ aff.get_sexe_display }} • {{ aff.age }} ans</div>
+                    </td>
+                    <td>
+                        <div>{{ aff.get_type_adhesion_display }}</div>
+                        {% if aff.origine %}
+                        <div class="text-muted" style="font-size:0.75rem;"><i class="bi bi-building"></i> {{ aff.origine.nom }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="font-size:0.8rem;"><i class="bi bi-telephone text-muted"></i> {{ aff.telephone|default:"-" }}</div>
+                        <div class="text-muted" style="font-size:0.75rem;">{{ aff.adresse|truncatechars:20 }}</div>
+                    </td>
+                    <td>
+                        {% if aff.statut == 'ACTIF' %}
+                        <span class="badge-actif">Actif</span>
+                    {% elif aff.statut == 'EN_ATTENTE' %}
+                        <span class="badge bg-secondary" style="padding:4px 10px; border-radius:20px; font-size:0.74rem; font-weight:600;">En attente</span>
+                    {% elif aff.statut == 'SUSPENDU' %}
+                        <span class="badge bg-warning text-dark border border-warning border-opacity-50" style="padding:4px 10px; border-radius:20px; font-size:0.74rem; font-weight:600;">Suspendu</span>
+                    {% elif aff.statut == 'EXPIRE' %}
+                        <span class="badge bg-dark" style="padding:4px 10px; border-radius:20px; font-size:0.74rem; font-weight:600;">Expiré</span>
+                    {% elif aff.statut == 'RADIE' %}
+                        <span class="badge bg-danger" style="padding:4px 10px; border-radius:20px; font-size:0.74rem; font-weight:600;">Radié</span>
+                    {% else %}
+                        <span class="badge bg-dark" style="padding:4px 10px; border-radius:20px; font-size:0.74rem; font-weight:600;">{{ aff.get_statut_display }}</span>
+                    {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group">
+                            <a href="{% url 'affilies:detail' aff.pk %}" class="btn btn-sm btn-outline-primary" title="Détails">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if user.peut_modifier %}
+                            <a href="{% url 'affilies:modifier' aff.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                            {% if user.peut_supprimer %}
+                            <a href="{% url 'affilies:supprimer' aff.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <div class="text-muted mb-2"><i class="bi bi-people-fill fs-1"></i></div>
+                        <h6>Aucun affilié trouvé</h6>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-top-0 pt-3">
+        <nav>
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&statut={{ statut }}">Précédent</a></li>
+                {% endif %}
+                
+                <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&statut={{ statut }}">Suivant</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

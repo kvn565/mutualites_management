@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% block title %}Ayants droit — Mutualité de Santé{% endblock %}
+{% block page_title %}Ayants droit{% endblock %}
+{% block page_subtitle %}Consultez et gérez les conjoints, enfants et parents à charge{% endblock %}
+{% block page_icon %}bi bi-person-heart{% endblock %}
+{% block nav_ayants_droit %}active{% endblock %}
+
+{% block page_actions %}
+    {% if user.peut_exporter %}
+    <button class="btn btn-outline-success btn-sm"><i class="bi bi-file-earmark-excel"></i> Exporter</button>
+    {% endif %}
+    {% if user.peut_modifier %}
+    <a href="{% url 'ayants_droit:ajouter' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle"></i> Ajouter
+    </a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="q" class="form-control" placeholder="Rechercher (nom, prénom, affilié)..." value="{{ q }}" style="height:42px;">
+            </div>
+            <div class="col-md-3">
+                <select name="lien" class="form-select" style="height:42px;">
+                    <option value="">Tous les liens</option>
+                    {% for val, label in lien_choices %}
+                    <option value="{{ val }}" {% if lien == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="statut" class="form-select" style="height:42px;">
+                    <option value="">Tous statuts</option>
+                    {% for val, label in statut_choices %}
+                    <option value="{{ val }}" {% if statut == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100" style="height:42px;">
+                    <i class="bi bi-search me-1"></i> Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul"></i> Liste des ayants droit ({{ total }})</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Nom complet</th>
+                    <th>Sexe</th>
+                    <th>Âge</th>
+                    <th>Lien</th>
+                    <th>Affilié principal</th>
+                    <th>Statut</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ayant in ayants %}
+                <tr>
+                    <td class="fw-medium">{{ ayant.nom_complet }}</td>
+                    <td>{{ ayant.get_sexe_display }}</td>
+                    <td>{{ ayant.age }} ans</td>
+                    <td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">{{ ayant.get_lien_parente_display }}</span></td>
+                    <td>
+                        <a href="#" class="text-decoration-none fw-medium text-vert">{{ ayant.affilie.nom_complet }}</a>
+                        <div class="text-muted" style="font-size:0.75rem;">{{ ayant.affilie.numero_affiliation }}</div>
+                    </td>
+                    <td>
+                        {% if ayant.statut == 'ACTIF' %}
+                        <span class="badge-actif">Actif</span>
+                        {% elif ayant.statut == 'INACTIF' %}
+                        <span class="badge-inactif">Inactif</span>
+                        {% else %}
+                        <span class="badge bg-dark">Décédé</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group">
+                            {% if user.peut_modifier %}
+                            <a href="{% url 'ayants_droit:modifier' ayant.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                            {% if user.peut_supprimer %}
+                            <a href="{% url 'ayants_droit:supprimer' ayant.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5">
+                        <div class="text-muted mb-2"><i class="bi bi-person-heart fs-1"></i></div>
+                        <h6>Aucun ayant droit trouvé</h6>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if ayants.has_other_pages %}
+    <div class="card-footer bg-white border-top-0 pt-3">
+        <nav>
+            <ul class="pagination justify-content-center mb-0">
+                {% if ayants.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ ayants.previous_page_number }}&q={{ q }}&lien={{ lien }}&statut={{ statut }}">Précédent</a></li>
+                {% endif %}
+                
+                <li class="page-item active"><span class="page-link">{{ ayants.number }} / {{ ayants.paginator.num_pages }}</span></li>
+                
+                {% if ayants.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ ayants.next_page_number }}&q={{ q }}&lien={{ lien }}&statut={{ statut }}">Suivant</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

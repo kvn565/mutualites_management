@@ -1,0 +1,30 @@
+{% extends 'superadmin/base_superadmin.html' %}
+{% block title %}Prolonger l'essai — {{ mutualite.nom }}{% endblock %}
+{% block page_title %}Prolonger la période d'essai{% endblock %}
+{% block page_subtitle %}{{ mutualite.nom }} — {{ mutualite.code_mutualite }}{% endblock %}
+{% block nav_mutualites %}active{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-clock"></i> Prolongation d'essai gratuit</div>
+            <div class="card-body">
+                <p class="text-muted">La période d'essai actuelle expire le <strong>{{ mutualite.date_fin_essai|date:"d/m/Y"|default:"—" }}</strong>.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Jours supplémentaires</label>
+                        <input type="number" name="jours" class="form-control" value="7" min="1" max="90" required>
+                        <div class="form-text">Maximum 90 jours.</div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Prolonger</button>
+                        <a href="{% url 'superadmin:mutualite_detail' mutualite.pk %}" class="btn btn-outline-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

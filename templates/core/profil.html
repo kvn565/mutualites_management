@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Mon Profil — Mutualité de Santé{% endblock %}
+{% block page_title %}Mon Profil{% endblock %}
+{% block page_icon %}bi bi-person-circle{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card text-center">
+            <div class="card-body py-5">
+                {% if user.photo %}
+                <img src="{{ user.photo.url }}" alt="Photo" class="rounded-circle mb-3" style="width:120px;height:120px;object-fit:cover;">
+                {% else %}
+                <div class="user-avatar mx-auto mb-3" style="width:120px;height:120px;font-size:2.5rem;">{{ user.initiales }}</div>
+                {% endif %}
+                <h5 class="mb-1">{{ user.nom_complet }}</h5>
+                <p class="text-muted mb-2">{{ user.get_role_display }}</p>
+                <span class="badge-actif">{{ user.actif|yesno:"Actif,Inactif" }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-pencil-square"></i> Modifier le profil</div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="update_profil" value="1">
+                    <div class="row g-3">
+                        {% for field in form %}
+                        <div class="col-md-6">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}
+                            <div class="text-danger small mt-1">{{ field.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="bi bi-key"></i> Changer le mot de passe</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="change_password" value="1">
+                    <div class="row g-3">
+                        {% for field in mdp_form %}
+                        <div class="col-md-6">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}
+                            <div class="text-danger small mt-1">{{ field.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-gold">Changer le mot de passe</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

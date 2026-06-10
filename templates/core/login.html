@@ -1,0 +1,106 @@
+{% extends 'base_auth.html' %}
+{% block title %}Connexion — Mutualité de Santé{% endblock %}
+
+{% block auth_body %}
+<div class="login-box">
+    <div class="login-logo">
+        <div class="logo-icon">
+            <div class="medical-cross"></div>
+            <span class="cross-badge">+</span>
+        </div>
+        <div>
+            <div class="logo-text">Mutualité de Santé</div>
+            <span class="logo-sub">Système de gestion</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body login-card-body">
+            <p class="login-box-msg">
+                <i class="bi bi-box-arrow-in-right me-2"></i>
+                Connectez-vous à votre espace
+            </p>
+
+            {% if form.non_field_errors %}
+            <div class="error-msg">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post" autocomplete="off">
+                {% csrf_token %}
+
+                <div class="input-group mb-3">
+                    <input type="text" name="username" id="id_username"
+                           class="form-control" placeholder="Nom d'utilisateur"
+                           value="{{ form.username.value|default:'' }}" autofocus required>
+                    <div class="input-group-text">
+                        <i class="bi bi-person"></i>
+                    </div>
+                </div>
+                {% if form.username.errors %}
+                <div class="field-error mb-3">{{ form.username.errors.0 }}</div>
+                {% endif %}
+
+                <div class="input-group mb-3">
+                    <input type="password" name="password" id="id_password"
+                           class="form-control" placeholder="Mot de passe" required>
+                    <div class="input-group-text">
+                        <i class="bi bi-lock-fill"></i>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary"
+                            onclick="togglePwd()" title="Afficher/masquer"
+                            style="border:2px solid #d1d5db; border-left:none; border-radius:0 11px 11px 0;">
+                        <i class="bi bi-eye" id="pwdIcon"></i>
+                    </button>
+                </div>
+                {% if form.password.errors %}
+                <div class="field-error mb-3">{{ form.password.errors.0 }}</div>
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-8">
+                        <div class="form-check">
+                            <input type="checkbox" name="remember" id="id_remember" class="form-check-input">
+                            <label class="form-check-label" for="id_remember">
+                                Se souvenir de moi
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <button type="submit" class="btn btn-login">
+                            <i class="bi bi-box-arrow-in-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="auth-footer">
+                <a href="{% url 'core:inscription' %}">
+                    <i class="bi bi-building-add me-1"></i> Créer une nouvelle mutualité
+                </a>
+                <span class="secure-badge">
+                    <i class="bi bi-shield-check text-success me-1"></i>
+                    Connexion sécurisée &copy; {% now "Y" %}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePwd() {
+    const input = document.getElementById('id_password');
+    const icon = document.getElementById('pwdIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+document.getElementById('id_username')?.focus();
+</script>
+{% endblock %}

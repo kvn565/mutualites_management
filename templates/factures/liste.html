@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Factures de Santé — Mutualité{% endblock %}
+{% block page_title %}Factures Partenaires{% endblock %}
+{% block page_subtitle %}Gérez les factures émises par les hôpitaux et pharmacies partenaires{% endblock %}
+{% block page_icon %}bi bi-receipt{% endblock %}
+{% block nav_factures %}active{% endblock %}
+
+{% block page_actions %}
+    <a href="{% url 'factures:journal' %}" class="btn btn-outline-success btn-sm"><i class="bi bi-journal-text"></i> Journal</a>
+    {% if user.peut_modifier %}
+    <a href="{% url 'factures:ajouter' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle"></i> Saisir
+    </a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-7">
+                <div class="search-bar">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" name="q" class="form-control" placeholder="Rechercher N° facture, Partenaire, Affilié..." value="{{ q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="statut" class="form-select">
+                    <option value="">Tous les statuts</option>
+                    {% for val, label in statut_choices %}
+                    <option value="{{ val }}" {% if statut == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filtrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul"></i> Liste des factures ({{ total }})</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>N° / Date</th>
+                    <th>Partenaire</th>
+                    <th>Patient (Affilié/Ayant droit)</th>
+                    <th class="text-end">Montant Total</th>
+                    <th class="text-end">Part Mut.</th>
+                    <th>Statut</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fac in factures %}
+                <tr>
+                    <td>
+                        <div class="fw-bold"><a href="{% url 'factures:detail' fac.pk %}" class="text-decoration-none text-vert">{{ fac.numero }}</a></div>
+                        <div class="text-muted small">{{ fac.date|date:"d/m/Y" }}</div>
+                    </td>
+                    <td><i class="bi bi-hospital small text-muted"></i> {{ fac.partenaire.nom }}</td>
+                    <td>
+                        <div class="fw-medium text-dark"><i class="bi bi-person small text-muted"></i> {{ fac.affilie.nom_complet }}</div>
+                        {% if fac.ayant_droit %}
+                        <div class="text-muted" style="font-size:0.75rem;"><i class="bi bi-arrow-return-right"></i> {{ fac.ayant_droit.nom_complet }} (AD)</div>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-medium">{{ fac.montant_total|floatformat:0|intcomma }} BIF</td>
+                    <td class="text-end fw-bold text-success">{{ fac.montant_mutualite|floatformat:0|intcomma }} BIF</td>
+                    <td>
+                        {% if fac.statut == 'BROUILLON' %}<span class="badge bg-secondary">Brouillon</span>
+                        {% elif fac.statut == 'SOUMIS' %}<span class="badge bg-info text-dark">Soumise</span>
+                        {% elif fac.statut == 'VALIDE' %}<span class="badge bg-success">Validée</span>
+                        {% elif fac.statut == 'PAYE' %}<span class="badge bg-primary">Payée</span>
+                        {% elif fac.statut == 'REJETE' %}<span class="badge bg-danger">Rejetée</span>{% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group">
+                            <a href="{% url 'factures:detail' fac.pk %}" class="btn btn-sm btn-outline-primary" title="Détails">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5">
+                        <div class="text-muted mb-2"><i class="bi bi-inbox fs-1"></i></div>
+                        <h6>Aucune facture trouvée</h6>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if factures.has_other_pages %}
+    <div class="card-footer bg-white border-top-0 pt-3">
+        <nav>
+            <ul class="pagination justify-content-center mb-0">
+                {% if factures.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ factures.previous_page_number }}&q={{ q }}&statut={{ statut }}">Précédent</a></li>
+                {% endif %}
+                
+                <li class="page-item active"><span class="page-link">{{ factures.number }} / {{ factures.paginator.num_pages }}</span></li>
+                
+                {% if factures.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ factures.next_page_number }}&q={{ q }}&statut={{ statut }}">Suivant</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

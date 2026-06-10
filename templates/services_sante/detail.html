@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ service.nom }} — Mutualité de Santé{% endblock %}
+{% block page_title %}Détails du service{% endblock %}
+{% block page_icon %}bi bi-file-medical{% endblock %}
+{% block nav_services %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{% url 'services_sante:liste' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+    <div class="btn-group">
+        {% if user.peut_modifier %}
+        <a href="{% url 'services_sante:modifier' service.pk %}" class="btn btn-primary"><i class="bi bi-pencil"></i> Modifier</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+                    <div class="bg-vert-leger text-vert rounded p-3 d-flex align-items-center justify-content-center" style="width:60px; height:60px; font-size:2rem;">
+                        <i class="bi bi-heart-pulse"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1 text-dark">{{ service.nom }}</h4>
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">{{ service.get_categorie_display }}</span>
+                        <span class="text-muted ms-2 small">Code: {{ service.code }}</span>
+                    </div>
+                </div>
+                
+                <div class="row g-3 mb-4">
+                    <div class="col-6">
+                        <div class="p-3 bg-success bg-opacity-10 rounded border border-success border-opacity-25 text-center">
+                            <h6 class="text-success mb-1" style="font-size:0.75rem;">TAUX PRISE EN CHARGE</h6>
+                            <h3 class="text-success mb-0">{{ service.taux_prise_en_charge }} %</h3>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded border text-center">
+                            <h6 class="text-muted mb-1" style="font-size:0.75rem;">PLAFOND (BIF)</h6>
+                            <h3 class="text-dark mb-0">
+                                {% if service.plafond > 0 %}
+                                {{ service.plafond|floatformat:0|intcomma }}
+                                {% else %}
+                                <span class="fs-5">Illimité</span>
+                                {% endif %}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+
+                {% if service.description %}
+                <h6 class="text-muted mb-2 text-uppercase" style="font-size:0.75rem; letter-spacing:1px;">Description</h6>
+                <p class="text-muted small mb-4">{{ service.description|linebreaksbr }}</p>
+                {% endif %}
+
+                {% if service.conditions %}
+                <h6 class="text-muted mb-2 text-uppercase" style="font-size:0.75rem; letter-spacing:1px;">Conditions particulières</h6>
+                <div class="alert alert-warning py-2 small mb-0">
+                    <i class="bi bi-exclamation-triangle me-1"></i> {{ service.conditions|linebreaksbr }}
+                </div>
+                {% endif %}
+                
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">Statut :</span>
+                    {% if service.actif %}
+                    <span class="badge-actif"><i class="bi bi-check-circle me-1"></i> Service Actif</span>
+                    {% else %}
+                    <span class="badge-inactif"><i class="bi bi-x-circle me-1"></i> Service Inactif</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

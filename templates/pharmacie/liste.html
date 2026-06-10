@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Nomenclature Pharmacie — Mutualité{% endblock %}
+{% block page_title %}Nomenclature Pharmaceutique{% endblock %}
+{% block page_subtitle %}Gérez les médicaments pris en charge, les taux et prix de référence{% endblock %}
+{% block page_icon %}bi bi-capsule{% endblock %}
+{% block nav_pharmacie %}active{% endblock %}
+
+{% block page_actions %}
+    {% if user.peut_modifier %}
+    <a href="{% url 'pharmacie:ajouter' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle"></i> Ajouter
+    </a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-7">
+                <div class="search-bar">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" name="q" class="form-control" placeholder="Rechercher nom, code, principe actif (DCI)..." value="{{ q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="forme" class="form-select">
+                    <option value="">Toutes les formes</option>
+                    {% for val, label in forme_choices %}
+                    <option value="{{ val }}" {% if forme == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filtrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul"></i> Liste des médicaments ({{ total }})</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Code / Nom commercial</th>
+                    <th>DCI (Principe actif)</th>
+                    <th>Forme & Dosage</th>
+                    <th class="text-center">Prise en charge</th>
+                    <th class="text-end">Prix Réf.</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for med in medicaments %}
+                <tr>
+                    <td>
+                        <div class="fw-bold text-vert">{{ med.nom }}</div>
+                        <div class="text-muted small">{{ med.code }}</div>
+                    </td>
+                    <td>{{ med.dci|default:"-" }}</td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ med.get_forme_display }}</span>
+                        {% if med.dosage %}<span class="text-muted small ms-1">{{ med.dosage }}</span>{% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if med.pris_en_charge %}
+                        <span class="badge bg-success">{{ med.taux_remboursement }}%</span>
+                        {% else %}
+                        <span class="badge bg-danger">Non remboursé</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-medium">
+                        {{ med.prix_reference|floatformat:0|intcomma }} BIF
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group">
+                            {% if user.peut_modifier %}
+                            <a href="{% url 'pharmacie:modifier' med.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                            {% if user.peut_supprimer %}
+                            <a href="{% url 'pharmacie:supprimer' med.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <div class="text-muted mb-2"><i class="bi bi-inbox fs-1"></i></div>
+                        <h6>Aucun médicament trouvé</h6>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if medicaments.has_other_pages %}
+    <div class="card-footer bg-white border-top-0 pt-3">
+        <nav>
+            <ul class="pagination justify-content-center mb-0">
+                {% if medicaments.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ medicaments.previous_page_number }}&q={{ q }}&forme={{ forme }}">Précédent</a></li>
+                {% endif %}
+                
+                <li class="page-item active"><span class="page-link">{{ medicaments.number }} / {{ medicaments.paginator.num_pages }}</span></li>
+                
+                {% if medicaments.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ medicaments.next_page_number }}&q={{ q }}&forme={{ forme }}">Suivant</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

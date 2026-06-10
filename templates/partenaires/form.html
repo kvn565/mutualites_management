@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Partenaires{% endblock %}
+
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_subtitle %}
+{% if obj %}{{ obj.code_partenaire }} — {{ obj.nom_etablissement }}{% endif %}
+{% endblock %}
+{% block nav_partenaire %}active{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card">
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors.0 }}</div>
+                    {% endif %}
+
+                    <div class="row g-3">
+
+                        <div class="col-12">
+                            <h6 class="fw-bold" style="color:var(--bleu);border-bottom:1px solid #e9ecef;padding-bottom:8px;">
+                                <i class="bi bi-building me-2"></i>Identification
+                            </h6>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.code_partenaire.label }}</label>
+                            {{ form.code_partenaire }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.type_partenaire.label }}</label>
+                            {{ form.type_partenaire }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.nom_etablissement.label }}</label>
+                            {{ form.nom_etablissement }}
+                            {% if form.nom_etablissement.errors %}<div class="text-danger small mt-1">{{ form.nom_etablissement.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.nif.label }}</label>
+                            {{ form.nif }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.numero_agrement.label }}</label>
+                            {{ form.numero_agrement }}
+                        </div>
+
+                        <div class="col-12">
+                            <h6 class="fw-bold mt-3" style="color:var(--bleu);border-bottom:1px solid #e9ecef;padding-bottom:8px;">
+                                <i class="bi bi-geo-alt me-2"></i>Localisation
+                            </h6>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.province.label }}</label>
+                            {{ form.province }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.commune.label }}</label>
+                            {{ form.commune }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.zone.label }}</label>
+                            {{ form.zone }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.colline.label }}</label>
+                            {{ form.colline }}
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">{{ form.adresse_complete.label }}</label>
+                            {{ form.adresse_complete }}
+                        </div>
+
+                        <div class="col-12">
+                            <h6 class="fw-bold mt-3" style="color:var(--bleu);border-bottom:1px solid #e9ecef;padding-bottom:8px;">
+                                <i class="bi bi-telephone me-2"></i>Contact
+                            </h6>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.telephone.label }}</label>
+                            {{ form.telephone }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.telephone_secondaire.label }}</label>
+                            {{ form.telephone_secondaire }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.email.label }}</label>
+                            {{ form.email }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.site_web.label }}</label>
+                            {{ form.site_web }}
+                        </div>
+
+                        <div class="col-12">
+                            <h6 class="fw-bold mt-3" style="color:var(--bleu);border-bottom:1px solid #e9ecef;padding-bottom:8px;">
+                                <i class="bi bi-person-badge me-2"></i>Responsable
+                            </h6>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.nom_responsable.label }}</label>
+                            {{ form.nom_responsable }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.fonction_responsable.label }}</label>
+                            {{ form.fonction_responsable }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.telephone_responsable.label }}</label>
+                            {{ form.telephone_responsable }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.email_responsable.label }}</label>
+                            {{ form.email_responsable }}
+                        </div>
+
+                        <div class="col-12">
+                            <h6 class="fw-bold mt-3" style="color:var(--bleu);border-bottom:1px solid #e9ecef;padding-bottom:8px;">
+                                <i class="bi bi-file-text me-2"></i>Convention
+                            </h6>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.date_debut_convention.label }}</label>
+                            {{ form.date_debut_convention }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.date_fin_convention.label }}</label>
+                            {{ form.date_fin_convention }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.taux_prise_en_charge.label }}</label>
+                            {{ form.taux_prise_en_charge }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.plafond_couverture.label }}</label>
+                            {{ form.plafond_couverture }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.statut.label }}</label>
+                            {{ form.statut }}
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">{{ form.observations.label }}</label>
+                            {{ form.observations }}
+                        </div>
+
+                    </div>
+
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-1"></i>Enregistrer
+                        </button>
+                        <a href="{% if obj %}{% url 'partenaires:detail' obj.pk %}{% else %}{% url 'partenaires:liste' %}{% endif %}" class="btn btn-outline-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

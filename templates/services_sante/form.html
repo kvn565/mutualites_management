@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Mutualité de Santé{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-plus-square-dotted{% endblock %}
+{% block nav_services %}active{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-pencil-square me-2"></i> Informations du service
+            </div>
+            <div class="card-body p-4">
+                <form method="post" class="row g-3">
+                    {% csrf_token %}
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.code.label }}</label>
+                        {{ form.code }}
+                        <div class="form-text">Généré auto si vide.</div>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">{{ form.nom.label }} <span class="text-danger">*</span></label>
+                        {{ form.nom }}
+                        {% if form.nom.errors %}<div class="form-text text-danger">{{ form.nom.errors.0 }}</div>{% endif %}
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <label class="form-label">{{ form.categorie.label }} <span class="text-danger">*</span></label>
+                        {{ form.categorie }}
+                        {% if form.categorie.errors %}<div class="form-text text-danger">{{ form.categorie.errors.0 }}</div>{% endif %}
+                    </div>
+                    
+                    <div class="col-12 mt-4 mb-2">
+                        <h6 class="text-muted border-bottom pb-2">Couverture & Plafond</h6>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.taux_prise_en_charge.label }}</label>
+                        <div class="input-group">
+                            {{ form.taux_prise_en_charge }}
+                            <span class="input-group-text bg-light">%</span>
+                        </div>
+                        <div class="form-text">Ex: 80 pour 80% pris en charge</div>
+                        {% if form.taux_prise_en_charge.errors %}<div class="form-text text-danger">{{ form.taux_prise_en_charge.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.plafond.label }}</label>
+                        <div class="input-group">
+                            {{ form.plafond }}
+                            <span class="input-group-text bg-light">BIF</span>
+                        </div>
+                        <div class="form-text">Mettre 0 si illimité</div>
+                        {% if form.plafond.errors %}<div class="form-text text-danger">{{ form.plafond.errors.0 }}</div>{% endif %}
+                    </div>
+                    
+                    <div class="col-12 mt-4 mb-2">
+                        <h6 class="text-muted border-bottom pb-2">Informations complémentaires</h6>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.description.label }}</label>
+                        {{ form.description }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.conditions.label }}</label>
+                        {{ form.conditions }}
+                        <div class="form-text">Exigences spécifiques, délais de carence...</div>
+                    </div>
+                    <div class="col-12 mt-3">
+                        <div class="form-check form-switch">
+                            {{ form.actif }}
+                            <label class="form-check-label" for="{{ form.actif.id_for_label }}">Service actif et disponible</label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12 mt-4 text-end">
+                        <a href="{% url 'services_sante:liste' %}" class="btn btn-outline-secondary me-2">Annuler</a>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

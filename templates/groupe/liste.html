@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}Groupes — {{ block.super }}{% endblock %}
+
+{% block page_title %}Groupes{% endblock %}
+{% block page_subtitle %}Gestion des équipes et départements de la mutualité{% endblock %}
+{% block nav_groupes %}active{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'groupe:ajouter' %}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Nouveau groupe
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body py-3">
+                <form method="get" class="d-flex flex-wrap gap-3 align-items-end">
+                    <div style="flex:1;min-width:200px;">
+                        <label class="form-label mb-1">Recherche</label>
+                        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Nom du groupe..." style="height:42px;">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="height:42px;">
+                        <i class="bi bi-search"></i> Filtrer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Description</th>
+                            <th>Membres</th>
+                            <th>Date de création</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for g in groupes %}
+                        <tr>
+                            <td class="fw-semibold">{{ g.nom }}</td>
+                            <td class="text-muted">{{ g.description|truncatewords:15|default:"—" }}</td>
+                            <td>
+                                <span class="badge bg-primary rounded-pill">{{ g.membres.count }}</span>
+                            </td>
+                            <td>{{ g.date_creation|date:"d/m/Y" }}</td>
+                            <td>
+                                <a href="{% url 'groupe:modifier' g.pk %}" class="btn btn-sm btn-outline-vert" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'groupe:supprimer' g.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-people fs-1 d-block mb-2"></i>
+                                Aucun groupe créé
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if groupes.has_other_pages %}
+    <div class="col-12">
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if groupes.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1{% if q %}&q={{ q }}{% endif %}">«</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ groupes.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">‹</a></li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">{{ groupes.number }}/{{ groupes.paginator.num_pages }}</span></li>
+                {% if groupes.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ groupes.next_page_number }}{% if q %}&q={{ q }}{% endif %}">›</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ groupes.paginator.num_pages }}{% if q %}&q={{ q }}{% endif %}">»</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

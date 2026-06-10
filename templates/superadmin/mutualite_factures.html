@@ -1,0 +1,110 @@
+{% extends 'superadmin/base_superadmin.html' %}
+{% block title %}Factures — {{ mutualite.nom }}{% endblock %}
+{% block page_title %}Factures{% endblock %}
+{% block page_subtitle %}{{ mutualite.nom }} — Suivi des factures{% endblock %}
+{% block nav_suivi_factures %}active{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+    <div class="col-12">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center py-3">
+                        <div class="fs-3 fw-bold">{{ stats.total|default:"0"|floatformat:0 }} FBu</div>
+                        <div class="small opacity-75">Montant total</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center py-3">
+                        <div class="fs-3 fw-bold">{{ stats.nb_valide|default:"0" }}</div>
+                        <div class="small opacity-75">Validées</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-dark">
+                    <div class="card-body text-center py-3">
+                        <div class="fs-3 fw-bold">{{ stats.nb_soumis|default:"0" }}</div>
+                        <div class="small opacity-75">Soumises</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center py-3">
+                        <div class="fs-3 fw-bold">{{ stats.nb_paye|default:"0" }}</div>
+                        <div class="small opacity-75">Payées</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>N° Facture</th>
+                            <th>Date</th>
+                            <th>Partenaire</th>
+                            <th>Affilié</th>
+                            <th>Montant</th>
+                            <th>Part Mut.</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in factures %}
+                        <tr>
+                            <td><code>{{ f.numero }}</code></td>
+                            <td>{{ f.date|date:"d/m/Y" }}</td>
+                            <td>{{ f.partenaire.nom_etablissement|truncatechars:20 }}</td>
+                            <td>{{ f.affilie.nom_complet|truncatechars:20 }}</td>
+                            <td>{{ f.montant_total|floatformat:0 }} FBu</td>
+                            <td>{{ f.montant_mutualite|floatformat:0 }} FBu</td>
+                            <td>
+                                <span class="badge {% if f.statut == 'VALIDE' %}bg-success{% elif f.statut == 'PAYE' %}bg-primary{% elif f.statut == 'SOUMIS' %}bg-warning text-dark{% elif f.statut == 'BROUILLON' %}bg-secondary{% elif f.statut == 'REJETE' %}bg-danger{% endif %}">
+                                    {{ f.get_statut_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-receipt fs-1 d-block mb-2"></i>
+                                Aucune facture pour cette mutualité
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if paginator.num_pages > 1 %}
+    <div class="col-12">
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if factures.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1">«</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ factures.previous_page_number }}">‹</a></li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">{{ factures.number }}/{{ paginator.num_pages }}</span></li>
+                {% if factures.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ factures.next_page_number }}">›</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ paginator.num_pages }}">»</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

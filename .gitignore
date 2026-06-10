@@ -1,0 +1,28 @@
+# Django
+*.pyc
+*.pyo
+__pycache__/
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+logs/
+
+# Environment
+.env
+.venv
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Project specific
+staticfiles/
+static/CACHE/

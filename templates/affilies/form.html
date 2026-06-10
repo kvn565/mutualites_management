@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Mutualité de Santé{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-person-fill{% endblock %}
+{% block nav_affilies %}active{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="row g-4">
+        <!-- Colonne gauche -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-person-badge me-2"></i> Identité</div>
+                <div class="card-body p-4 row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.numero_affiliation.label }}</label>
+                        {{ form.numero_affiliation }}
+                        <div class="form-text">Généré automatiquement si vide.</div>
+                    </div>
+                    <div class="col-md-6"></div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.nom.label }} <span class="text-danger">*</span></label>
+                        {{ form.nom }}
+                        {% if form.nom.errors %}<div class="text-danger small">{{ form.nom.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.postnom.label }}</label>
+                        {{ form.postnom }}
+                        {% if form.postnom.errors %}<div class="text-danger small">{{ form.postnom.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.prenom.label }} <span class="text-danger">*</span></label>
+                        {{ form.prenom }}
+                        {% if form.prenom.errors %}<div class="text-danger small">{{ form.prenom.errors.0 }}</div>{% endif %}
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.sexe.label }} <span class="text-danger">*</span></label>
+                        {{ form.sexe }}
+                        {% if form.sexe.errors %}<div class="text-danger small">{{ form.sexe.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.date_naissance.label }} <span class="text-danger">*</span></label>
+                        {{ form.date_naissance }}
+                        {% if form.date_naissance.errors %}<div class="text-danger small">{{ form.date_naissance.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.etat_civil.label }}</label>
+                        {{ form.etat_civil }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.numero_carte_identite.label }}</label>
+                        {{ form.numero_carte_identite }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.groupe_sanguin.label }}</label>
+                        {{ form.groupe_sanguin }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><i class="bi bi-geo-alt me-2"></i> Localisation</div>
+                <div class="card-body p-4 row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.province.label }}</label>
+                        {{ form.province }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.commune.label }}</label>
+                        {{ form.commune }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.zone.label }}</label>
+                        {{ form.zone }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.colline.label }}</label>
+                        {{ form.colline }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.adresse.label }}</label>
+                        {{ form.adresse }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><i class="bi bi-telephone me-2"></i> Contact</div>
+                <div class="card-body p-4 row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.telephone.label }}</label>
+                        {{ form.telephone }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.email.label }}</label>
+                        {{ form.email }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.profession.label }}</label>
+                        {{ form.profession }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.contact_urgence_nom.label }}</label>
+                        {{ form.contact_urgence_nom }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.contact_urgence_telephone.label }}</label>
+                        {{ form.contact_urgence_telephone }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.centre_sante_reference.label }}</label>
+                        {{ form.centre_sante_reference }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.hopital_reference.label }}</label>
+                        {{ form.hopital_reference }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne droite -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-shield-check me-2"></i> Adhésion</div>
+                <div class="card-body p-4 row g-3">
+                    <div class="col-12">
+                        <label class="form-label">{{ form.date_adhesion.label }}</label>
+                        {{ form.date_adhesion }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.type_adhesion.label }}</label>
+                        {{ form.type_adhesion }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.section_antenne.label }}</label>
+                        {{ form.section_antenne }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.origine.label }}</label>
+                        {{ form.origine }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.statut.label }}</label>
+                        {{ form.statut }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><i class="bi bi-journal-text me-2"></i> Suppléments</div>
+                <div class="card-body p-4 row g-3">
+                    <div class="col-12">
+                        <label class="form-label">{{ form.photo.label }}</label>
+                        {{ form.photo }}
+                        {% if obj and obj.photo %}
+                        <div class="mt-2 text-center">
+                            <img src="{{ obj.photo.url }}" class="img-thumbnail" style="max-height: 100px;">
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid mt-4 gap-2">
+                <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-circle"></i> Enregistrer</button>
+                <a href="{% url 'affilies:liste' %}" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

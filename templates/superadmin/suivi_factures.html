@@ -1,0 +1,55 @@
+{% extends 'superadmin/base_superadmin.html' %}
+{% block title %}Suivi des factures{% endblock %}
+{% block page_title %}Suivi des factures{% endblock %}
+{% block page_subtitle %}Sélectionnez une mutualité pour consulter ses factures{% endblock %}
+{% block nav_suivi_factures %}active{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Mutualité</th>
+                            <th>Sigle</th>
+                            <th>Statut</th>
+                            <th>Factures</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in mutualites %}
+                        <tr>
+                            <td class="fw-semibold">{{ m.nom }}</td>
+                            <td>{{ m.sigle|default:"—" }}</td>
+                            <td>
+                                <span class="badge {% if m.statut == 'ACTIF' %}bg-success{% elif m.statut == 'ESSAI' %}bg-info{% elif m.statut == 'SUSPENDU' %}bg-warning text-dark{% elif m.statut == 'EXPIRE' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                    {{ m.get_statut_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ m.nb_factures }}</span>
+                            </td>
+                            <td>
+                                <a href="{% url 'superadmin:mutualite_factures' m.pk %}" class="btn btn-sm btn-outline-vert">
+                                    <i class="bi bi-eye me-1"></i>Voir les factures
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-building fs-1 d-block mb-2"></i>
+                                Aucune mutualité enregistrée
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

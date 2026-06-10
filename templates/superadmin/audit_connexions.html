@@ -1,0 +1,100 @@
+{% extends 'superadmin/base_superadmin.html' %}
+{% block title %}Audit des connexions{% endblock %}
+{% block page_title %}Audit des connexions{% endblock %}
+{% block page_subtitle %}Historique détaillé des connexions et déconnexions{% endblock %}
+{% block nav_audit %}active{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body py-3">
+                <form method="get" class="d-flex flex-wrap gap-3 align-items-end">
+                    <div style="flex:1;min-width:200px;">
+                        <label class="form-label mb-1">Recherche</label>
+                        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Utilisateur, IP ou user-agent..." style="height:42px;">
+                    </div>
+                    <div style="min-width:200px;">
+                        <label class="form-label mb-1">Mutualité</label>
+                        <select name="mutualite" class="form-select" style="height:42px;">
+                            <option value="">Toutes</option>
+                            {% for m in mutualites %}
+                            <option value="{{ m.pk }}" {% if mutualite_id|stringformat:"s" == m.pk|stringformat:"s" %}selected{% endif %}>{{ m.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="height:42px;">
+                        <i class="bi bi-search"></i> Filtrer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Utilisateur</th>
+                            <th>Mutualité</th>
+                            <th>Adresse IP</th>
+                            <th>User-Agent</th>
+                            <th>Connexion</th>
+                            <th>Déconnexion</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in connexions %}
+                        <tr>
+                            <td class="fw-semibold">{{ c.utilisateur.nom_complet|default:c.utilisateur.username }}</td>
+                            <td>{{ c.mutualite.nom|default:"—" }}</td>
+                            <td><code>{{ c.adresse_ip|default:"—" }}</code></td>
+                            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ c.user_agent }}">
+                                {{ c.user_agent|truncatechars:50|default:"—" }}
+                            </td>
+                            <td>{{ c.date_connexion|date:"d/m/Y H:i" }}</td>
+                            <td>{{ c.date_deconnexion|date:"d/m/Y H:i"|default:"—" }}</td>
+                            <td>
+                                {% if c.succes %}
+                                <span class="badge bg-success">Succès</span>
+                                {% else %}
+                                <span class="badge bg-danger">Échec</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-shield-lock fs-1 d-block mb-2"></i>
+                                Aucune connexion enregistrée
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if paginator.num_pages > 1 %}
+    <div class="col-12">
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if connexions.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1{% if q %}&q={{ q }}{% endif %}{% if mutualite_id %}&mutualite={{ mutualite_id }}{% endif %}">«</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ connexions.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if mutualite_id %}&mutualite={{ mutualite_id }}{% endif %}">‹</a></li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">{{ connexions.number }}/{{ paginator.num_pages }}</span></li>
+                {% if connexions.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ connexions.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if mutualite_id %}&mutualite={{ mutualite_id }}{% endif %}">›</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ paginator.num_pages }}{% if q %}&q={{ q }}{% endif %}{% if mutualite_id %}&mutualite={{ mutualite_id }}{% endif %}">»</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

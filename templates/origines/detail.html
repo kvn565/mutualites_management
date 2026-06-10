@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% block title %}{{ origine.nom }} — Mutualité de Santé{% endblock %}
+{% block page_title %}Détails de l'origine{% endblock %}
+{% block page_icon %}bi bi-diagram-3{% endblock %}
+{% block nav_origines %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{% url 'origines:liste' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+    <div class="btn-group">
+        {% if user.peut_modifier %}
+        <a href="{% url 'origines:modifier' origine.pk %}" class="btn btn-primary"><i class="bi bi-pencil"></i> Modifier</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Infos structure -->
+    <div class="col-lg-4">
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+                    <div class="bg-vert-leger text-vert rounded p-3 d-flex align-items-center justify-content-center" style="width:60px; height:60px; font-size:2rem;">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1 text-dark">{{ origine.nom }}</h4>
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">{{ origine.get_type_origine_display }}</span>
+                        {% if origine.actif %}
+                        <span class="badge-actif ms-1">Active</span>
+                        {% else %}
+                        <span class="badge-inactif ms-1">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <h6 class="text-muted mb-3 text-uppercase" style="font-size:0.75rem; letter-spacing:1px;">Contact</h6>
+                <div class="mb-3 d-flex align-items-start gap-2">
+                    <i class="bi bi-person text-vert mt-1"></i>
+                    <div>
+                        <div class="fw-medium">{{ origine.contact|default:"Non renseigné" }}</div>
+                        <div class="text-muted small">Personne de contact</div>
+                    </div>
+                </div>
+                <div class="mb-3 d-flex align-items-start gap-2">
+                    <i class="bi bi-telephone text-vert mt-1"></i>
+                    <div>
+                        <div class="fw-medium">{{ origine.telephone|default:"-" }}</div>
+                        <div class="text-muted small">Téléphone</div>
+                    </div>
+                </div>
+                <div class="mb-3 d-flex align-items-start gap-2">
+                    <i class="bi bi-envelope text-vert mt-1"></i>
+                    <div>
+                        <div class="fw-medium">{{ origine.email|default:"-" }}</div>
+                        <div class="text-muted small">Email</div>
+                    </div>
+                </div>
+                <div class="mb-4 d-flex align-items-start gap-2">
+                    <i class="bi bi-geo-alt text-vert mt-1"></i>
+                    <div>
+                        <div class="fw-medium">{{ origine.adresse|default:"-" }}</div>
+                        <div class="text-muted small">Adresse</div>
+                    </div>
+                </div>
+
+                {% if origine.description %}
+                <h6 class="text-muted mb-2 text-uppercase" style="font-size:0.75rem; letter-spacing:1px;">Description</h6>
+                <p class="text-muted small">{{ origine.description|linebreaksbr }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Affiliés liés -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <span class="fw-bold text-vert"><i class="bi bi-people me-2"></i> Affiliés de cette structure ({{ origine.nb_affilies }})</span>
+                {% if user.peut_modifier %}
+                <a href="{% url 'affilies:ajouter' %}" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-plus"></i> Nouvel affilié
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 border-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>N° Affiliation</th>
+                                <th>Nom complet</th>
+                                <th>Sexe / Âge</th>
+                                <th>Statut</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for aff in affilies %}
+                            <tr>
+                                <td><span class="badge bg-light text-dark border">{{ aff.numero_affiliation }}</span></td>
+                                <td class="fw-medium">{{ aff.nom_complet }}</td>
+                                <td>{{ aff.get_sexe_display }} • {{ aff.age }} ans</td>
+                                <td>
+                                    {% if aff.statut == 'ACTIF' %}<span class="badge-actif">Actif</span>
+                                    {% else %}<span class="badge-inactif">{{ aff.get_statut_display }}</span>{% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'affilies:detail' aff.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-right"></i></a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-5">
+                                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                    Aucun affilié n'est rattaché à cette origine.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if origine.nb_affilies > 50 %}
+                            <tr>
+                                <td colspan="5" class="text-center bg-light">
+                                    <a href="{% url 'affilies:liste' %}?q={{ origine.nom }}" class="text-decoration-none fw-bold text-vert">Voir tous les {{ origine.nb_affilies }} affiliés <i class="bi bi-arrow-right"></i></a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

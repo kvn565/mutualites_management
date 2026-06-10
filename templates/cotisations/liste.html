@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Cotisations — Mutualité de Santé{% endblock %}
+{% block page_title %}Cotisations des Affiliés{% endblock %}
+{% block page_subtitle %}Gérez les paiements réguliers des membres pour l'accès aux soins{% endblock %}
+{% block page_icon %}bi bi-cash-stack{% endblock %}
+{% block nav_cotisations %}active{% endblock %}
+
+{% block page_actions %}
+    {% if user.peut_modifier %}
+    <a href="{% url 'cotisations:ajouter' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle"></i> Saisir
+    </a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-5">
+                <div class="search-bar">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" name="q" class="form-control" placeholder="Rechercher Ref, Affilié..." value="{{ q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="statut" class="form-select">
+                    <option value="">Tous les statuts</option>
+                    {% for val, label in statut_choices %}
+                    <option value="{{ val }}" {% if statut == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <input type="number" name="annee" class="form-control" placeholder="Année" value="{{ annee }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filtrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul"></i> Liste des cotisations ({{ total }})</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Référence / Date</th>
+                    <th>Affilié</th>
+                    <th>Période</th>
+                    <th class="text-end">Montant</th>
+                    <th>Statut</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cot in cotisations %}
+                <tr>
+                    <td>
+                        <div class="fw-bold">{{ cot.reference }}</div>
+                        <div class="text-muted small">Émise le {{ cot.date_emission|date:"d/m/Y" }}</div>
+                    </td>
+                    <td>
+                        <div class="fw-medium text-vert">{{ cot.affilie.nom_complet }}</div>
+                        <div class="text-muted small">{{ cot.affilie.numero_affiliation }}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ cot.get_periode_type_display }}</span>
+                        {% if cot.mois %}<div class="text-muted small mt-1">Mois {{ cot.mois }} / {{ cot.annee }}</div>{% endif %}
+                    </td>
+                    <td class="text-end fw-bold">{{ cot.montant|floatformat:0|intcomma }} BIF</td>
+                    <td>
+                        {% if cot.statut == 'EN_ATTENTE' %}<span class="badge bg-secondary">En attente</span>
+                        {% elif cot.statut == 'PAYE' %}<span class="badge bg-success">Payé</span>
+                        {% elif cot.statut == 'PARTIEL' %}<span class="badge bg-info">Partiel</span>
+                        {% elif cot.statut == 'RETARD' %}<span class="badge bg-danger">En retard</span>{% endif %}
+                        {% if cot.date_paiement %}<div class="small text-muted mt-1">{{ cot.date_paiement|date:"d/m/Y" }}</div>{% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group">
+                            <a href="{% url 'cotisations:detail' cot.pk %}" class="btn btn-sm btn-outline-primary" title="Détails">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if user.peut_modifier %}
+                            <a href="{% url 'cotisations:modifier' cot.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                            {% if cot.statut != 'PAYE' and user.peut_valider %}
+                            <form method="post" action="{% url 'cotisations:valider_paiement' cot.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-success" title="Marquer payée"
+                                    onclick="return confirm('Confirmer le paiement de {{ cot.reference }} ?')">
+                                    <i class="bi bi-check-circle"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% if user.peut_supprimer %}
+                            <a href="{% url 'cotisations:supprimer' cot.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <div class="text-muted mb-2"><i class="bi bi-inbox fs-1"></i></div>
+                        <h6>Aucune cotisation trouvée</h6>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if cotisations.has_other_pages %}
+    <div class="card-footer bg-white border-top-0 pt-3">
+        <nav>
+            <ul class="pagination justify-content-center mb-0">
+                {% if cotisations.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ cotisations.previous_page_number }}&q={{ q }}&statut={{ statut }}&annee={{ annee }}">Précédent</a></li>
+                {% endif %}
+                
+                <li class="page-item active"><span class="page-link">{{ cotisations.number }} / {{ cotisations.paginator.num_pages }}</span></li>
+                
+                {% if cotisations.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ cotisations.next_page_number }}&q={{ q }}&statut={{ statut }}&annee={{ annee }}">Suivant</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

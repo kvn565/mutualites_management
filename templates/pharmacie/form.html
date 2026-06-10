@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Mutualité de Santé{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-capsule{% endblock %}
+{% block nav_pharmacie %}active{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-vert text-white border-0">
+                <i class="bi bi-prescription me-2"></i> Fiche Médicament
+            </div>
+            <div class="card-body p-4">
+                <form method="post" class="row g-3">
+                    {% csrf_token %}
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.code.label }} <span class="text-danger">*</span></label>
+                        {{ form.code }}
+                        {% if form.code.errors %}<div class="text-danger small">{{ form.code.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">{{ form.nom.label }} <span class="text-danger">*</span></label>
+                        {{ form.nom }}
+                        {% if form.nom.errors %}<div class="text-danger small">{{ form.nom.errors.0 }}</div>{% endif %}
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <label class="form-label">{{ form.dci.label }}</label>
+                        {{ form.dci }}
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.categorie.label }}</label>
+                        {{ form.categorie }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.forme.label }} <span class="text-danger">*</span></label>
+                        {{ form.forme }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.dosage.label }}</label>
+                        {{ form.dosage }}
+                        <div class="form-text small">Ex: 500mg</div>
+                    </div>
+                    
+                    <div class="col-12 mt-4 mb-2">
+                        <h6 class="text-muted border-bottom pb-2">Conditions de prise en charge</h6>
+                    </div>
+                    
+                    <div class="col-12">
+                        <div class="form-check form-switch mb-3">
+                            {{ form.pris_en_charge }}
+                            <label class="form-check-label fw-bold" for="{{ form.pris_en_charge.id_for_label }}">Remboursé par la mutualité</label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.taux_remboursement.label }} <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            {{ form.taux_remboursement }}
+                            <span class="input-group-text">%</span>
+                        </div>
+                        {% if form.taux_remboursement.errors %}<div class="text-danger small">{{ form.taux_remboursement.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.prix_reference.label }}</label>
+                        <div class="input-group">
+                            {{ form.prix_reference }}
+                            <span class="input-group-text">BIF</span>
+                        </div>
+                        <div class="form-text small">Mettre 0 si calcul basé sur le prix réel</div>
+                        {% if form.prix_reference.errors %}<div class="text-danger small">{{ form.prix_reference.errors.0 }}</div>{% endif %}
+                    </div>
+                    
+                    <div class="col-12 mt-4">
+                        <label class="form-label">{{ form.observations.label }}</label>
+                        {{ form.observations }}
+                    </div>
+                    
+                    <div class="col-12 mt-3">
+                        <div class="form-check form-switch">
+                            {{ form.actif }}
+                            <label class="form-check-label" for="{{ form.actif.id_for_label }}">Médicament actif dans la base</label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12 mt-4 d-flex justify-content-end gap-2 border-top pt-3">
+                        <a href="{% url 'pharmacie:liste' %}" class="btn btn-outline-secondary">Annuler</a>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i> Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

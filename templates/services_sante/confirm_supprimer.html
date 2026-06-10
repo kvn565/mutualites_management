@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Supprimer service — Mutualité de Santé{% endblock %}
+{% block page_title %}Suppression{% endblock %}
+{% block page_icon %}bi bi-trash text-danger{% endblock %}
+{% block nav_services %}active{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger bg-opacity-10 text-danger border-bottom-0">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> Confirmation de suppression
+            </div>
+            <div class="card-body p-4 text-center">
+                <i class="bi bi-trash text-danger" style="font-size: 3rem;"></i>
+                <h4 class="mt-3 mb-2">Êtes-vous sûr(e) ?</h4>
+                <p class="text-muted">
+                    Vous êtes sur le point de supprimer le service de santé :<br>
+                    <strong class="text-dark fs-5">{{ obj.nom }}</strong> ({{ obj.code }})
+                </p>
+                
+                <div class="alert alert-warning mt-4 text-start">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Attention !</strong> S'il existe des factures liées à ce service dans le système, cette suppression pourrait causer des erreurs (ConstraintError). Il est généralement préférable de désactiver le service plutôt que de le supprimer.
+                </div>
+                
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    <a href="{% url 'services_sante:liste' %}" class="btn btn-outline-secondary me-2">Annuler</a>
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Confirmer la suppression</button>
+                    <a href="{% url 'services_sante:modifier' obj.pk %}" class="btn btn-warning mt-3 w-100 d-block"><i class="bi bi-pencil"></i> Je préfère juste le désactiver</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

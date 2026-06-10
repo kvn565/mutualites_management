@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Mutualité de Santé{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-diagram-3{% endblock %}
+{% block nav_origines %}active{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-pencil-square me-2"></i> Informations sur la structure
+            </div>
+            <div class="card-body p-4">
+                <form method="post" class="row g-3">
+                    {% csrf_token %}
+                    
+                    <div class="col-md-8">
+                        <label class="form-label">{{ form.nom.label }} <span class="text-danger">*</span></label>
+                        {{ form.nom }}
+                        {% if form.nom.errors %}<div class="form-text text-danger">{{ form.nom.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.type_origine.label }} <span class="text-danger">*</span></label>
+                        {{ form.type_origine }}
+                        {% if form.type_origine.errors %}<div class="form-text text-danger">{{ form.type_origine.errors.0 }}</div>{% endif %}
+                    </div>
+                    
+                    <div class="col-12 mt-4 mb-2">
+                        <h6 class="text-muted border-bottom pb-2">Coordonnées</h6>
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <label class="form-label">{{ form.contact.label }}</label>
+                        {{ form.contact }}
+                        <div class="form-text">Nom de la personne de contact</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.telephone.label }}</label>
+                        {{ form.telephone }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.email.label }}</label>
+                        {{ form.email }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.adresse.label }}</label>
+                        {{ form.adresse }}
+                    </div>
+                    
+                    <div class="col-12 mt-4 mb-2">
+                        <h6 class="text-muted border-bottom pb-2">Informations complémentaires</h6>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.description.label }}</label>
+                        {{ form.description }}
+                    </div>
+                    <div class="col-12 mt-3">
+                        <div class="form-check form-switch">
+                            {{ form.actif }}
+                            <label class="form-check-label" for="{{ form.actif.id_for_label }}">Structure active</label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12 mt-4 text-end">
+                        <a href="{% url 'origines:liste' %}" class="btn btn-outline-secondary me-2">Annuler</a>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
