@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Nouveau message au SuperAdmin{% endblock %}
+
+{% block page_icon %}bi-chat-left-text-fill{% endblock %}
+{% block page_title %}Contacter le SuperAdmin{% endblock %}
+{% block page_subtitle %}Envoyez votre question ou signalement{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-envelope-plus-fill me-2"></i>Nouveau message au SuperAdmin</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label for="{{ form.sujet.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-tag-fill me-1 text-primary"></i>Sujet <span class="text-danger">*</span>
+                        </label>
+                        {{ form.sujet }}
+                        {% if form.sujet.errors %}
+                        <div class="text-danger small mt-2">
+                            {% for error in form.sujet.errors %}<i class="bi bi-exclamation-circle-fill me-1"></i>{{ error }}{% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text text-muted">
+                            <i class="bi bi-lightbulb me-1"></i>Soyez précis : ex. "Problème facturation - partenaire Clinique X"
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="{{ form.message.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-chat-left-text-fill me-1 text-primary"></i>Message <span class="text-danger">*</span>
+                        </label>
+                        {{ form.message }}
+                        {% if form.message.errors %}
+                        <div class="text-danger small mt-2">
+                            {% for error in form.message.errors %}<i class="bi bi-exclamation-circle-fill me-1"></i>{{ error }}{% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text text-muted">
+                            <i class="bi bi-info-circle me-1"></i>Décrivez votre problème ou question le plus précisément possible. Pièces jointes non supportées pour l'instant.
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-3 pt-3 border-top mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg px-4">
+                            <i class="bi bi-send-fill me-2"></i>Envoyer au SuperAdmin
+                        </button>
+                        <a href="{% url 'aide:message_list' %}" class="btn btn-outline-secondary btn-lg px-4 align-self-center">
+                            <i class="bi bi-x-lg me-2"></i>Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4 border-info shadow-sm">
+            <div class="card-header bg-info bg-opacity-10 text-info border-0">
+                <h6 class="mb-0"><i class="bi bi-clock-history me-1"></i>Délais de réponse</h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0 small">
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Traitement du <strong>lundi au vendredi</strong>, hors jours fériés.</li>
+                    <li class="mb-2"><i class="bi bi-hourglass-split text-warning me-2"></i>Délai habituel : <strong>24 à 48h ouvrées</strong>.</li>
+                    <li class="mb-2"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Urgences critiques : ajoutez <strong>"URGENT"</strong> dans le sujet.</li>
+                    <li><i class="bi bi-bell-fill text-primary me-2"></i>Notification par email et dans l'application à la réponse.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-control:focus, .form-control-lg:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.15);
+}
+.form-control-lg {
+    padding: 0.75rem 1rem;
+    font-size: 1.05rem;
+}
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+}
+.card {
+    border-radius: 12px;
+    overflow: hidden;
+}
+.card-header {
+    border-bottom: none;
+}
+</style>
+{% endblock %}

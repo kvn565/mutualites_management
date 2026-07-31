@@ -1,6 +1,7 @@
 # cotisations/forms.py
 from django import forms
 from .models import Cotisation
+from affilies.models import Affilie
 
 class CotisationForm(forms.ModelForm):
     class Meta:
@@ -25,3 +26,11 @@ class CotisationForm(forms.ModelForm):
             'recu_fichier': forms.FileInput(attrs={'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
+
+    def __init__(self, *args, **kwargs):
+        mutualite = kwargs.pop('mutualite', None)
+        super().__init__(*args, **kwargs)
+        if mutualite:
+            self.fields['affilie'].queryset = Affilie.objects.filter(
+                mutualite=mutualite, supprime=False
+            ).order_by('nom', 'prenom')

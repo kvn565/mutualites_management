@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ budget }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-bold mb-0">{{ budget }}</h5>
+    <a href="{% url 'comptabilite:budget_list' %}" class="btn btn-sm btn-outline-secondary">← Retour</a>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <div class="row g-3 mb-3">
+        <div class="col-md-3"><strong>Statut</strong><br>{% include 'comptabilite/_statut_budget.html' with b=budget %}</div>
+        <div class="col-md-3"><strong>Type</strong><br>{{ budget.get_type_budget_display }}</div>
+        <div class="col-md-3"><strong>Centre</strong><br>{{ budget.centre.libelle|default:'Général' }}</div>
+        <div class="col-md-3"><strong>Description</strong><br>{{ budget.description|default:'—' }}</div>
+      </div>
+      <div class="progress" style="height:20px;">
+        <div class="progress-bar {% if budget.taux_execution >= 75 %}bg-success{% elif budget.taux_execution >= 50 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" style="width:{{ budget.taux_execution|floatformat:1 }}%">{{ budget.taux_execution|floatformat:1 }}%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white"><h6 class="fw-bold mb-0">Détail des lignes</h6></div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light"><tr><th>Compte</th><th class="text-end">Prévu</th><th class="text-end">Réalisé</th><th class="text-end">Écart</th><th class="text-end">Taux</th></tr></thead>
+        <tbody>
+          {% for l in lignes %}
+          <tr>
+            <td><code>{{ l.compte.numero }}</code> {{ l.compte.intitule }}</td>
+            <td class="text-end">{{ l.montant_prevu|floatformat:0|intcomma }}</td>
+            <td class="text-end">{{ l.montant_realise|floatformat:0|intcomma }}</td>
+            <td class="text-end {% if l.ecart < 0 %}text-danger{% else %}text-success{% endif %}">{{ l.ecart|floatformat:0|intcomma }}</td>
+            <td class="text-end">{% widthratio l.montant_realise l.montant_prevu 100 %}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

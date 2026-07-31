@@ -3,9 +3,9 @@ from django.db import models
 from django.utils import timezone
 from affilies.models import Affilie
 from core.models import TenantManager
+from comptabilite.models import SoftDeleteMixin
 
-
-class AyantDroit(models.Model):
+class AyantDroit(SoftDeleteMixin):
     LIEN_CHOICES = [
         ('CONJOINT', 'Conjoint(e)'),
         ('ENFANT', 'Enfant'),
@@ -47,6 +47,7 @@ class AyantDroit(models.Model):
         choices=LIEN_CHOICES,
         verbose_name='Lien de parenté',
     )
+    age_limite = models.PositiveIntegerField(default=18, verbose_name="Âge limite (ans)", help_text="À partir de cet âge, l'ayant droit sera automatiquement radié")
     date_ajout = models.DateField(
         default=timezone.now, verbose_name="Date d'ajout",
     )
@@ -89,8 +90,41 @@ class AyantDroit(models.Model):
         b = self.date_naissance
         return today.year - b.year - ((today.month, today.day) < (b.month, b.day))
 
+    @property
+    def depasse_age_limite(self):
+        return self.age_limite and self.age >= self.age_limite
+
+    def auto_radier(self):
+        if self.depasse_age_limite and not self.supprime:
+            self.statut = 'RADIE'
+            self.soft_delete()
+            return True
+        return False
+
     def soft_delete(self):
         self.supprime = True
         self.actif = False
         self.date_suppression = timezone.now()
         self.save(update_fields=['supprime', 'actif', 'date_suppression'])
+
+    def _serialiser_pour_corbeille(self):
+        return {
+            'nom': self.nom,
+            'postnom': self.postnom,
+            'prenom': self.prenom,
+            'sexe': self.sexe,
+            'date_naissance': self.date_naissance.isoformat() if self.date_naissance else None,
+            'lien_parente': self.lien_parente,
+            'age_limite': self.age_limite,
+            'affilie': self.affilie.numero_affiliation,
+            'statut': self.statut,
+        }
+
+
+def radier_majeurs():
+    """Radie tous les ayants droit ayant dépassé leur âge limite."""
+    count = 0
+    for ad in AyantDroit.objects.filter(supprime=False, actif=True):
+        if ad.auto_radier():
+            count += 1
+    return count

@@ -20,13 +20,29 @@
 <div class="card mb-4">
     <div class="card-body">
         <form method="get" class="row g-3">
-            <div class="col-md-7">
+            <div class="col-md-4">
                 <div class="search-bar">
                     <i class="bi bi-search search-icon"></i>
-                    <input type="text" name="q" class="form-control" placeholder="Rechercher N° facture, Partenaire, Affilié..." value="{{ q }}">
+                    <input type="text" name="q" class="form-control" placeholder="N° facture, Partenaire, N° CNI, Affilié..." value="{{ q }}">
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
+                <select name="mois" class="form-select">
+                    <option value="">Tous les mois</option>
+                    {% for val, label in mois_choices %}
+                    <option value="{{ val }}" {% if mois == val|slugify %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="annee" class="form-select">
+                    <option value="">Année</option>
+                    {% for a in annees %}
+                    <option value="{{ a }}" {% if annee == a %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
                 <select name="statut" class="form-select">
                     <option value="">Tous les statuts</option>
                     {% for val, label in statut_choices %}
@@ -106,13 +122,13 @@
         <nav>
             <ul class="pagination justify-content-center mb-0">
                 {% if factures.has_previous %}
-                <li class="page-item"><a class="page-link" href="?page={{ factures.previous_page_number }}&q={{ q }}&statut={{ statut }}">Précédent</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ factures.previous_page_number }}&q={{ q }}&statut={{ statut }}&mois={{ mois }}&annee={{ annee }}">Précédent</a></li>
                 {% endif %}
                 
                 <li class="page-item active"><span class="page-link">{{ factures.number }} / {{ factures.paginator.num_pages }}</span></li>
                 
                 {% if factures.has_next %}
-                <li class="page-item"><a class="page-link" href="?page={{ factures.next_page_number }}&q={{ q }}&statut={{ statut }}">Suivant</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ factures.next_page_number }}&q={{ q }}&statut={{ statut }}&mois={{ mois }}&annee={{ annee }}">Suivant</a></li>
                 {% endif %}
             </ul>
         </nav>

@@ -8,6 +8,15 @@ from django.contrib import messages
 from django.shortcuts import redirect
 
 
+def redirection_selon_role(user):
+    """Retourne la redirection correcte selon le type d'utilisateur."""
+    if user.est_super_admin:
+        return redirect('superadmin:dashboard')
+    if user.is_superuser or user.is_staff:
+        return redirect('admin:index')
+    return redirect('dashboard:index')
+
+
 class RoleRequiredMixin(LoginRequiredMixin):
     """Mixin de base avec vérification de rôle."""
     roles_requis = []
@@ -19,7 +28,7 @@ class RoleRequiredMixin(LoginRequiredMixin):
             role = request.user.role
             if role not in self.roles_requis:
                 messages.error(request, "⛔ Vous n'avez pas les permissions nécessaires.")
-                return redirect('dashboard:index')
+                return redirection_selon_role(request.user)
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -30,7 +39,7 @@ class AdminRequiredMixin(LoginRequiredMixin):
             return self.handle_no_permission()
         if not request.user.est_admin:
             messages.error(request, "⛔ Accès réservé aux administrateurs.")
-            return redirect('dashboard:index')
+            return redirection_selon_role(request.user)
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -41,7 +50,7 @@ class ComptableRequiredMixin(LoginRequiredMixin):
             return self.handle_no_permission()
         if not request.user.est_comptable:
             messages.error(request, "⛔ Accès réservé aux comptables.")
-            return redirect('dashboard:index')
+            return redirection_selon_role(request.user)
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -52,7 +61,7 @@ class ModificationRequiredMixin(LoginRequiredMixin):
             return self.handle_no_permission()
         if not request.user.peut_modifier:
             messages.error(request, "⛔ Vous êtes en mode consultation uniquement.")
-            return redirect('dashboard:index')
+            return redirection_selon_role(request.user)
         return super().dispatch(request, *args, **kwargs)
 
 

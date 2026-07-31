@@ -1,0 +1,335 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% load humanize %}
+{% block title %}Dashboard — {{ partenaire.nom_etablissement }}{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+        <h1><i class="bi bi-speedometer2" style="color:var(--primary)"></i> Dashboard</h1>
+        <p>Vue d'ensemble de votre activité</p>
+    </div>
+    <div class="flex items-center gap-2 flex-wrap">
+        <div style="background:#e8f5ee;border-radius:10px;padding:8px 16px;display:flex;align-items:center;gap:10px;">
+            <i class="bi bi-building" style="color:var(--primary);font-size:1.1rem;"></i>
+            <div>
+                <div style="font-size:0.72rem;color:#64748b;">Mutualités liées</div>
+                <div style="font-weight:600;font-size:0.82rem;color:var(--primary);display:flex;gap:6px;flex-wrap:wrap;">
+                    {% for m in mutualites %}
+                    <span>{{ m.nom|default:m.sigle }}</span>{% if not forloop.last %}<span style="color:#94a3b8;">|</span>{% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% if stats_par_mutualite|length > 1 %}
+        <select class="form-select" style="width:auto;min-width:180px;height:38px;font-size:0.82rem;" onchange="if(this.value) window.location.href=this.value;">
+            <option value="{% url 'portail_partenaire:changer_mutualite' %}" {% if not mutualite_active %}selected{% endif %}>Toutes les mutualités</option>
+            {% for sm in stats_par_mutualite %}
+            <option value="{% url 'portail_partenaire:changer_mutualite' %}?pk={{ sm.mutualite.pk }}" {% if mutualite_active == sm.mutualite.pk|stringformat:'s' %}selected{% endif %}>
+                {{ sm.mutualite.sigle|default:sm.mutualite.nom }}
+            </option>
+            {% endfor %}
+        </select>
+        {% endif %}
+    </div>
+</div>
+
+{% if not mutualites %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    <strong>Aucune mutualité liée.</strong> Votre compte a été créé avec succès (code partenaire : <strong>{{ partenaire.code_partenaire }}</strong>).
+    Pour commencer à utiliser le portail, contactez les mutualités avec lesquelles vous travaillez
+    et demandez-leur de vous ajouter comme partenaire. Vous recevrez une notification dès qu'une convention sera établie.
+</div>
+{% elif not convention_active %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    <strong>Convention expirée.</strong> La convention avec la mutualité est expirée ou n'a pas encore commencé.
+    Veuillez contacter la mutualité pour renouveler votre convention.
+</div>
+{% endif %}
+
+{% if mutualite_active_obj %}
+<div style="margin-bottom:12px;padding:8px 14px;background:#f0fdf4;border-radius:8px;display:flex;align-items:center;justify-content:space-between;font-size:0.85rem;">
+    <span><i class="bi bi-funnel" style="color:var(--primary);margin-right:6px;"></i> Mutualité sélectionnée : <strong>{{ mutualite_active_obj.nom }}</strong></span>
+    <a href="{% url 'portail_partenaire:changer_mutualite' %}" class="btn btn-sm btn-outline" style="font-size:0.78rem;">
+        <i class="bi bi-x"></i> Réinitialiser
+    </a>
+</div>
+{% endif %}
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="bi bi-receipt"></i></div>
+        <div>
+            <div class="stat-label">Total Factures</div>
+            <div class="stat-value">{{ stats.total_factures }}</div>
+        </div>
+    </div>
+    <div class="stat-card" style="border-left-color:#f59e0b;">
+        <div class="stat-icon gold"><i class="bi bi-hourglass-split"></i></div>
+        <div>
+            <div class="stat-label">En attente</div>
+            <div class="stat-value">{{ stats.en_attente }}</div>
+        </div>
+    </div>
+    <div class="stat-card" style="border-left-color:#10b981;">
+        <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+        <div>
+            <div class="stat-label">Validées</div>
+            <div class="stat-value">{{ stats.validees }}</div>
+        </div>
+    </div>
+    <div class="stat-card" style="border-left-color:#3b82f6;">
+        <div class="stat-icon blue"><i class="bi bi-credit-card"></i></div>
+        <div>
+            <div class="stat-label">Payées</div>
+            <div class="stat-value">{{ stats.payees }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card" style="border-left-color:#7c3aed;">
+        <div class="stat-icon" style="background:#f5f3ff;color:#7c3aed;"><i class="bi bi-cash-stack"></i></div>
+        <div>
+            <div class="stat-label">Montant total facturé</div>
+            <div class="stat-value">{{ stats.montant_total|floatformat:0|intcomma }}</div>
+            <div class="stat-label">BIF</div>
+        </div>
+    </div>
+    <div class="stat-card" style="border-left-color:#0a5c36;">
+        <div class="stat-icon green"><i class="bi bi-piggy-bank"></i></div>
+        <div>
+            <div class="stat-label">Montant remboursé (Mutualité)</div>
+            <div class="stat-value">{{ stats.montant_rembourse|floatformat:0|intcomma }}</div>
+            <div class="stat-label">BIF</div>
+        </div>
+    </div>
+</div>
+
+{% if stats_par_mutualite|length > 1 and not mutualite_active %}
+<div class="card" style="margin-top:16px;">
+    <div class="card-header">
+        <span><i class="bi bi-building" style="color:var(--primary)"></i> Statistiques par mutualité</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+        <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>Mutualité</th>
+                    <th class="text-center">Factures</th>
+                    <th class="text-right">Montant total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sm in stats_par_mutualite %}
+                <tr>
+                    <td><span class="mut-badge" style="background:#e8f5ee;color:var(--primary);font-size:0.82rem;padding:3px 10px;border-radius:4px;">{{ sm.mutualite.sigle|default:sm.mutualite.nom }}</span></td>
+                    <td class="text-center fw-bold">{{ sm.total_factures }}</td>
+                    <td class="text-right fw-bold">{{ sm.montant_total|floatformat:0|intcomma }}</td>
+                    <td><a href="{% url 'portail_partenaire:changer_mutualite' %}?pk={{ sm.mutualite.pk }}" class="btn btn-sm btn-outline-primary">Filtrer</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <span><i class="bi bi-pie-chart" style="color:var(--primary)"></i> Répartition par statut</span>
+        </div>
+        <div class="card-body" style="display:flex;justify-content:center;">
+            <canvas id="statutChart" width="250" height="250" style="max-width:260px;max-height:260px;"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <span><i class="bi bi-bar-chart" style="color:var(--primary)"></i> Évolution mensuelle</span>
+        </div>
+        <div class="card-body">
+            <canvas id="moisChart" width="400" height="220"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <span><i class="bi bi-clock-history" style="color:var(--primary)"></i> Dernières factures</span>
+            <a href="{% url 'portail_partenaire:liste_factures' %}" class="btn btn-sm btn-outline-primary">Voir tout</a>
+        </div>
+        <div class="card-body" style="padding:0;">
+            {% if factures_recentes %}
+            <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>N°</th>
+                        <th>Membre</th>
+                        <th>Mutualité</th>
+                        <th>Date</th>
+                        <th>Montant</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in factures_recentes %}
+                    <tr>
+                        <td><a href="{% url 'portail_partenaire:detail_facture' f.pk %}">{{ f.numero }}</a></td>
+                        <td>{% if f.affilie %}{{ f.affilie.nom_complet }}{% else %}{{ f.client_nom }}{% endif %}</td>
+                        <td><span class="badge badge-info" style="font-size:0.72rem;">{{ f.mutualite.sigle|default:f.mutualite.nom }}</span></td>
+                        <td>{{ f.date|date:"d/m/Y" }}</td>
+                        <td>{{ f.montant_total|floatformat:0|intcomma }}</td>
+                        <td>
+                            {% if f.statut == 'BROUILLON' %}<span class="badge badge-secondary">Brouillon</span>
+                            {% elif f.statut == 'SOUMIS' %}<span class="badge badge-warning">Soumise</span>
+                            {% elif f.statut == 'VALIDE' %}<span class="badge badge-success">Validée</span>
+                            {% elif f.statut == 'PAYE' %}<span class="badge badge-info">Payée</span>
+                            {% elif f.statut == 'REJETE' %}<span class="badge badge-danger">Rejetée</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <p>Aucune facture pour le moment</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span><i class="bi bi-people" style="color:var(--primary)"></i> Derniers membres consultés</span>
+            <a href="{% url 'portail_partenaire:recherche_membre' %}" class="btn btn-sm btn-outline-primary">Rechercher</a>
+        </div>
+        <div class="card-body" style="padding:0;">
+            {% if membres_recents %}
+            <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Membre</th>
+                        <th>ID</th>
+                        <th>Mutualité</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in membres_recents %}
+                    <tr>
+                        <td class="flex items-center gap-2">
+                            <span>{{ m.nom_complet }}</span>
+                        </td>
+                        <td><code>{{ m.numero_affiliation }}</code></td>
+                        <td><span class="badge badge-info" style="font-size:0.72rem;">{{ m.mutualite.sigle|default:m.mutualite.nom }}</span></td>
+                        <td><a href="{% url 'portail_partenaire:detail_membre' m.pk %}" class="btn btn-sm btn-outline-primary">Voir</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-search"></i>
+                <p>Recherchez un membre pour commencer</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var statutData = {{ chart_statut_json|safe }};
+    var ctxStatut = document.getElementById('statutChart');
+    if (ctxStatut && statutData && statutData.labels.length) {
+        new Chart(ctxStatut, {
+            type: 'doughnut',
+            data: {
+                labels: statutData.labels,
+                datasets: [{
+                    data: statutData.data,
+                    backgroundColor: statutData.colors,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 11 }, padding: 12 }
+                    }
+                }
+            }
+        });
+    }
+
+    var ctxMois = document.getElementById('moisChart');
+    if (ctxMois) {
+        new Chart(ctxMois, {
+            type: 'bar',
+            data: {
+                labels: {{ chart_mois_labels|safe }},
+                datasets: [
+                    {
+                        label: 'Montant facturé',
+                        data: {{ chart_mois_montants|safe }},
+                        backgroundColor: 'rgba(10, 92, 54, 0.7)',
+                        borderColor: 'rgba(10, 92, 54, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    },
+                    {
+                        label: 'Remboursé',
+                        data: {{ chart_mois_rembourses|safe }},
+                        backgroundColor: 'rgba(201, 168, 76, 0.7)',
+                        borderColor: 'rgba(201, 168, 76, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 10 }, padding: 10 }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            font: { size: 10 },
+                            callback: function(value) { return value.toLocaleString(); }
+                        }
+                    },
+                    x: {
+                        ticks: { font: { size: 10 } }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

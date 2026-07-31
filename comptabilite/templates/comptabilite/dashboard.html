@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Comptabilité — Tableau de bord{% endblock %}
+
+{% block extra_css %}
+<style>
+  .kpi-card { border-radius: 12px; padding: 1.5rem; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.06); transition: .2s; }
+  .kpi-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+  .kpi-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+  .kpi-value { font-size: 1.8rem; font-weight: 700; }
+  .kpi-label { color: #6c757d; font-size: .85rem; text-transform: uppercase; letter-spacing: .5px; }
+  .table-mini td, .table-mini th { padding: .5rem .75rem; font-size: .875rem; }
+  .statut-badge { font-size: .75rem; padding: .25em .6em; border-radius: 50px; }
+  .progress-budget { height: 6px; border-radius: 3px; }
+  .chart-container { position: relative; height: 260px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="mb-1 fw-bold">📊 Tableau de bord comptable</h4>
+      <p class="text-muted mb-0 small">{{ mutualite.nom }} · {{ mutualite.code }}</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'comptabilite:ecriture_create' %}" class="btn btn-primary btn-sm">+ Nouvelle écriture</a>
+      <a href="{% url 'comptabilite:rapport' %}" class="btn btn-outline-primary btn-sm">Rapports</a>
+      <a href="{% url 'comptabilite:guide' %}" class="btn btn-outline-info btn-sm">📖 Guide</a>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="kpi-card">
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <div class="kpi-icon bg-success bg-opacity-10 text-success">💰</div>
+          <div>
+            <div class="kpi-value">{{ solde_tresorerie|floatformat:0|intcomma }}</div>
+            <div class="kpi-label">Trésorerie disponible</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="kpi-card">
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <div class="kpi-icon bg-danger bg-opacity-10 text-danger">📤</div>
+          <div>
+            <div class="kpi-value">{{ total_debit_mois|floatformat:0|intcomma }}</div>
+            <div class="kpi-label">Débits du mois</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="kpi-card">
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <div class="kpi-icon bg-primary bg-opacity-10 text-primary">📥</div>
+          <div>
+            <div class="kpi-value">{{ total_credit_mois|floatformat:0|intcomma }}</div>
+            <div class="kpi-label">Crédits du mois</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="kpi-card">
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <div class="kpi-icon bg-warning bg-opacity-10 text-warning">⏳</div>
+          <div>
+            <div class="kpi-value">{{ ecritures_attente }}</div>
+            <div class="kpi-label">Écritures en attente</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Graphique flux mensuels -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
+          <h6 class="fw-bold mb-0">Flux mensuels (débit / crédit)</h6>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="fluxChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dernières écritures -->
+      <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+          <h6 class="fw-bold mb-0">📋 Dernières écritures</h6>
+          <a href="{% url 'comptabilite:ecriture_list' %}" class="btn btn-sm btn-outline-secondary">Voir tout</a>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-mini mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Date</th>
+                  <th>Pièce</th>
+                  <th>Compte</th>
+                  <th>Libellé</th>
+                  <th class="text-end">Montant</th>
+                  <th>Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for e in dernieres_ecritures %}
+                <tr>
+                  <td class="text-nowrap">{{ e.date|date:'d/m/Y' }}</td>
+                  <td><code>{{ e.piece_reference }}</code></td>
+                  <td>{{ e.compte.numero }}</td>
+                  <td class="text-truncate" style="max-width:200px;">{{ e.libelle }}</td>
+                  <td class="text-end">
+                    <span class="{% if e.type_mouvement == 'DEBIT' %}text-danger{% else %}text-success{% endif %}">
+                      {{ e.montant|floatformat:0|intcomma }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if e.statut == 'VALIDE' %}
+                      <span class="badge bg-success statut-badge">Validé</span>
+                    {% elif e.statut == 'SOUMIS' %}
+                      <span class="badge bg-warning text-dark statut-badge">Soumis</span>
+                    {% elif e.statut == 'BROUILLON' %}
+                      <span class="badge bg-secondary statut-badge">Brouillon</span>
+                    {% else %}
+                      <span class="badge bg-danger statut-badge">Rejeté</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-3">Aucune écriture pour le moment.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Colonne droite -->
+    <div class="col-lg-4">
+      <!-- Suivi budgétaire -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
+          <h6 class="fw-bold mb-0">📈 Suivi budgétaire</h6>
+        </div>
+        <div class="card-body">
+          <table class="table table-mini mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Budget</th>
+                <th class="text-end">Exécution</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in budgets_suivi %}
+              <tr>
+                <td>
+                  <strong>{{ b.annee }}</strong>
+                  {% if b.centre %} <span class="text-muted">· {{ b.centre.code }}</span>{% endif %}
+                  <div class="progress progress-budget mt-1">
+                    <div class="progress-bar {% if b.taux_execution >= 75 %}bg-success{% elif b.taux_execution >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                         role="progressbar" style="width:{{ b.taux_execution|floatformat:0 }}%">
+                    </div>
+                  </div>
+                </td>
+                <td class="text-end">
+                  <span class="fw-bold">{{ b.taux_execution|floatformat:1 }}%</span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="2" class="text-center text-muted py-3">Aucun budget actif.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <div class="mt-3">
+            <a href="{% url 'comptabilite:budget_list' %}" class="btn btn-sm btn-outline-primary w-100">Gérer les budgets</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accès rapides -->
+      <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
+          <h6 class="fw-bold mb-0">🔗 Accès rapides</h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <a href="{% url 'comptabilite:compte_list' %}" class="btn btn-outline-secondary btn-sm text-start">
+              📒 Plan comptable
+            </a>
+            <a href="{% url 'comptabilite:centre_list' %}" class="btn btn-outline-secondary btn-sm text-start">
+              🏢 Centres analytiques
+            </a>
+            <a href="{% url 'comptabilite:prevision_list' %}" class="btn btn-outline-secondary btn-sm text-start">
+              📅 Prévisions de trésorerie
+            </a>
+            <a href="{% url 'comptabilite:rapprochement_list' %}" class="btn btn-outline-secondary btn-sm text-start">
+              🔄 Rapprochement bancaire
+            </a>
+            <a href="{% url 'comptabilite:budget_list' %}" class="btn btn-outline-secondary btn-sm text-start">
+              📊 Budgets
+            </a>
+            <a href="{% url 'comptabilite:rapport' %}" class="btn btn-outline-secondary btn-sm text-start">
+              📄 Rapports (bilan, CPC, balance…)
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Indicateur budgets actifs -->
+      <div class="card border-0 shadow-sm mt-4">
+        <div class="card-body text-center py-4">
+          <div class="display-6 fw-bold text-primary">{{ budgets_actifs }}</div>
+          <div class="text-muted small">Budgets en cours</div>
+          <div class="mt-2 text-muted small">{{ ecritures_attente }} écriture(s) en attente de validation</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var ctx = document.getElementById('fluxChart').getContext('2d');
+  var moisData = {{ mois_data|safe }};
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: moisData.map(function(d) { return d.mois; }),
+      datasets: [
+        {
+          label: 'Débits',
+          data: moisData.map(function(d) { return d.debit; }),
+          backgroundColor: 'rgba(220, 53, 69, .7)',
+          borderColor: 'rgba(220, 53, 69, 1)',
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+        {
+          label: 'Crédits',
+          data: moisData.map(function(d) { return d.credit; }),
+          backgroundColor: 'rgba(25, 135, 84, .7)',
+          borderColor: 'rgba(25, 135, 84, 1)',
+          borderWidth: 1,
+          borderRadius: 4,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 12, padding: 12 } },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { callback: function(v) { return v.toLocaleString('fr-FR'); } }
+        }
+      }
+    }
+  });
+});
+</script>
+{% endblock %}

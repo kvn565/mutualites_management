@@ -6,6 +6,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 
 from core.models import Utilisateur
+from groupe.models import Groupe
 from core.mixins import enregistrer_audit, AdminRequiredMixin
 from .forms import UtilisateurForm, UtilisateurEditForm
 
@@ -52,17 +53,24 @@ def ajouter(request):
         messages.error(request, "⛔ Accès réservé aux administrateurs.")
         return redirect('dashboard:index')
 
+    groupes = Groupe.objects.filter(mutualite=request.user.mutualite)
+
     if request.method == 'POST':
         form = UtilisateurForm(request.POST, request.FILES)
         if form.is_valid():
-            obj = form.save()
+            obj = form.save(commit=False)
+            obj.mutualite = request.user.mutualite
+            obj.save()
+            groupe_ids = request.POST.getlist('groupes')
+            if groupe_ids:
+                obj.groupes.set(Groupe.objects.filter(pk__in=groupe_ids, mutualite=request.user.mutualite))
             enregistrer_audit(request, 'CREATION', 'utilisateurs', f"Création utilisateur : {obj.username}", 'Utilisateur', obj.pk)
             messages.success(request, f"✅ Utilisateur {obj.username} ajouté avec succès.")
             return redirect('utilisateurs:liste')
     else:
         form = UtilisateurForm()
 
-    return render(request, 'utilisateurs/form.html', {'form': form, 'titre': 'Ajouter un utilisateur'})
+    return render(request, 'utilisateurs/form.html', {'form': form, 'titre': 'Ajouter un utilisateur', 'groupes': groupes})
 
 @login_required
 def modifier(request, pk):
@@ -74,17 +82,21 @@ def modifier(request, pk):
         return redirect('dashboard:index')
 
     obj = get_object_or_404(Utilisateur, pk=pk, mutualite=request.user.mutualite)
+    groupes = Groupe.objects.filter(mutualite=request.user.mutualite)
+
     if request.method == 'POST':
         form = UtilisateurEditForm(request.POST, request.FILES, instance=obj)
         if form.is_valid():
             form.save()
+            groupe_ids = request.POST.getlist('groupes')
+            obj.groupes.set(Groupe.objects.filter(pk__in=groupe_ids, mutualite=request.user.mutualite))
             enregistrer_audit(request, 'MODIFICATION', 'utilisateurs', f"Modification utilisateur : {obj.username}", 'Utilisateur', obj.pk)
             messages.success(request, f"✅ Utilisateur {obj.username} modifié avec succès.")
             return redirect('utilisateurs:liste')
     else:
         form = UtilisateurEditForm(instance=obj)
 
-    return render(request, 'utilisateurs/form.html', {'form': form, 'obj': obj, 'titre': 'Modifier un utilisateur'})
+    return render(request, 'utilisateurs/form.html', {'form': form, 'obj': obj, 'titre': 'Modifier un utilisateur', 'groupes': groupes})
 
 @login_required
 def supprimer(request, pk):
@@ -110,40 +122,4 @@ def supprimer(request, pk):
 
     return render(request, 'utilisateurs/confirm_supprimer.html', {'obj': obj})
 
-def inscription_chef(request):
-    from django.contrib.auth import login
-    from .forms import InscriptionChefForm
-
-    if request.user.is_authenticated:
-        return redirect('dashboard:index')
-
-    if request.method == 'POST':
-        form = InscriptionChefForm(request.POST)
-        if form.is_valid():
-            mutualite = form.cleaned_data['_mutualite']
-            username = form.cleaned_data['username']
-            password = form.cleaned_data['password']
-            email = form.cleaned_data['email']
-            nom = form.cleaned_data['nom_gerant']
-            prenom = form.cleaned_data['prenom_gerant']
-
-            # Créer l'utilisateur
-            user = Utilisateur.objects.create_user(
-                username=username,
-                password=password,
-                email=email,
-                nom=nom,
-                prenom=prenom,
-                role='ADMIN_MUTUALITE',
-                mutualite=mutualite
-            )
-
-            # Connecter l'utilisateur
-            login(request, user)
-            messages.success(request, f"✅ Bienvenue ! Vous êtes maintenant l'administrateur de {mutualite.nom}.")
-            return redirect('dashboard:index')
-    else:
-        form = InscriptionChefForm()
-
-    return render(request, 'utilisateurs/inscription_chef.html', {'form': form})
 

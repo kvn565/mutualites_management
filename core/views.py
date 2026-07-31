@@ -1,23 +1,37 @@
 import logging
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.shortcuts import render, redirect
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
+from django.utils import timezone
+from django.views.decorators.http import require_POST
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.views.generic.detail import SingleObjectMixin
 
 from core.mixins import ModificationRequiredMixin, MutualiteRequiredMixin
-from core.models import JournalAudit, Mutualite, Utilisateur, HistoriqueConnexion, set_current_mutualite
+from core.models import Mutualite, Utilisateur, JournalAudit, HistoriqueConnexion, set_current_mutualite
 
 logger = logging.getLogger('core.security')
 
 
 def landing_view(request):
     from django.shortcuts import redirect
+    if request.user.is_authenticated:
+        # Super admin de la plateforme → espace superadmin
+        if request.user.est_super_admin:
+            return redirect('superadmin:dashboard')
+        # Staff/superuser Django uniquement → interface admin Django
+        if request.user.is_superuser or request.user.is_staff:
+            return redirect('admin:index')
+        # Utilisateur normal d'une mutualité → dashboard
+        return redirect('dashboard:index')
+    # Non connecté → page de connexion
     return redirect('core:login')
 
 
@@ -33,6 +47,17 @@ def login_view(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 if user.actif:
+                    # Vérifier si la mutualité a été auto-supprimée (expirée)
+                    if user.mutualite and user.mutualite.statut == 'EN_ATTENTE':
+                        from datetime import timedelta
+                        from django.utils import timezone
+                        age = (timezone.now() - user.mutualite.date_creation).days
+                        if age >= 7:
+                            # Mutualité expirée - supprimer l'utilisateur aussi
+                            user.delete()
+                            messages.error(request, "Votre mutualité a expiré (plus de 7 jours sans validation). Veuillez vous réinscrire.")
+                            return redirect('core:inscription')
+                    
                     login(request, user)
                     remember = form.cleaned_data.get('remember', False)
                     if not remember:
@@ -51,6 +76,9 @@ def login_view(request):
                         user_agent=request.META.get('HTTP_USER_AGENT', '')[:255],
                         succes=True,
                     )
+                    if not user.est_super_admin and getattr(user.mutualite, 'statut', None) == 'EN_ATTENTE':
+                        request.session['mutualite_inscrite_id'] = user.mutualite.pk
+                        return redirect('core:inscription_attente')
                     messages.success(request, f"Bienvenue {user.nom_complet} !")
                     if user.est_super_admin:
                         return redirect('superadmin:dashboard')
@@ -64,6 +92,7 @@ def login_view(request):
     return render(request, 'core/login.html', {'form': form})
 
 
+
 def inscription_view(request):
     from .forms import InscriptionForm
     from django.contrib.auth.hashers import make_password
@@ -75,9 +104,15 @@ def inscription_view(request):
             data = form.cleaned_data
             mutualite = Mutualite.objects.create(
                 nom=data['nom_mutualite'],
+                nif=data.get('nif') or None,
                 sigle=data.get('sigle', ''),
+                province=data.get('province', ''),
+                commune=data.get('commune', ''),
+                quartier=data.get('quartier', ''),
+                adresse=data.get('adresse', ''),
                 telephone=data.get('telephone', ''),
                 email=data.get('email', ''),
+                statut='EN_ATTENTE',
             )
             admin = Utilisateur.objects.create(
                 username=data['username'],
@@ -89,23 +124,74 @@ def inscription_view(request):
                 role='ADMIN_MUTUALITE',
                 actif=True,
             )
-            set_current_mutualite(mutualite)
             JournalAudit.objects.create(
                 utilisateur=admin, action='CREATION', module='core',
                 description=f"Inscription de la mutualité {mutualite.nom} par {admin.nom_complet}",
                 mutualite=mutualite,
             )
-            messages.success(
-                request,
-                f"✅ Mutualité « {mutualite.nom} » créée avec succès ! "
-                f"Connectez-vous avec votre nom d'utilisateur.",
-            )
-            return redirect('core:login')
-        else:
-            messages.error(request, "⛔ Veuillez corriger les erreurs ci-dessous.")
+            request.session['mutualite_inscrite_id'] = mutualite.pk
+            return redirect('core:inscription_attente')
     else:
         form = InscriptionForm()
     return render(request, 'core/inscription.html', {'form': form})
+
+
+def inscription_attente(request):
+    from datetime import timedelta
+    from django.utils import timezone
+    
+    mutualite_id = request.session.get('mutualite_inscrite_id')
+    mutualite = None
+    if mutualite_id:
+        try:
+            mutualite = Mutualite.objects.get(pk=mutualite_id)
+        except Mutualite.DoesNotExist:
+            pass
+    if not mutualite and request.user.is_authenticated:
+        mutualite = getattr(request.user, 'mutualite', None)
+    if not mutualite:
+        return redirect('core:login')
+
+    # Vérifier si la mutualité a expiré (plus de 7 jours en attente)
+    if mutualite.statut == 'EN_ATTENTE':
+        age = (timezone.now() - mutualite.date_creation).days
+        if age >= 7:
+            # Supprimer la mutualité et son admin
+            username_admin = mutualite.username_admin
+            mutualite_nom = mutualite.nom
+            
+            # Log audit
+            from core.models import JournalAudit
+            JournalAudit.objects.create(
+                mutualite=None,
+                utilisateur=None,
+                action='SUPPRESSION_AUTO',
+                module='core',
+                description=f"Suppression auto : mutualité '{mutualite_nom}' en attente depuis {age} jours (expirée)",
+                objet_type='Mutualite',
+                objet_id=mutualite.pk,
+                adresse_ip='system',
+            )
+            
+            # Supprimer l'admin user s'il existe
+            if username_admin:
+                try:
+                    admin_user = Utilisateur.objects.get(username=username_admin, mutualite=mutualite)
+                    admin_user.delete()
+                except Utilisateur.DoesNotExist:
+                    pass
+            
+            # Supprimer la mutualité
+            mutualite.delete()
+            
+            # Nettoyer la session
+            request.session.pop('mutualite_inscrite_id', None)
+            
+            from django.contrib import messages
+            messages.info(request, f"Votre demande d'inscription a expiré (plus de 7 jours sans validation). Vous pouvez vous réinscrire.")
+            return redirect('core:inscription')
+
+    return render(request, 'core/inscription_attente.html', {'mutualite': mutualite})
 
 
 def logout_view(request):
@@ -141,6 +227,99 @@ def profil_view(request):
     return render(request, 'core/profil.html', {
         'form': form,
         'mdp_form': mdp_form,
+    })
+
+
+def activer_licence(request):
+    from core.models import CleActivation
+    if not request.user.is_authenticated:
+        return render(request, 'core/licence_activer.html', {'mutualite': None})
+    mutualite = request.user.mutualite
+    if not mutualite or request.user.est_super_admin:
+        messages.error(request, "⛔ Accès non autorisé.")
+        return redirect('dashboard:index')
+
+    if request.method == 'POST':
+        cle = request.POST.get('cle_activation', '').strip().upper()
+        if not cle:
+            messages.error(request, "Veuillez entrer une clé d'activation.")
+        else:
+            obj = CleActivation.objects.filter(cle_visible=cle, utilisee=False, active=True).first()
+            if obj and obj.mutualite == mutualite:
+                obj.utilisee = True
+                obj.date_utilisation = timezone.now()
+                obj.statut = 'ACTIVE'
+                obj.save()
+                mutualite.essai_gratuit = (obj.type_plan == 'ESSAI')
+                mutualite.cle_activation = obj.cle_visible
+                mutualite.date_activation = obj.date_debut
+                mutualite.date_expiration = obj.date_fin
+                mutualite.type_abonnement = obj.type_plan
+                mutualite.statut = 'ACTIF'
+                mutualite.save()
+                JournalAudit.objects.create(
+                    mutualite=mutualite, utilisateur=request.user,
+                    action='MODIFICATION', module='core',
+                    description=f"Licence activée avec la clé {cle}",
+                    objet_type='Mutualite', objet_id=mutualite.pk,
+                    adresse_ip=request.META.get('REMOTE_ADDR', ''),
+                )
+                messages.success(request, f"✅ Licence activée avec succès jusqu'au {mutualite.date_expiration.strftime('%d/%m/%Y')}.")
+                return redirect('dashboard:index')
+            else:
+                messages.error(request, "❌ Clé invalide ou déjà utilisée. Contactez l'administrateur.")
+
+    return render(request, 'core/licence_activer.html', {'mutualite': mutualite})
+
+
+@login_required
+def parametres_mutualite(request):
+    if not request.user.est_admin and not request.user.est_super_admin:
+        messages.error(request, "⛔ Accès réservé aux administrateurs.")
+        return redirect('dashboard:index')
+
+    mutualite = request.user.mutualite
+    if not mutualite:
+        messages.error(request, "⛔ Aucune mutualité associée à votre compte.")
+        return redirect('dashboard:index')
+
+    from .forms import MutualiteParametresForm
+
+    if request.method == 'POST':
+        form = MutualiteParametresForm(request.POST, request.FILES, instance=mutualite)
+        if form.is_valid():
+            form.save()
+            JournalAudit.objects.create(
+                mutualite=mutualite,
+                utilisateur=request.user,
+                action='MODIFICATION',
+                module='core',
+                description=f"Paramètres mutualité modifiés par {request.user.username}",
+                objet_type='Mutualite',
+                objet_id=mutualite.pk,
+                adresse_ip=request.META.get('REMOTE_ADDR', ''),
+            )
+            messages.success(request, "✅ Paramètres de la mutualité mis à jour.")
+            return redirect('parametres_mutualite')
+    else:
+        form = MutualiteParametresForm(instance=mutualite)
+
+    # Exclusions globales (paginated)
+    from core.models import MutualiteExclusion
+    exclusions_qs = MutualiteExclusion.objects.filter(mutualite=mutualite).select_related('medicament', 'service')
+    page_excl = request.GET.get('page_excl', 1)
+    paginator_excl = Paginator(exclusions_qs, 5)
+    exclusions_globales = paginator_excl.get_page(page_excl)
+    medicaments = mutualite.medicaments.all() if mutualite else []
+    services = mutualite.servicesantes.all() if mutualite else []
+
+    return render(request, 'core/mutualite_parametres.html', {
+        'form': form,
+        'mutualite': mutualite,
+        'exclusions_globales': exclusions_globales,
+        'paginator_excl': paginator_excl,
+        'medicaments': medicaments,
+        'services': services,
     })
 
 
@@ -360,7 +539,9 @@ class CrudDeleteView(ModificationRequiredMixin, CrudMixin, DeleteView):
             return redirect(self.get_success_url())
         obj = self.object
         obj_str = str(obj)
-        if self.soft_delete and hasattr(obj, self.soft_delete_field):
+        if hasattr(obj, 'is_deleted'):
+            obj.delete(user=request.user)
+        elif self.soft_delete and hasattr(obj, self.soft_delete_field):
             setattr(obj, self.soft_delete_field, True)
             if hasattr(obj, 'date_suppression'):
                 from django.utils import timezone
@@ -374,3 +555,189 @@ class CrudDeleteView(ModificationRequiredMixin, CrudMixin, DeleteView):
         )
         messages.success(request, self.success_message_delete.format(obj=obj_str))
         return redirect(self.get_success_url())
+
+
+@login_required
+@require_POST
+def dismiss_notification_licence(request):
+    """Masque la notification de licence pour 24h."""
+    request.session['licence_notif_dismissed'] = timezone.now().isoformat()
+    return JsonResponse({'ok': True})
+
+
+# ─────────────────────────────────────────────
+#  Notifications de plafond (mutualité)
+# ─────────────────────────────────────────────
+
+@login_required
+def notification_liste(request):
+    from core.models import Notification
+    mutualite = request.user.mutualite
+    if not mutualite:
+        messages.error(request, "Aucune mutualité associée.")
+        return redirect('dashboard')
+
+    notif_vues = request.GET.get('vues', 'non')
+    qs = Notification.objects.filter(mutualite=mutualite)
+    if notif_vues == 'non':
+        qs = qs.filter(vue=False)
+
+    paginator = Paginator(qs, 20)
+    page = paginator.get_page(request.GET.get('page'))
+
+    context = {
+        'notifications': page,
+        'paginator': paginator,
+        'filtre_vues': notif_vues,
+    }
+    return render(request, 'core/notification_liste.html', context)
+
+
+@login_required
+@require_POST
+def notification_marquer_vue(request, pk):
+    from core.models import Notification
+    notification = get_object_or_404(Notification, pk=pk, mutualite=request.user.mutualite)
+    notification.vue = True
+    notification.save(update_fields=['vue'])
+    return redirect('core:notification_liste')
+
+
+@login_required
+def notification_marquer_vue_rapide(request, pk):
+    from core.models import Notification
+    try:
+        notification = Notification.objects.get(pk=pk, mutualite=request.user.mutualite)
+        if not notification.vue:
+            notification.vue = True
+            notification.save(update_fields=['vue'])
+    except Notification.DoesNotExist:
+        pass
+    return HttpResponse('ok')
+
+
+@login_required
+@require_POST
+def notification_tout_vu(request):
+    from core.models import Notification
+    Notification.objects.filter(mutualite=request.user.mutualite, vue=False).update(vue=True)
+    messages.success(request, "Toutes les notifications marquées comme lues.")
+    return redirect('core:notification_liste')
+
+
+@login_required
+@require_POST
+def notification_debloquer(request, pk):
+    """Débloque un affilié pour dépassement de plafond (reset mensuel)."""
+    from core.models import Notification
+    notification = get_object_or_404(Notification, pk=pk, mutualite=request.user.mutualite)
+    affilie = notification.affilie
+    affilie.bloque = False
+    affilie.save(update_fields=['bloque'])
+
+    Notification.objects.create(
+        mutualite=request.user.mutualite,
+        affilie=affilie,
+        type_notification='DEBLOCAGE',
+        message=(
+            f"L'affilié {affilie.nom_complet} ({affilie.numero_affiliation}) "
+            f"a été débloqué par {request.user.get_full_name() or request.user.username}."
+        ),
+        consommation=notification.consommation,
+        plafond=notification.plafond,
+        pourcentage=notification.pourcentage,
+    )
+
+    enregistrer_audit(request, 'MODIFICATION', 'affilies',
+                      f"Déblocage plafond : {affilie.nom_complet} ({affilie.numero_affiliation})",
+                      'Affilie', affilie.pk)
+    messages.success(request, f"L'affilié {affilie.nom_complet} a été débloqué.")
+    return redirect('core:notification_liste')
+
+
+# ─────────────────────────────────────────────
+#  Exclusions globales (mutualité)
+# ─────────────────────────────────────────────
+
+@login_required
+@require_POST
+def mutualite_exclusion_ajouter(request):
+    if not request.user.est_admin or request.user.est_super_admin:
+        messages.error(request, "Permission refusée.")
+        return redirect('parametres_mutualite')
+
+    from core.models import MutualiteExclusion
+    type_excl = request.POST.get('type')
+    item_pk = request.POST.get('item_pk')
+    motif = request.POST.get('motif', '')
+
+    if not type_excl or not item_pk:
+        messages.error(request, "Veuillez sélectionner un type et un élément.")
+        return redirect('parametres_mutualite')
+
+    if type_excl == 'medicament':
+        from pharmacie.models import Medicament
+        item = get_object_or_404(Medicament, pk=item_pk, mutualite=request.user.mutualite)
+        if MutualiteExclusion.objects.filter(mutualite=request.user.mutualite, medicament=item).exists():
+            messages.warning(request, "Ce médicament est déjà exclu globalement.")
+            return redirect('parametres_mutualite')
+        MutualiteExclusion.objects.create(
+            mutualite=request.user.mutualite, medicament=item,
+            motif=motif, cree_par=request.user,
+        )
+        messages.success(request, f"Médicament « {item.nom} » exclu globalement.")
+    elif type_excl == 'service':
+        from services_sante.models import ServiceSante
+        item = get_object_or_404(ServiceSante, pk=item_pk, mutualite=request.user.mutualite)
+        if MutualiteExclusion.objects.filter(mutualite=request.user.mutualite, service=item).exists():
+            messages.warning(request, "Ce service est déjà exclu globalement.")
+            return redirect('parametres_mutualite')
+        MutualiteExclusion.objects.create(
+            mutualite=request.user.mutualite, service=item,
+            motif=motif, cree_par=request.user,
+        )
+        messages.success(request, f"Service « {item.nom} » exclu globalement.")
+
+    return redirect('parametres_mutualite')
+
+
+@login_required
+@require_POST
+def mutualite_exclusion_supprimer(request, pk):
+    from core.models import MutualiteExclusion
+    exclusion = get_object_or_404(MutualiteExclusion, pk=pk, mutualite=request.user.mutualite)
+    label = str(exclusion)
+    exclusion.delete()
+    messages.success(request, f"Exclusion globale supprimée : {label}")
+    return redirect('parametres_mutualite')
+
+
+@login_required
+@require_POST
+def notification_bloquer_definitif(request, pk):
+    """Bloque définitivement un affilié."""
+    from core.models import Notification
+    notification = get_object_or_404(Notification, pk=pk, mutualite=request.user.mutualite)
+    affilie = notification.affilie
+    affilie.bloque = True
+    affilie.bloque_definitif = True
+    affilie.save(update_fields=['bloque', 'bloque_definitif'])
+
+    Notification.objects.create(
+        mutualite=request.user.mutualite,
+        affilie=affilie,
+        type_notification='BLOCAGE_DEF',
+        message=(
+            f"L'affilié {affilie.nom_complet} ({affilie.numero_affiliation}) "
+            f"a été bloqué définitivement par {request.user.get_full_name() or request.user.username}."
+        ),
+        consommation=notification.consommation,
+        plafond=notification.plafond,
+        pourcentage=notification.pourcentage,
+    )
+
+    enregistrer_audit(request, 'MODIFICATION', 'affilies',
+                      f"Blocage définitif plafond : {affilie.nom_complet} ({affilie.numero_affiliation})",
+                      'Affilie', affilie.pk)
+    messages.success(request, f"L'affilié {affilie.nom_complet} a été bloqué définitivement.")
+    return redirect('core:notification_liste')

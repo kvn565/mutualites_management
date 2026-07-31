@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Rapport analytique{% endblock %}
+{% block page_title %}Rapport analytique des ventilations{% endblock %}
+{% block page_icon %}bi bi-bar-chart{% endblock %}
+{% block nav_ventilations %}active{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h6 class="fw-bold mb-0">Filtres</h6></div>
+      <div class="card-body">
+        <form method="get">
+          <div class="mb-3"><label class="form-label small">Période</label>{{ filtre_form.periode }}</div>
+          <div class="mb-3" id="custom-dates" style="display:none;">
+            <label class="form-label small">Du</label>{{ filtre_form.date_debut }}
+            <label class="form-label small mt-2">Au</label>{{ filtre_form.date_fin }}
+          </div>
+          <div class="mb-3"><label class="form-label small">Centre</label>{{ filtre_form.centre }}</div>
+          <div class="mb-3"><label class="form-label small">Branche</label>{{ filtre_form.branche }}</div>
+          <button type="submit" class="btn btn-primary w-100">Générer</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-9">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white"><h6 class="fw-bold mb-0">Résumé</h6></div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4"><div class="p-3 bg-light rounded text-center"><strong>{{ rapport.total_ventile|floatformat:0|intcomma }} BIF</strong><br><small class="text-muted">Total ventilé</small></div></div>
+          <div class="col-md-4"><div class="p-3 bg-light rounded text-center"><strong>{{ rapport.par_centre|length }}</strong><br><small class="text-muted">Centres</small></div></div>
+          <div class="col-md-4"><div class="p-3 bg-light rounded text-center"><strong>{{ rapport.par_branche|length }}</strong><br><small class="text-muted">Branches</small></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white"><h6 class="fw-bold mb-0">Par centre</h6></div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 small">
+              <thead class="table-light"><tr><th>Centre</th><th class="text-end">Montant</th></tr></thead>
+              <tbody>
+                {% for r in rapport.par_centre %}
+                <tr><td><strong>{{ r.centre__libelle|default:r.centre__code|default:'Général' }}</strong></td><td class="text-end">{{ r.total|floatformat:0|intcomma }}</td></tr>
+                {% empty %}<tr><td colspan="2" class="text-center text-muted py-3">Aucune donnée</td></tr>{% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white"><h6 class="fw-bold mb-0">Par branche</h6></div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 small">
+              <thead class="table-light"><tr><th>Branche</th><th class="text-end">Montant</th></tr></thead>
+              <tbody>
+                {% for r in rapport.par_branche %}
+                <tr><td><strong>{{ r.branche__libelle|default:r.branche__code|default:'Général' }}</strong></td><td class="text-end">{{ r.total|floatformat:0|intcomma }}</td></tr>
+                {% empty %}<tr><td colspan="2" class="text-center text-muted py-3">Aucune donnée</td></tr>{% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if rapport.croise %}
+    <div class="card border-0 shadow-sm mt-4">
+      <div class="card-header bg-white"><h6 class="fw-bold mb-0">Vue croisée Centre × Branche</h6></div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 small">
+          <thead class="table-light"><tr><th>Centre</th><th>Branche</th><th class="text-end">Montant</th></tr></thead>
+          <tbody>
+            {% for r in rapport.croise %}
+            <tr>
+              <td>{{ r.centre__libelle|default:r.centre__code|default:'Général' }}</td>
+              <td>{{ r.branche__libelle|default:r.branche__code|default:'Toutes' }}</td>
+              <td class="text-end">{{ r.total|floatformat:0|intcomma }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>document.addEventListener('DOMContentLoaded',function(){var p=document.querySelector('[name=periode]'),c=document.getElementById('custom-dates');function t(){c.style.display=p.value==='CUSTOM'?'block':'none'}p.addEventListener('change',t);t()});</script>
+{% endblock %}

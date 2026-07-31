@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titre }} — {{ block.super }}{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-hospital{% endblock %}
+{% block page_subtitle %}{% if form.instance.pk %}Modifier {{ form.instance.numero_dossier }}{% else %}Nouvelle hospitalisation{% endif %}{% endblock %}
+{% block nav_hospitalisations %}active{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-person-badge me-2"></i> Identité</div>
+                <div class="card-body p-4 row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.patient_nom.label }} <span class="text-danger">*</span></label>
+                        {{ form.patient_nom }}
+                        {% if form.patient_nom.errors %}<div class="text-danger small">{{ form.patient_nom.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.patient_prenom.label }} <span class="text-danger">*</span></label>
+                        {{ form.patient_prenom }}
+                        {% if form.patient_prenom.errors %}<div class="text-danger small">{{ form.patient_prenom.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">{{ form.patient_sexe.label }} <span class="text-danger">*</span></label>
+                        {{ form.patient_sexe }}
+                        {% if form.patient_sexe.errors %}<div class="text-danger small">{{ form.patient_sexe.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">{{ form.patient_date_naissance.label }} <span class="text-danger">*</span></label>
+                        {{ form.patient_date_naissance }}
+                        {% if form.patient_date_naissance.errors %}<div class="text-danger small">{{ form.patient_date_naissance.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.patient_telephone.label }}</label>
+                        {{ form.patient_telephone }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.affilie.label }}</label>
+                        {{ form.affilie }}
+                        {% if form.affilie.help_text %}<div class="form-text">{{ form.affilie.help_text }}</div>{% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.patient_adresse.label }}</label>
+                        {{ form.patient_adresse }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-hospital me-2" style="color:var(--or);"></i> Établissement / Service / Chambre</div>
+                <div class="card-body p-4 row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label" for="{{ form.etablissement.id_for_label }}">{{ form.etablissement.label }} <span style="color:#e74c3c;">*</span></label>
+                        {{ form.etablissement }}
+                        {% if form.etablissement.errors %}<div class="text-danger small">{{ form.etablissement.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="{{ form.service.id_for_label }}">{{ form.service.label }} <span style="color:#e74c3c;">*</span></label>
+                        {{ form.service }}
+                        {% if form.service.errors %}<div class="text-danger small">{{ form.service.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="{{ form.chambre.id_for_label }}">{{ form.chambre.label }} <span style="color:#e74c3c;">*</span></label>
+                        {{ form.chambre }}
+                        {% if form.chambre.errors %}<div class="text-danger small">{{ form.chambre.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-calendar-event me-2" style="color:var(--or);"></i> Dates d'hospitalisation</div>
+                <div class="card-body p-4 row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label" for="{{ form.date_entree.id_for_label }}">{{ form.date_entree.label }} <span style="color:#e74c3c;">*</span></label>
+                        {{ form.date_entree }}
+                        {% if form.date_entree.errors %}<div class="text-danger small">{{ form.date_entree.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="{{ form.date_sortie_prevue.id_for_label }}">{{ form.date_sortie_prevue.label }}</label>
+                        {{ form.date_sortie_prevue }}
+                        {% if form.date_sortie_prevue.errors %}<div class="text-danger small">{{ form.date_sortie_prevue.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="{{ form.taux_prise_en_charge.id_for_label }}">{{ form.taux_prise_en_charge.label }} <span style="color:#e74c3c;">*</span></label>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            {{ form.taux_prise_en_charge }}
+                            <span>%</span>
+                        </div>
+                        {% if form.taux_prise_en_charge.help_text %}<div class="form-text">{{ form.taux_prise_en_charge.help_text }}</div>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-journal-medical me-2" style="color:var(--or);"></i> Informations médicales</div>
+                <div class="card-body p-4 row g-3">
+                    <div class="col-12">
+                        <label class="form-label">{{ form.motif_hospitalisation.label }} <span class="text-danger">*</span></label>
+                        {{ form.motif_hospitalisation }}
+                        {% if form.motif_hospitalisation.errors %}<div class="text-danger small">{{ form.motif_hospitalisation.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.diagnostic_entree.label }}</label>
+                        {{ form.diagnostic_entree }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.medecin_referent.label }}</label>
+                        {{ form.medecin_referent }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.soins.label }}</label>
+                        {{ form.soins }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.observations.label }}</label>
+                        {{ form.observations }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-shield-check me-2"></i> Finances</div>
+                <div class="card-body p-4 row g-3">
+                    <div class="col-12">
+                        <label class="form-label">{{ form.cout_total.label }}</label>
+                        {{ form.cout_total }}
+                        <div class="form-text">Calculé automatiquement (chambre + soins)</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.taux_prise_en_charge.label }} <span class="text-danger">*</span></label>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            {{ form.taux_prise_en_charge }}
+                            <span>%</span>
+                        </div>
+                        {% if form.taux_prise_en_charge.help_text %}<div class="form-text">{{ form.taux_prise_en_charge.help_text }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.prise_en_charge_mutualite.label }}</label>
+                        {{ form.prise_en_charge_mutualite }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.reste_a_charge.label }}</label>
+                        {{ form.reste_a_charge }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-shield-check me-2"></i> Adhésion</div>
+                <div class="card-body p-4 row g-3">
+                    <div class="col-12">
+                        <label class="form-label">{{ form.date_adhesion.label }}</label>
+                        {{ form.date_adhesion }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.type_adhesion.label }}</label>
+                        {{ form.type_adhesion }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.section_antenne.label }}</label>
+                        {{ form.section_antenne }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.origine.label }}</label>
+                        {{ form.origine }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ form.statut.label }}</label>
+                        {{ form.statut }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 text-end">
+        <a href="{% url 'gestion_chambres:hospitalisation_liste' %}" class="btn btn-outline-secondary me-2"><i class="bi bi-arrow-left me-1"></i> Annuler</a>
+        <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i> Enregistrer</button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const affilieSelect = document.getElementById('{{ form.affilie.id_for_label }}');
+    if (!affilieSelect) return;
+
+    const fields = {
+        'patient_nom': '{{ form.patient_nom.id_for_label }}',
+        'patient_prenom': '{{ form.patient_prenom.id_for_label }}',
+        'patient_date_naissance': '{{ form.patient_date_naissance.id_for_label }}',
+        'patient_sexe': '{{ form.patient_sexe.id_for_label }}',
+        'patient_telephone': '{{ form.patient_telephone.id_for_label }}',
+        'patient_adresse': '{{ form.patient_adresse.id_for_label }}',
+    };
+
+    const ajaxUrl = "{% url 'affilies:affilie_ajax_detail' 0 %}".replace('/0/', '/');
+
+    affilieSelect.addEventListener('change', function() {
+        const affilieId = this.value;
+        if (!affilieId) {
+            // Clear fields if no selection
+            Object.values(fields).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            return;
+        }
+
+        // Fetch affilie details
+        fetch(ajaxUrl + affilieId + '/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    const a = data.data;
+                    if (a.nom) document.getElementById(fields.patient_nom).value = a.nom;
+                    if (a.prenom) document.getElementById(fields.patient_prenom).value = a.prenom;
+                    if (a.date_naissance) document.getElementById(fields.patient_date_naissance).value = a.date_naissance;
+                    if (a.sexe) document.getElementById(fields.patient_sexe).value = a.sexe;
+                    if (a.telephone) document.getElementById(fields.patient_telephone).value = a.telephone;
+                    if (a.adresse) document.getElementById(fields.patient_adresse).value = a.adresse;
+                    
+                    // Show visual feedback
+                    Object.values(fields).forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && el.value) {
+                            el.style.borderColor = '#10b981';
+                            setTimeout(() => { el.style.borderColor = ''; }, 1500);
+                        }
+                    });
+                }
+            })
+            .catch(err => console.error('Erreur chargement affilié:', err));
+    });
+});
+</script>
+{% endblock %}

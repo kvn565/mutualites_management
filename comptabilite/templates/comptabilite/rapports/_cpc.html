@@ -1,0 +1,28 @@
+<div class="table-responsive p-3">
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr class="table-danger"><th colspan="3">CHARGES</th></tr></thead>
+    <tbody>
+      {% for item in rapport_data.charges %}
+      <tr><td><code>{{ item.compte.numero }}</code></td><td>{{ item.compte.intitule }}</td><td class="text-end">{{ item.total|floatformat:0|intcomma }}</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr class="fw-bold"><td colspan="2">Total Charges</td><td class="text-end">{{ rapport_data.total_charges|floatformat:0|intcomma }}</td></tr></tfoot>
+  </table>
+
+  <table class="table table-sm align-middle mb-0 mt-4">
+    <thead><tr class="table-success"><th colspan="3">PRODUITS</th></tr></thead>
+    <tbody>
+      {% for item in rapport_data.produits %}
+      <tr><td><code>{{ item.compte.numero }}</code></td><td>{{ item.compte.intitule }}</td><td class="text-end">{{ item.total|floatformat:0|intcomma }}</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr class="fw-bold"><td colspan="2">Total Produits</td><td class="text-end">{{ rapport_data.total_produits|floatformat:0|intcomma }}</td></tr></tfoot>
+  </table>
+
+  <div class="p-3 text-center">
+    <strong>Résultat de l'exercice : </strong>
+    <span class="{% if rapport_data.resultat >= 0 %}text-success{% else %}text-danger{% endif %} fw-bold fs-5">
+      {{ rapport_data.resultat|floatformat:0|intcomma }} BIF
+    </span>
+  </div>
+</div>

@@ -6,8 +6,8 @@ from affilies.models import Affilie
 from ayants_droit.models import AyantDroit
 from partenaires.models import Partenaire
 from services_sante.models import ServiceSante
-
-class Facture(models.Model):
+from comptabilite.models import SoftDeleteMixin
+class Facture(SoftDeleteMixin):
     STATUT_CHOICES = [
         ('BROUILLON', 'Brouillon'),
         ('SOUMIS', 'Soumise (en attente)'),
@@ -33,8 +33,10 @@ class Facture(models.Model):
         verbose_name='Structure sanitaire',
     )
     
-    affilie = models.ForeignKey(Affilie, on_delete=models.RESTRICT, related_name='factures')
+    affilie = models.ForeignKey(Affilie, on_delete=models.RESTRICT, null=True, blank=True, related_name='factures')
     ayant_droit = models.ForeignKey(AyantDroit, on_delete=models.SET_NULL, null=True, blank=True, related_name='factures')
+    client_nom = models.CharField(max_length=200, blank=True, verbose_name='Nom du client (non-membre)')
+    client_telephone = models.CharField(max_length=50, blank=True, verbose_name='Téléphone du client')
     
     diagnostic = models.TextField(blank=True, verbose_name='Diagnostic')
     
@@ -65,7 +67,23 @@ class Facture(models.Model):
     def generer_numero(cls):
         date_str = timezone.now().strftime('%Y%m')
         count = cls.objects.filter(date__year=timezone.now().year, date__month=timezone.now().month).count() + 1
-        return f"FAC-{date_str}-{count:04d}"
+        return f"FAC-{date_str}-{count}"
+
+    def _serialiser_pour_corbeille(self):
+        return {
+            'numero': self.numero,
+            'numero_dossier_soins': self.numero_dossier_soins,
+            'date': self.date.isoformat() if self.date else None,
+            'partenaire': self.partenaire.nom_etablissement if self.partenaire else None,
+            'affilie': self.affilie.numero_affiliation if self.affilie else None,
+            'ayant_droit': str(self.ayant_droit) if self.ayant_droit else None,
+            'client_nom': self.client_nom,
+            'montant_total': str(self.montant_total),
+            'montant_ticket_moderateur': str(self.montant_ticket_moderateur),
+            'montant_mutualite': str(self.montant_mutualite),
+            'statut': self.statut,
+        }
+
 
 class LigneFacture(models.Model):
     objects = TenantManager()
@@ -77,7 +95,11 @@ class LigneFacture(models.Model):
     )
 
     facture = models.ForeignKey(Facture, on_delete=models.CASCADE, related_name='lignes')
-    service = models.ForeignKey(ServiceSante, on_delete=models.RESTRICT)
+    service = models.ForeignKey(ServiceSante, on_delete=models.RESTRICT, null=True, blank=True)
+    medicament = models.ForeignKey(
+        'pharmacie.Medicament', on_delete=models.RESTRICT,
+        null=True, blank=True, verbose_name='Médicament',
+    )
     designation = models.CharField(max_length=200, blank=True, help_text="Spécifiez l'acte ou médicament exact")
     quantite = models.PositiveIntegerField(default=1)
     prix_unitaire = models.DecimalField(max_digits=10, decimal_places=2)

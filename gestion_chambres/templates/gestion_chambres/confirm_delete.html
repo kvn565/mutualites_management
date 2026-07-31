@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ titre }} — {{ block.super }}{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-question-circle{% endblock %}
+{% block page_subtitle %}Cette action est irréversible{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> Confirmer la suppression
+            </div>
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <i class="bi bi-trash3 fs-1 text-danger"></i>
+                </div>
+                <p class="text-center">Êtes-vous sûr de vouloir supprimer <strong>{{ objet }}</strong> ?</p>
+                <p class="text-muted small text-center">Cette action est définitive et ne peut pas être annulée.</p>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-danger btn-lg"><i class="bi bi-trash3-fill me-1"></i> Confirmer la suppression</button>
+                        <a href="{{ request.META.HTTP_REFERER|default:'/' }}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i> Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

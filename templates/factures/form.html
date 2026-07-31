@@ -60,6 +60,11 @@
                 <div class="card-header"><i class="bi bi-person me-2"></i> Patient</div>
                 <div class="card-body row g-3">
                     <div class="col-12">
+                        <label class="form-label fw-bold">Recherche rapide</label>
+                        <input type="text" id="affilieSearch" class="form-control" placeholder="Chercher par N° carte, nom ou n° affiliation..." autocomplete="off">
+                        <div id="affilieResults" class="list-group mt-1" style="display:none;position:absolute;z-index:1000;max-height:200px;overflow-y:auto;width:calc(100% - 1.5rem);"></div>
+                    </div>
+                    <div class="col-12">
                         <label class="form-label fw-bold">{{ form.affilie.label }} <span class="text-danger">*</span></label>
                         {{ form.affilie }}
                     </div>
@@ -86,39 +91,59 @@
                     {{ formset.management_form }}
                     <div class="lignes-container">
                         {% for ligne in formset %}
-                        <div class="ligne-form row g-2 align-items-end">
+                        <div class="ligne-form">
                             {{ ligne.id }}
-                            <div class="col-md-3">
-                                <label class="form-label small mb-1">{{ ligne.service.label }}</label>
-                                {{ ligne.service }}
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-5">
+                                    <label class="form-label small mb-1">{{ ligne.service.label }}</label>
+                                    <div class="input-group input-group-sm">
+                                        {{ ligne.service }}
+                                        <button type="button" class="btn btn-outline-primary" data-inline-create="{{ ligne.service.id_for_label }}" data-url="{% url 'services_sante:ajax_creer' %}">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label small mb-1">{{ ligne.medicament.label }}</label>
+                                    <div class="input-group input-group-sm">
+                                        {{ ligne.medicament }}
+                                        <a href="{% url 'pharmacie:ajouter' %}" target="_blank" class="btn btn-outline-primary" title="Ajouter un médicament">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    {% if formset.can_delete %}
+                                    <label class="form-check-label text-danger small" style="cursor:pointer;">
+                                        {{ ligne.DELETE }} <i class="bi bi-trash"></i> Supprimer
+                                    </label>
+                                    {% endif %}
+                                </div>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label small mb-1">{{ ligne.designation.label }}</label>
-                                {{ ligne.designation }}
+                            <div class="row g-2 align-items-end mt-2">
+                                <div class="col-md-4">
+                                    <label class="form-label small mb-1">{{ ligne.designation.label }}</label>
+                                    {{ ligne.designation }}
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Qté</label>
+                                    {{ ligne.quantite }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small mb-1">PU (BIF)</label>
+                                    {{ ligne.prix_unitaire }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small mb-1">Prise %</label>
+                                    {{ ligne.taux_applique }}
+                                </div>
                             </div>
-                            <div class="col-md-2">
-                                <label class="form-label small mb-1">Qté</label>
-                                {{ ligne.quantite }}
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label small mb-1">PU (BIF)</label>
-                                {{ ligne.prix_unitaire }}
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label small mb-1">Prise %</label>
-                                {{ ligne.taux_applique }}
-                            </div>
-                            {% if formset.can_delete %}
-                            <div class="col-12 mt-2 text-end">
-                                <label class="form-check-label text-danger small"><i class="bi bi-trash"></i> Supprimer {{ ligne.DELETE }}</label>
-                            </div>
-                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
-                    <div class="alert alert-info py-2 small">
-                        <i class="bi bi-info-circle me-2"></i> Note : Pour ajouter d'autres lignes, enregistrez d'abord comme "Brouillon" puis modifiez.
-                    </div>
+                    <button type="button" id="addLigne" class="btn btn-sm btn-outline-primary mt-2">
+                        <i class="bi bi-plus-circle"></i> Ajouter une ligne
+                    </button>
                 </div>
             </div>
 
@@ -129,4 +154,153 @@
         </div>
     </div>
 </form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var servicesMap = {}, medicamentsMap = {};
+{{ services_json|safe }}.forEach(function(s) { servicesMap[s.id] = s; });
+{{ medicaments_json|safe }}.forEach(function(m) { medicamentsMap[m.id] = m; });
+
+function remplirLigne(el) {
+    var form = el.closest('.ligne-form');
+    if (!form) return;
+    var svc = form.querySelector('[name$="-service"]');
+    var med = form.querySelector('[name$="-medicament"]');
+    var des = form.querySelector('[name$="-designation"]');
+    var pu = form.querySelector('[name$="-prix_unitaire"]');
+    var taux = form.querySelector('[name$="-taux_applique"]');
+
+    if (svc && svc.value) {
+        var s = servicesMap[svc.value];
+        if (s) {
+            if (des) des.value = s.nom;
+            if (taux) taux.value = s.taux;
+        } else {
+            if (des) des.value = '';
+            if (taux) taux.value = '';
+        }
+        if (med) med.value = '';
+    } else if (med && med.value) {
+        var m = medicamentsMap[med.value];
+        if (m) {
+            if (des) des.value = m.nom;
+            if (pu) pu.value = m.prix;
+            if (taux) taux.value = m.taux;
+        } else {
+            if (des) des.value = '';
+            if (pu) pu.value = '';
+            if (taux) taux.value = '';
+        }
+        if (svc) svc.value = '';
+    } else {
+        if (des) des.value = '';
+        if (pu) pu.value = '';
+        if (taux) taux.value = '';
+    }
+}
+
+var lignesContainer = document.querySelector('.lignes-container');
+var addBtn = document.getElementById('addLigne');
+var totalForms = document.querySelector('#id_lignes-TOTAL_FORMS');
+var prefix = 'lignes';
+
+function reindexLignes() {
+    lignesContainer.querySelectorAll('.ligne-form').forEach(function(form, idx) {
+        form.querySelectorAll('input, select, textarea').forEach(function(el) {
+            if (el.name) el.name = el.name.replace(RegExp('^' + prefix + '-\\d+-'), prefix + '-' + idx + '-');
+            if (el.id) el.id = el.id.replace(RegExp('^id_' + prefix + '-\\d+-'), 'id_' + prefix + '-' + idx + '-');
+        });
+    });
+    totalForms.value = lignesContainer.querySelectorAll('.ligne-form').length;
+}
+
+addBtn.addEventListener('click', function() {
+    var forms = lignesContainer.querySelectorAll('.ligne-form');
+    var idx = forms.length;
+    if (idx === 0) return;
+    var template = forms[forms.length - 1].cloneNode(true);
+    template.querySelectorAll('input, select, textarea').forEach(function(el) {
+        if (el.type !== 'hidden') {
+            if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number')) el.value = '';
+            else if (el.tagName === 'SELECT') el.selectedIndex = 0;
+            else if (el.tagName === 'TEXTAREA') el.value = '';
+        }
+        el.name = el.name.replace(RegExp('^' + prefix + '-\\d+-'), prefix + '-' + idx + '-');
+        el.id = el.id.replace(RegExp('^id_' + prefix + '-\\d+-'), 'id_' + prefix + '-' + idx + '-');
+    });
+    lignesContainer.appendChild(template);
+    reindexLignes();
+});
+
+var affilieSearch = document.getElementById('affilieSearch');
+var affilieResults = document.getElementById('affilieResults');
+var affilieSelect = document.querySelector('[name="affilie"]');
+var ayantDroitSelect = document.querySelector('[name="ayant_droit"]');
+var searchTimeout;
+
+affilieSearch.addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    var q = this.value.trim();
+    if (q.length < 2) {
+        affilieResults.style.display = 'none';
+        return;
+    }
+    searchTimeout = setTimeout(function() {
+        fetch('/factures/rechercher-affilie/?q=' + encodeURIComponent(q))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                affilieResults.innerHTML = '';
+                if (data.length === 0) {
+                    affilieResults.style.display = 'none';
+                    return;
+                }
+                data.forEach(function(a) {
+                    var item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action py-2';
+                    item.innerHTML = '<div class="fw-bold">' + a.nom + ' ' + (a.prenom || '') + '</div><small class="text-muted">' + (a.numero_carte_identite || '') + ' &middot; ' + (a.numero_affiliation || '') + '</small>';
+                    item.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        if (affilieSelect) affilieSelect.value = a.pk;
+                        if (ayantDroitSelect) {
+                            ayantDroitSelect.innerHTML = '<option value="">---------</option>';
+                            a.ayants_droit.forEach(function(ad) {
+                                var opt = document.createElement('option');
+                                opt.value = ad.pk;
+                                opt.textContent = (ad.nom || '') + ' ' + (ad.prenom || '') + ' (' + (ad.lien_parente || '') + ')';
+                                ayantDroitSelect.appendChild(opt);
+                            });
+                        }
+                        affilieSearch.value = a.nom + ' ' + (a.prenom || '');
+                        affilieResults.style.display = 'none';
+                    });
+                    affilieResults.appendChild(item);
+                });
+                affilieResults.style.display = 'block';
+            });
+    }, 350);
+});
+
+affilieSearch.addEventListener('blur', function() {
+    setTimeout(function() { affilieResults.style.display = 'none'; }, 200);
+});
+affilieSearch.addEventListener('focus', function() {
+    if (affilieResults.children.length > 0) affilieResults.style.display = 'block';
+});
+
+lignesContainer.addEventListener('click', function(e) {
+    var cb = e.target.closest('input[type="checkbox"]');
+    if (cb && cb.name && cb.name.endsWith('-DELETE')) {
+        var form = cb.closest('.ligne-form');
+        if (form && lignesContainer.querySelectorAll('.ligne-form').length > 1) {
+            form.remove();
+            reindexLignes();
+        } else if (form) {
+            e.preventDefault();
+            alert('Au moins une ligne est requise.');
+        }
+    }
+});
+</script>
 {% endblock %}

@@ -1,0 +1,65 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% block title %}Transférer un document — {{ membre.nom_complet }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-upload" style="color:var(--primary)"></i> Transférer un document médical</h1>
+    <p>Pour : <strong>{{ membre.nom_complet }}</strong> ({{ membre.numero_affiliation }})</p>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header"><i class="bi bi-file-earmark"></i> Nouveau document</div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div style="margin-bottom:16px;">
+                    <label class="form-label">Type de document</label>
+                    {{ form.type_document }}
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label class="form-label">Fichier</label>
+                    {{ form.fichier }}
+                    <div class="form-text">PDF, JPG, PNG — Max 10 Mo</div>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label class="form-label">Description</label>
+                    {{ form.description }}
+                </div>
+                <div class="flex gap-2" style="justify-content:flex-end;">
+                    <a href="{% url 'portail_partenaire:detail_membre' membre.pk %}" class="btn btn-outline">Annuler</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> Transférer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-header"><i class="bi bi-person"></i> Membre concerné</div>
+            <div class="card-body">
+                <div class="flex items-center gap-3">
+                    {% if membre.photo %}
+                    <img src="{{ membre.photo.url }}" alt="" class="member-photo-sm">
+                    {% else %}
+                    <div class="member-photo-sm" style="background:#e8f5ee;display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:700;">
+                        {{ membre.nom|first|upper }}{{ membre.prenom|first|upper }}
+                    </div>
+                    {% endif %}
+                    <div>
+                        <div class="fw-bold">{{ membre.nom_complet }}</div>
+                        <div class="text-sm text-muted">{{ membre.numero_affiliation }}</div>
+                        <div>
+                            {% if membre.statut == 'ACTIF' %}<span class="badge badge-success">Actif</span>
+                            {% else %}<span class="badge badge-secondary">{{ membre.get_statut_display }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

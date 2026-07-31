@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}{{ item.get_type_objet_display }} - Corbeille{% endblock %}
+
+{% block page_icon %}bi bi-trash3{% endblock %}
+{% block page_title %}{{ item.get_type_objet_display }} supprimé{% endblock %}
+{% block page_subtitle %}Détails de l'élément dans la corbeille{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <a href="{% url 'comptabilite:corbeille_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Retour corbeille
+    </a>
+    {% if not item.restored_at %}
+    <button type="button" class="btn btn-success btn-sm" id="btnRestaurer"
+            data-id="{{ item.pk }}"
+            data-url="{% url 'comptabilite:corbeille_restaurer' 0 %}">
+        <i class="bi bi-arrow-return-left me-1"></i>Restaurer
+    </button>
+    {% endif %}
+    {% if peut_purger and not item.purged_at %}
+    <button type="button" class="btn btn-danger btn-sm" id="btnPurger"
+            data-id="{{ item.pk }}"
+            data-url="{% url 'comptabilite:corbeille_purger' 0 %}">
+        <i class="bi bi-trash me-1"></i>Purger définitivement
+    </button>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Infos principales -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <span class="badge bg-{% if item.type_objet == 'ECRITURE' %}primary{% elif item.type_objet == 'COMPTE' %}success{% elif item.type_objet == 'CENTRE' %}info{% elif item.type_objet == 'BUDGET' %}warning{% elif item.type_objet == 'PREVISION' %}danger{% elif item.type_objet == 'RAPPROCHEMENT' %}dark{% else %}secondary{% endif %} me-2">
+                        {{ item.get_type_objet_display }}
+                    </span>
+                    {{ item.objet_repr }}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if item.objet_data %}
+                <table class="table table-sm table-bordered mb-0">
+                    <tbody>
+                        {% for key, value in item.objet_data.items %}
+                        {% if value %}
+                        <tr>
+                            <th style="width: 30%;">{{ key|title }}</th>
+                            <td>{{ value }}</td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted mb-0">Aucune donnée sérialisée disponible.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Historique -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Historique</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item {% if item.restored_at %}completed{% endif %}">
+                        <div class="timeline-marker bg-danger"></div>
+                        <div class="timeline-content">
+                            <h6 class="mb-1">Supprimé</h6>
+                            <p class="mb-1 fw-bold">{{ item.deleted_at|date:"d/m/Y à H:i" }}</p>
+                            {% if item.deleted_by %}
+                            <small class="text-muted">Par {{ item.deleted_by.nom_complet }} ({{ item.deleted_by.get_role_display }})</small>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if item.restored_at %}
+                    <div class="timeline-item completed">
+                        <div class="timeline-marker bg-success"></div>
+                        <div class="timeline-content">
+                            <h6 class="mb-1">Restauré</h6>
+                            <p class="mb-1 fw-bold">{{ item.restored_at|date:"d/m/Y à H:i" }}</p>
+                            {% if item.restored_by %}
+                            <small class="text-muted">Par {{ item.restored_by.nom_complet }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if item.purged_at %}
+                    <div class="timeline-item completed">
+                        <div class="timeline-marker bg-dark"></div>
+                        <div class="timeline-content">
+                            <h6 class="mb-1">Purgé définitivement</h6>
+                            <p class="mb-1 fw-bold">{{ item.purged_at|date:"d/m/Y à H:i" }}</p>
+                            {% if item.purged_by %}
+                            <small class="text-muted">Par {{ item.purged_by.nom_complet }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if not item.restored_at and not item.purged_at %}
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-warning"></div>
+                        <div class="timeline-content">
+                            <h6 class="mb-1">En corbeille</h6>
+                            <p class="mb-1 fw-bold">
+                                {% if item.expire_at %}
+                                Expire le {{ item.expire_at|date:"d/m/Y" }}
+                                {% if item.est_expire %}
+                                <span class="badge bg-danger ms-2">EXPIRÉ</span>
+                                {% endif %}
+                                {% else %}
+                                Pas d'expiration
+                                {% endif %}
+                            </p>
+                            {% if item.auto_purge %}
+                            <small class="text-muted">Purge automatique activée</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar infos -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Statut</h6>
+            </div>
+            <div class="card-body">
+                {% if item.restored_at %}
+                <div class="alert alert-success mb-0">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <strong>Restauré</strong> le {{ item.restored_at|date:"d/m/Y à H:i" }}
+                </div>
+                {% elif item.purged_at %}
+                <div class="alert alert-dark mb-0">
+                    <i class="bi bi-trash-fill me-2"></i>
+                    <strong>Purgé définitivement</strong> le {{ item.purged_at|date:"d/m/Y à H:i" }}
+                </div>
+                {% elif item.est_expire %}
+                <div class="alert alert-warning mb-0">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Expiré</strong> depuis le {{ item.expire_at|date:"d/m/Y" }}
+                    <br><small>Serpurge automatiquement ou manuellement.</small>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <strong>En corbeille</strong>
+                    {% if item.expire_at %}
+                    <br>Expiration le {{ item.expire_at|date:"d/m/Y" }}
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Informations</h6>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-sm-4">ID Corbeille</dt>
+                    <dd class="col-sm-8">{{ item.pk }}</dd>
+
+                    <dt class="col-sm-4">Type</dt>
+                    <dd class="col-sm-8">{{ item.get_type_objet_display }}</dd>
+
+                    <dt class="col-sm-4">Supprimé le</dt>
+                    <dd class="col-sm-8">{{ item.deleted_at|date:"d/m/Y H:i" }}</dd>
+
+                    <dt class="col-sm-4">Supprimé par</dt>
+                    <dd class="col-sm-8">
+                        {% if item.deleted_by %}
+                        {{ item.deleted_by.nom_complet }}<br>
+                        <small class="text-muted">{{ item.deleted_by.get_role_display }}</small>
+                        {% else %}—{% endif %}
+                    </dd>
+
+                    {% if item.expire_at %}
+                    <dt class="col-sm-4">Expire le</dt>
+                    <dd class="col-sm-8 {% if item.est_expire %}text-danger fw-bold{% endif %}">
+                        {{ item.expire_at|date:"d/m/Y" }}
+                    </dd>
+                    {% endif %}
+
+                    {% if item.restored_at %}
+                    <dt class="col-sm-4">Restauré le</dt>
+                    <dd class="col-sm-8">{{ item.restored_at|date:"d/m/Y H:i" }}</dd>
+                    <dt class="col-sm-4">Restauré par</dt>
+                    <dd class="col-sm-8">
+                        {% if item.restored_by %}{{ item.restored_by.nom_complet }}{% else %}—{% endif %}
+                    </dd>
+                    {% endif %}
+
+                    {% if item.purged_at %}
+                    <dt class="col-sm-4">Purgé le</dt>
+                    <dd class="col-sm-8">{{ item.purged_at|date:"d/m/Y H:i" }}</dd>
+                    <dt class="col-sm-4">Purgé par</dt>
+                    <dd class="col-sm-8">
+                        {% if item.purged_by %}{{ item.purged_by.nom_complet }}{% else %}—{% endif %}
+                    </dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Actions rapides</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if not item.restored_at and not item.purged_at %}
+                    <button type="button" class="btn btn-success" id="btnRestaurerSidebar"
+                            data-id="{{ item.pk }}"
+                            data-url="{% url 'comptabilite:corbeille_restaurer' 0 %}">
+                        <i class="bi bi-arrow-return-left me-2"></i>Restaurer
+                    </button>
+                    {% endif %}
+                    {% if peut_purger and not item.purged_at %}
+                    <button type="button" class="btn btn-danger" id="btnPurgerSidebar"
+                            data-id="{{ item.pk }}"
+                            data-url="{% url 'comptabilite:corbeille_purger' 0 %}">
+                        <i class="bi bi-trash me-2"></i>Purger définitivement
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+.timeline-marker {
+    position: absolute;
+    left: -2rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px currentColor;
+}
+.timeline-content {
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+}
+.timeline-item.completed .timeline-marker::after {
+    content: '✓';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 0.6rem;
+    color: #fff;
+}
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnRestaurer = document.getElementById('btnRestaurer') || document.getElementById('btnRestaurerSidebar');
+    const btnPurger = document.getElementById('btnPurger') || document.getElementById('btnPurgerSidebar');
+
+    function confirmAction(btn, message, isPurge = false) {
+        if (!btn) return;
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const id = this.dataset.id;
+            const url = this.dataset.url.replace('/0/', `/${id}/`);
+            const confirmMsg = isPurge
+                ? 'ATTENTION : Purger définitivement ? Cette action est IRRÉVERSIBLE.'
+                : message;
+
+            if (confirm(confirmMsg)) {
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Erreur : ' + (data.error || 'Inconnue'));
+                    }
+                });
+            }
+        });
+    }
+
+    confirmAction(btnRestaurer, 'Restaurer cet élément ?');
+    confirmAction(btnPurger, '', true);
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

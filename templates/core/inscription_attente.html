@@ -1,0 +1,62 @@
+{% extends 'base_auth.html' %}
+{% block title %}Inscription en attente — {{ APP_NOM }}{% endblock %}
+
+{% block auth_body %}
+<div class="login-box">
+    <div class="login-logo">
+        <div class="logo-icon">
+            <div class="medical-cross"></div>
+            <span class="cross-badge">+</span>
+        </div>
+        <div>
+            <div class="logo-text">Inscription reçue</div>
+            <span class="logo-sub">Compte en attente de validation</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body login-card-body text-center">
+
+            <div style="font-size: 4rem; color: var(--or); margin-bottom: 16px;">
+                <i class="bi bi-clock-history"></i>
+            </div>
+
+            <h4 class="fw-bold mb-2" style="color: var(--vert);">Merci pour votre inscription</h4>
+
+            <p class="text-secondary mb-3" style="font-size: 0.95rem;">
+                Votre demande d'inscription pour <strong>{{ mutualite.nom }}</strong>
+                a bien été reçue et est en cours de traitement.
+            </p>
+
+            <div class="alert alert-info text-start" style="border-radius: 11px; background: #f0f7ff; border-color: #b8d4fe;">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="bi bi-info-circle-fill mt-1" style="color: var(--vert); font-size: 1.2rem;"></i>
+                    <div>
+                        <strong>Prochaines étapes :</strong>
+                        <ol class="mb-0 mt-1 ps-3" style="line-height: 1.8;">
+                            <li>Un administrateur examinera votre demande</li>
+                            <li>Vous serez contacté au <strong>{{ mutualite.telephone }}</strong> dès validation</li>
+                            <li>Une fois activé, vous pourrez vous connecter à votre espace</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="small text-secondary mb-3">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Les comptes non activés sous 7 jours seront automatiquement supprimés.
+            </div>
+
+            <a href="{% url 'core:login' %}" class="btn btn-login mt-2">
+                <i class="bi bi-box-arrow-in-right me-2"></i> Retour à la connexion
+            </a>
+
+            <div class="auth-footer">
+                <span class="secure-badge">
+                    <i class="bi bi-shield-check me-1"></i> Inscription sécurisée
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

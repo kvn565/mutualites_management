@@ -1,0 +1,39 @@
+{% load static %}
+
+{% if ordered_categories %}
+    {% for category in ordered_categories %}
+        <li class="nav-header">{{ category.label }}</li>
+        {% for menu in category.menus %}
+            <li class="nav-item">
+                <a href="{% url menu.url_name %}" class="nav-link {% if request.resolver_match.url_name == menu.url_name %}active{% endif %}">
+                    {% if menu.icone %}
+                        <i class="nav-icon bi {{ menu.icone }}"></i>
+                    {% else %}
+                        <i class="nav-icon bi bi-circle-fill"></i>
+                    {% endif %}
+                    <p>{{ menu.nom }}</p>
+                </a>
+            </li>
+        {% endfor %}
+    {% endfor %}
+{% else %}
+    <li class="nav-header">Navigation</li>
+    <li class="nav-item">
+        <a href="{% url 'dashboard:index' %}" class="nav-link">
+            <i class="nav-icon bi bi-grid-fill"></i>
+            <p>Tableau de bord</p>
+        </a>
+    </li>
+{% endif %}
+
+{% if user.est_super_admin %}
+    <li class="nav-item">
+        <a href="{% url 'superadmin:dashboard' %}" class="nav-link">
+            <i class="nav-icon bi bi-shield-fill-check" style="color:var(--or);"></i>
+            <p>
+                Super Admin
+                <span class="nav-badge badge text-bg-warning ms-2">admin</span>
+            </p>
+        </a>
+    </li>
+{% endif %}

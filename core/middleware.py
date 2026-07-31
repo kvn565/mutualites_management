@@ -29,32 +29,35 @@ class MutualiteMiddleware:
 class LicenseMiddleware:
     """
     Vérifie que la licence de la mutualité est valide à chaque requête.
-    Déconnecte les utilisateurs d'une mutualité dont la licence a expiré.
-    Les super admins ne sont pas concernés.
+    Redirige vers la page d'activation si la licence est expirée.
+    Les super admins et certaines pages sont exemptés.
     """
 
     def __init__(self, get_response):
         self.get_response = get_response
 
+    ALLOWED_PATHS = ('/connexion/activer-licence', '/licence/', '/connexion/', '/connexion/deconnexion/', '/admin/')
+
     def __call__(self, request):
+        path = request.path
+        if any(path.startswith(p) for p in self.ALLOWED_PATHS):
+            return self.get_response(request)
+
         if request.user.is_authenticated and not request.user.est_super_admin:
             mutualite = request.user.mutualite
             if mutualite and not mutualite.licence_valide:
-                if mutualite.statut == 'EXPIRE':
-                    from django.contrib import messages
-                    logout(request)
-                    return redirect('core:login')
+                return redirect('activer_licence')
 
         return self.get_response(request)
 
     def process_view(self, request, view_func, view_args, view_kwargs):
+        path = request.path
+        if any(path.startswith(p) for p in self.ALLOWED_PATHS):
+            return None
         if request.user.is_authenticated and not request.user.est_super_admin:
             mutualite = request.user.mutualite
-            if mutualite and mutualite.statut == 'EXPIRE':
-                from django.contrib import messages
-                from django.shortcuts import redirect
-                logout(request)
-                return redirect('core:login')
+            if mutualite and not mutualite.licence_valide:
+                return redirect('activer_licence')
         return None
 
 

@@ -1,0 +1,150 @@
+{% extends "superadmin/base_superadmin.html" %}
+{% load static %}
+{% block title %}Configuration — Super Admin{% endblock %}
+{% block page_title %}Configuration de l'application{% endblock %}
+{% block page_subtitle %}Personnalisez l'apparence et les informations de l'application{% endblock %}
+{% block nav_configuration %}active{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="card">
+                <div class="card-header"><i class="bi bi-info-circle me-2" style="color:var(--or);"></i>Informations générales</div>
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">{{ form.nom_app.label }}</label>
+                        {{ form.nom_app }}
+                        <div style="font-size:0.78rem;color:#8a9aaa;margin-top:5px;">
+                            <i class="bi bi-info-circle me-1"></i>Ce nom apparaît dans le titre de l'onglet et la barre latérale.
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">{{ form.logo_app.label }}</label>
+                        {% if config.logo_app %}
+                        <div class="mb-2 p-3 text-center" style="background:#f8f9fa;border-radius:8px;border:1px solid #dee2e6;">
+                            <img src="{{ config.logo_app.url }}" alt="Logo actuel" style="max-height:80px;max-width:100%;">
+                        </div>
+                        {% endif %}
+                        {{ form.logo_app }}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">{{ form.favicon.label }}</label>
+                        {% if config.favicon %}
+                        <div class="mb-2 d-flex align-items-center gap-3 p-3" style="background:#f8f9fa;border-radius:8px;border:1px solid #dee2e6;">
+                            <img src="{{ config.favicon.url }}" alt="Favicône" style="height:32px;width:32px;">
+                            <span class="text-muted small">Favicône actuelle</span>
+                        </div>
+                        {% endif %}
+                        {{ form.favicon }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header"><i class="bi bi-palette me-2" style="color:var(--or);"></i>Thème / Couleurs</div>
+                <div class="card-body p-4">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">{{ form.primary_color.label }}</label>
+                            {{ form.primary_color }}
+                            <div style="font-size:0.78rem;color:#8a9aaa;margin-top:5px;">Utilisée pour les boutons, liens et titres</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">{{ form.accent_color.label }}</label>
+                            {{ form.accent_color }}
+                            <div style="font-size:0.78rem;color:#8a9aaa;margin-top:5px;">Utilisée pour les accents et badges</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">{{ form.background_color.label }}</label>
+                            {{ form.background_color }}
+                            <div style="font-size:0.78rem;color:#8a9aaa;margin-top:5px;">Couleur de fond de la page</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="form-label fw-semibold">{{ form.background_image.label }}</label>
+                        {% if config.background_image %}
+                        <div class="mb-2" style="border-radius:8px;overflow:hidden;border:1px solid #dee2e6;max-height:150px;">
+                            <img src="{{ config.background_image.url }}" alt="Fond actuel" style="width:100%;height:150px;object-fit:cover;">
+                        </div>
+                        {% endif %}
+                        {{ form.background_image }}
+                        <div style="font-size:0.78rem;color:#8a9aaa;margin-top:5px;">Image d'arrière-plan pour la page de connexion</div>
+                    </div>
+
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">{{ form.background_opacity.label }}</label>
+                            {{ form.background_opacity }}
+                            <div style="font-size:0.78rem;color:#8a9aaa;margin-top:5px;">Opacité de l'image (0.00 = invisible, 1.00 = opaque)</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">{{ form.background_brightness.label }}</label>
+                            {{ form.background_brightness }}
+                            <div style="font-size:0.78rem;color:#8a9aaa;margin-top:5px;">Luminosité (0.00 = noir, 1.00 = normal, 2.00 = très lumineux)</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">{{ form.text_color.label }}</label>
+                            {{ form.text_color }}
+                            <div style="font-size:0.78rem;color:#8a9aaa;margin-top:5px;">Couleur du texte</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-3" style="border-radius:10px;border:2px dashed #dee2e6;">
+                        <div style="font-size:0.85rem;font-weight:600;margin-bottom:8px;">Aperçu</div>
+                        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                            <span style="padding:6px 16px;border-radius:6px;color:#fff;background:var(--primary-color, #0a5c36);">Bouton principal</span>
+                            <span style="padding:6px 16px;border-radius:6px;color:#fff;background:var(--accent-color, #c9a84c);">Badge</span>
+                            <span style="padding:6px 16px;border-radius:6px;border:1px solid #dee2e6;background:var(--bg-color, #f0f4f8);">Fond de page</span>
+                        </div>
+                    </div>
+
+                    <script>
+                        document.querySelectorAll('input[type="color"]').forEach(function(input) {
+                            input.addEventListener('input', function() {
+                                var name = this.name;
+                                if (name === 'primary_color') {
+                                    document.documentElement.style.setProperty('--primary-color', this.value);
+                                } else if (name === 'accent_color') {
+                                    document.documentElement.style.setProperty('--accent-color', this.value);
+                                } else if (name === 'background_color') {
+                                    document.documentElement.style.setProperty('--bg-color', this.value);
+                                }
+                            });
+                        });
+                    </script>
+                </div>
+            </div>
+
+            <div class="d-flex gap-3 mt-4">
+                <button type="submit" class="btn btn-gold">
+                    <i class="bi bi-check-circle me-2"></i>Enregistrer
+                </button>
+                <a href="{% url 'superadmin:dashboard' %}" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+
+        <div class="card mt-4" style="background:var(--bg-color, #f0f9f0);border:1px solid #a5d6a7;">
+            <div class="card-body py-3 px-4">
+                <div class="d-flex gap-3 align-items-start">
+                    <i class="bi bi-info-circle-fill" style="color:#2e7d32;font-size:1.1rem;flex-shrink:0;margin-top:2px;"></i>
+                    <div style="font-size:0.83rem;color:#2e7d32;">
+                        <strong>Résumé</strong><br>
+                        Nom : <strong>{{ config.nom_app }}</strong><br>
+                        Logo : {% if config.logo_app %}✓ défini{% else %}✗ non défini{% endif %}<br>
+                        Favicône : {% if config.favicon %}✓ définie{% else %}✗ non définie{% endif %}<br>
+                        Couleurs : {{ config.primary_color }} / {{ config.accent_color }} / {{ config.background_color }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titre }} — {{ block.super }}{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-arrow-left-right{% endblock %}
+{% block page_subtitle %}{{ hospitalisation.numero_dossier }} — {{ hospitalisation.patient_nom }} {{ hospitalisation.patient_prenom }}{% endblock %}
+{% block nav_hospitalisations %}active{% endblock %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-arrow-left-right me-2" style="color:var(--or);"></i> Transfert de chambre</div>
+        <div class="card-body p-4">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Chambre actuelle :</strong> {{ hospitalisation.chambre.numero }} ({{ hospitalisation.chambre.type_chambre.nom }}) — {{ hospitalisation.chambre.etablissement.nom }}
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.chambre.id_for_label }}">{{ form.chambre.label }} <span class="text-danger">*</span></label>
+                    {{ form.chambre }}
+                    {% if form.chambre.errors %}<div class="text-danger small">{{ form.chambre.errors.0 }}</div>{% endif %}
+                    <div class="form-text">Seules les chambres libres sont affichées.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.date_sortie_prevue.id_for_label }}">{{ form.date_sortie_prevue.label }}</label>
+                    {{ form.date_sortie_prevue }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="{{ form.observations.id_for_label }}">{{ form.observations.label }}</label>
+                    {{ form.observations }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 text-end">
+        <a href="{% url 'gestion_chambres:hospitalisation_detail' hospitalisation.pk %}" class="btn btn-outline-secondary me-2"><i class="bi bi-arrow-left me-1"></i> Annuler</a>
+        <button type="submit" class="btn btn-warning"><i class="bi bi-arrow-left-right me-1"></i> Effectuer le transfert</button>
+    </div>
+</form>
+{% endblock %}

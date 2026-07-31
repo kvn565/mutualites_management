@@ -1,0 +1,25 @@
+<div class="p-3">
+  {% for b in budgets %}
+  <div class="mb-4">
+    <h6>{{ b }} <span class="badge {% if b.statut == 'APPROUVE' %}bg-success{% elif b.statut == 'EN_EXECUTION' %}bg-primary{% else %}bg-secondary{% endif %}">{{ b.get_statut_display }}</span></h6>
+    <div class="progress mb-2" style="height:8px;">
+      <div class="progress-bar {% if b.taux_execution >= 75 %}bg-success{% elif b.taux_execution >= 50 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" style="width:{{ b.taux_execution|floatformat:1 }}%">{{ b.taux_execution|floatformat:1 }}%</div>
+    </div>
+    <table class="table table-sm align-middle mb-0 small">
+      <thead class="table-light"><tr><th>Compte</th><th class="text-end">Prévu</th><th class="text-end">Réalisé</th><th class="text-end">Écart</th></tr></thead>
+      <tbody>
+        {% for l in b.lignes.all %}
+        <tr>
+          <td><code>{{ l.compte.numero }}</code> {{ l.compte.intitule }}</td>
+          <td class="text-end">{{ l.montant_prevu|floatformat:0|intcomma }}</td>
+          <td class="text-end">{{ l.montant_realise|floatformat:0|intcomma }}</td>
+          <td class="text-end {% if l.ecart < 0 %}text-danger{% else %}text-success{% endif %}">{{ l.ecart|floatformat:0|intcomma }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% empty %}
+  <p class="text-muted text-center py-3">Aucun budget trouvé.</p>
+  {% endfor %}
+</div>

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Règles de ventilation{% endblock %}
+{% block page_title %}Règles de ventilation automatique{% endblock %}
+{% block page_icon %}bi bi-gear{% endblock %}
+{% block nav_ventilations %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <p class="text-muted mb-0">Définissez les règles de répartition automatique des écritures par centre et branche.</p>
+  <a href="{% url 'ventilations:regle_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nouvelle règle</a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small">
+      <thead class="table-light">
+        <tr><th>Libellé</th><th>Type</th><th>Centre</th><th>Branche</th><th class="text-center">%</th><th>Priorité</th><th class="text-center">Actif</th><th class="text-center">Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for r in regles %}
+        <tr>
+          <td>{{ r.libelle }}</td>
+          <td><span class="badge bg-info text-dark">{{ r.get_type_origine_display }}</span></td>
+          <td>{{ r.centre.libelle|default:'Tous' }}</td>
+          <td>{{ r.branche.libelle|default:'Toutes' }}</td>
+          <td class="text-center fw-bold">{{ r.pourcentage }}%</td>
+          <td>{{ r.priorite }}</td>
+          <td class="text-center">{% if r.actif %}✅{% else %}❌{% endif %}</td>
+          <td class="text-center">
+            <a href="{% url 'ventilations:regle_update' r.pk %}" class="btn btn-sm btn-outline-primary">✏️</a>
+            <a href="{% url 'ventilations:regle_delete' r.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Supprimer cette règle ?')">🗑️</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center py-4 text-muted">Aucune règle. <a href="{% url 'ventilations:regle_create' %}">Créer la première</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

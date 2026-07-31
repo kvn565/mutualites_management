@@ -1,0 +1,40 @@
+{% extends 'superadmin/base_superadmin.html' %}
+{% block title %}Supprimer {{ partenaire.nom_etablissement }}{% endblock %}
+{% block page_title %}Supprimer un établissement{% endblock %}
+{% block nav_hopitaux %}active{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <i class="bi bi-exclamation-triangle"></i> Confirmation de suppression
+            </div>
+            <div class="card-body text-center py-5">
+                <i class="bi bi-building-x display-1 text-danger mb-3 d-block"></i>
+                <h4 class="text-danger">Êtes-vous sûr de vouloir supprimer</h4>
+                <h3 class="fw-bold">{{ partenaire.nom_etablissement }}</h3>
+                <p class="text-muted mt-3">
+                    Code : <code>{{ partenaire.code_partenaire }}</code><br>
+                    Type : {{ partenaire.get_type_partenaire_display }}<br>
+                    Mutualité : {{ partenaire.mutualite.nom|default:"Non rattaché" }}
+                </p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle"></i>
+                    Cette action est irréversible. Toutes les données liées
+                    (conventions, utilisateurs, factures) seront également supprimées.
+                </div>
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-lg">
+                        <i class="bi bi-trash me-1"></i>Oui, supprimer définitivement
+                    </button>
+                    <a href="{% url 'superadmin:partenaire_detail' partenaire.pk %}" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle me-1"></i>Annuler
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

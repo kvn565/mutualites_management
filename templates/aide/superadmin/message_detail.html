@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ message.sujet }} - SuperAdmin{% endblock %}
+
+{% block page_icon %}bi-chat-dots-fill{% endblock %}
+{% block page_title %}{{ message.sujet }}{% endblock %}
+{% block page_subtitle %}Mutualité : {{ message.mutualite.nom }} ({{ message.mutualite.code_mutualite }}){% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'aide:superadmin_message_list' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Message mutualité -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-envelope-fill me-2"></i>Message de la mutualité</h5>
+                <span class="badge bg-{% if message.statut == 'NOUVEAU' %}warning text-dark{% elif message.statut == 'EN_COURS' %}info{% elif message.statut == 'REPONDU' %}success{% else %}secondary{% endif %}">
+                    {{ message.get_statut_display }}
+                </span>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-3">
+                    <dt class="col-sm-2">Envoyé le</dt>
+                    <dd class="col-sm-10">{{ message.date_creation|date:"d/m/Y à H:i" }}</dd>
+                    <dt class="col-sm-2">Par</dt>
+                    <dd class="col-sm-10">{{ message.expediteur.nom_complet|default:message.expediteur.username }} ({{ message.expediteur.email }})</dd>
+                    <dt class="col-sm-2">Mutualité</dt>
+                    <dd class="col-sm-10"><a href="{% url 'superadmin:mutualite_detail' message.mutualite.pk %}">{{ message.mutualite.nom }}</a></dd>
+                </dl>
+                <div class="bg-light p-3 rounded">
+                    {{ message.message|linebreaks }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Réponse / Formulaire réponse -->
+        {% if message.reponse %}
+        <div class="card mb-4 border-success">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-reply-fill me-2"></i>Votre réponse</h5>
+                <small>Répondu le {{ message.date_reponse|date:"d/m/Y H:i" }} par {{ message.repondu_par.nom_complet }}</small>
+            </div>
+            <div class="card-body">
+                <div class="bg-light p-3 rounded border-success">
+                    {{ message.reponse|linebreaks }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Formulaire réponse/modification -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">{% if message.reponse %}Modifier la réponse{% else %}Répondre{% endif %}</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'aide:superadmin_message_repondre' message.pk %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Réponse <span class="text-danger">*</span></label>
+                        <textarea name="reponse" class="form-control" rows="8" required>{% if message.reponse %}{{ message.reponse }}{% endif %}</textarea>
+                        <div class="form-text">Réponse qui sera envoyée à la mutualité.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nouveau statut</label>
+                        <select name="statut" class="form-select">
+                            {% for value, label in message.STATUT_CHOICES %}
+                            <option value="{{ value }}" {% if message.statut == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="action" value="reply" class="btn btn-success">
+                            <i class="bi bi-send-fill me-1"></i>{% if message.reponse %}Mettre à jour{% else %}Envoyer la réponse{% endif %}
+                        </button>
+                        {% if message.reponse %}
+                        <button type="submit" name="action" value="close" class="btn btn-outline-danger" onclick="return confirm('Fermer ce ticket ?')">
+                            <i class="bi bi-x-circle me-1"></i>Fermer
+                        </button>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-info-circle me-1"></i>Détails</h6>
+            </div>
+            <div class="card-body">
+                <dl class="row small mb-0">
+                    <dt class="col-sm-4">ID</dt>
+                    <dd class="col-sm-8">#{{ message.pk }}</dd>
+                    <dt class="col-sm-4">Créé le</dt>
+                    <dd class="col-sm-8">{{ message.date_creation|date:"d/m/Y H:i" }}</dd>
+                    {% if message.date_reponse %}
+                    <dt class="col-sm-4">Répondu le</dt>
+                    <dd class="col-sm-8">{{ message.date_reponse|date:"d/m/Y H:i" }}</dd>
+                    {% endif %}
+                    <dt class="col-sm-4">Statut actuel</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-{% if message.statut == 'NOUVEAU' %}warning text-dark{% elif message.statut == 'EN_COURS' %}info{% elif message.statut == 'REPONDU' %}success{% else %}secondary{% endif %}">
+                            {{ message.get_statut_display }}
+                        </span>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-lightning-fill me-1"></i>Actions rapides</h6>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{% url 'superadmin:mutualite_detail' message.mutualite.pk %}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-building me-2"></i>Voir la mutualité
+                </a>
+                <a href="{% url 'aide:superadmin_message_list' %}?mutualite={{ message.mutualite.pk }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-chat-dots me-2"></i>Autres messages de cette mutualité
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

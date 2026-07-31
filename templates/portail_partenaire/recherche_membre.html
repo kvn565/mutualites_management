@@ -1,0 +1,116 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% load humanize %}
+{% block title %}Recherche Membre — {{ partenaire.nom_etablissement }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-search" style="color:var(--primary)"></i> Rechercher un membre</h1>
+    <p>Saisissez un ID, nom, CNI ou téléphone — recherche automatique</p>
+</div>
+
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-body">
+        <form method="get" class="flex items-center gap-3" style="flex-wrap:wrap;" id="searchForm">
+            <div style="flex:1;">
+                {{ form.q }}
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i> Rechercher
+            </button>
+        </form>
+    </div>
+</div>
+
+
+
+{% if q %}
+<div class="card">
+    <div class="card-header">
+            <span>Résultat pour "{{ q }}"</span>
+        <span class="badge badge-info">{{ membres|length }} résultat(s)</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+        {% if membres %}
+        <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>Photo</th>
+                    <th>ID</th>
+                    <th>Nom complet</th>
+                    <th>CNI</th>
+                    <th>Mutualité</th>
+                    <th>Téléphone</th>
+                    <th>Statut</th>
+                    <th>Ayants droit</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in membres %}
+                <tr>
+                    <td>
+                        {% if m.photo %}
+                        <img src="{{ m.photo.url }}" alt="" class="member-photo-sm">
+                        {% else %}
+                        <div class="member-photo-sm" style="background:#e8f5ee;display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:700;">
+                            {{ m.nom|first|upper }}{{ m.prenom|first|upper }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td><code>{{ m.numero_affiliation }}</code></td>
+                    <td class="fw-bold">{{ m.nom_complet }}</td>
+                    <td class="text-muted text-sm">{{ m.numero_carte_identite|default:"—" }}</td>
+                    <td><span class="badge badge-info">{{ m.mutualite.sigle|default:m.mutualite.code_mutualite }}</span></td>
+                    <td>{{ m.telephone|default:"—" }}</td>
+                    <td>
+                        {% if m.statut == 'ACTIF' %}<span class="badge badge-success">Actif</span>
+                        {% elif m.statut == 'SUSPENDU' %}<span class="badge badge-warning">Suspendu</span>
+                        {% elif m.statut == 'RADIE' %}<span class="badge badge-danger">Radié</span>
+                        {% else %}<span class="badge badge-secondary">{{ m.get_statut_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ m.nombre_beneficiaires }}</td>
+                    <td>
+                        <div class="flex gap-2">
+                            <a href="{% url 'portail_partenaire:detail_membre' m.pk %}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-eye"></i> Fiche
+                            </a>
+                            <a href="{% url 'portail_partenaire:ajouter_facture' m.pk %}" class="btn btn-sm btn-gold">
+                                <i class="bi bi-plus-circle"></i> Facture
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-emoji-frown"></i>
+            <p>Aucun membre trouvé pour "{{ q }}"</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let searchTimeout;
+    const searchInput = document.querySelector('#searchForm input[name="q"]');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const val = this.value.trim();
+            if (val.length >= 2) {
+                searchTimeout = setTimeout(() => {
+                    document.querySelector('#searchForm button[type="submit"]').click();
+                }, 400);
+            }
+        });
+    }
+</script>
+{% endblock %}

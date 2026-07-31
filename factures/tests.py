@@ -35,7 +35,7 @@ class FactureModelTest(TestCase):
 
     def test_generer_numero_format(self):
         numero = Facture.generer_numero()
-        self.assertRegex(numero, r'^FAC-\d{6}-\d{4}$')
+        self.assertRegex(numero, r'^FAC-\d{6}-\d+$')
 
     def test_generer_numero_mensuel(self):
         today = timezone.now()

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ globale }}{% endblock %}
+{% block page_title %}{{ globale }}{% endblock %}
+{% block page_icon %}bi bi-globe{% endblock %}
+{% block nav_ventilations %}active{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h6 class="fw-bold mb-0">Détails</h6></div>
+      <div class="card-body p-4">
+        <div class="row g-3 mb-4">
+          <div class="col-md-3"><strong>Période</strong><br>{{ globale.date_debut|date:'d/m/Y' }} → {{ globale.date_fin|date:'d/m/Y' }}</div>
+          <div class="col-md-3"><strong>Montant total</strong><br>{{ globale.montant_total|floatformat:0|intcomma }} BIF</div>
+          <div class="col-md-3"><strong>Total ventilé</strong><br>{{ globale.total_ventile|floatformat:0|intcomma }} BIF</div>
+          <div class="col-md-3"><strong>Solde</strong><br><span class="{% if globale.solde_a_ventiler != 0 %}text-danger fw-bold{% endif %}">{{ globale.solde_a_ventiler|floatformat:0|intcomma }} BIF</span></div>
+        </div>
+        {% if globale.notes %}<p class="text-muted">{{ globale.notes }}</p>{% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-4">
+      <div class="card-header bg-white"><h6 class="fw-bold mb-0">Lignes de ventilation</h6></div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 small">
+          <thead class="table-light"><tr><th>Centre</th><th>Branche</th><th class="text-center">%</th><th class="text-end">Montant</th></tr></thead>
+          <tbody>
+            {% for l in globale.lignes.all %}
+            <tr><td>{{ l.centre.libelle|default:'Général' }}</td><td>{{ l.branche.libelle|default:'Toutes' }}</td><td class="text-center">{{ l.pourcentage }}%</td><td class="text-end">{{ l.montant|floatformat:0|intcomma }}</td></tr>
+            {% empty %}<tr><td colspan="4" class="text-center text-muted py-3">Aucune ligne de répartition.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

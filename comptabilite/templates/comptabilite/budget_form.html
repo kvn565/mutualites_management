@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre|default:'Nouveau budget' }}{% endblock %}
+{% block page_title %}{{ titre|default:'Nouveau budget' }}{% endblock %}
+{% block page_icon %}bi bi-clipboard-data{% endblock %}
+{% block nav_compta %}active{% endblock %}
+
+{% block content %}
+<form method="post">{% csrf_token %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-pencil me-2"></i> Budget</div>
+        <div class="card-body p-4 row g-3">
+          <div class="col-md-4">
+            <label class="form-label">{{ form.annee.label }} <span class="text-danger">*</span></label>
+            {{ form.annee }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ form.type_budget.label }}</label>
+            {{ form.type_budget }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ form.statut.label }}</label>
+            {{ form.statut }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.centre.label }}</label>
+            {{ form.centre }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">{{ form.description.label }}</label>
+            {{ form.description }}
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header"><i class="bi bi-list me-2"></i> Lignes budgétaires</div>
+        <div class="card-body p-4">
+          {{ lignes_formset.management_form }}
+          <div class="table-responsive">
+            <table class="table table-sm align-middle" id="formset-table">
+              <thead class="table-light">
+                <tr>
+                  <th>Compte</th>
+                  <th class="text-end">Montant prévu</th>
+                  <th>Notes</th>
+                  <th class="text-center">Suppr.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for f in lignes_formset %}
+                <tr>
+                  <td>{{ f.id }}{{ f.compte }}</td>
+                  <td>{{ f.montant_prevu }}</td>
+                  <td>{{ f.notes }}</td>
+                  <td class="text-center">{{ f.DELETE }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if lignes_formset.non_form_errors %}
+            <div class="text-danger small mt-2">{{ lignes_formset.non_form_errors }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-info-circle me-2"></i> Aide</div>
+        <div class="card-body p-4">
+          <p class="text-muted small mb-0">Définissez les montants prévus pour chaque compte. Le suivi budgétaire comparera automatiquement ces montants aux écritures réalisées.</p>
+        </div>
+      </div>
+
+      <div class="d-grid mt-4 gap-2">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-circle me-2"></i> Enregistrer</button>
+        <a href="{% url 'comptabilite:budget_list' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

@@ -7,11 +7,52 @@
 {% block nav_cotisations %}active{% endblock %}
 
 {% block page_actions %}
-    {% if user.peut_modifier %}
-    <a href="{% url 'cotisations:ajouter' %}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-circle"></i> Saisir
-    </a>
-    {% endif %}
+    <div class="btn-group" role="group">
+        {% if user.peut_modifier %}
+        <a href="{% url 'cotisations:ajouter' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle"></i> Saisir
+        </a>
+        {% endif %}
+        {% if user.peut_exporter %}
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-file-earmark-spreadsheet"></i> Exporter
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" href="{% url 'cotisations:export_excel' %}?q={{ q }}&statut={{ statut }}&annee={{ annee }}">
+                        <i class="bi bi-file-earmark-excel text-success me-2"></i> Excel (.xlsx)
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{% url 'cotisations:export_pdf' %}?q={{ q }}&statut={{ statut }}&annee={{ annee }}">
+                        <i class="bi bi-file-earmark-pdf text-danger me-2"></i> PDF (.pdf)
+                    </a>
+                </li>
+            </ul>
+        </div>
+        {% endif %}
+        {% if user.peut_modifier %}
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-upload"></i> Importer
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" href="{% url 'cotisations:telecharger_modele_import' %}">
+                        <i class="bi bi-file-earmark-arrow-down me-2"></i> Télécharger le modèle
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#importModal">
+                        <i class="bi bi-file-earmark-arrow-up me-2"></i> Importer fichier Excel
+                    </a>
+                </li>
+            </ul>
+        </div>
+        {% endif %}
+    </div>
 {% endblock %}
 
 {% block content %}
@@ -139,4 +180,53 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Modal Import Excel -->
+{% if user.peut_modifier %}
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{% url 'cotisations:importer_excel' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="importModalLabel"><i class="bi bi-upload me-2"></i>Importer cotisations (Excel)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Format requis :</strong> Utilisez le modèle Excel avec les colonnes :
+                        <code>Nom, Prénom, Montant, Date_paiement, Annee, Periode_type, Mois, Mode_paiement, Reference, Date_emission, Date_echeance, Notes</code>
+                    </div>
+                    <div class="alert alert-warning mb-3">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Les colonnes <strong>Nom, Prénom, Montant, Date_paiement</strong> sont obligatoires. L'affilié doit exister dans la mutualité (nom + prénom exacts).
+                    </div>
+                    <div class="mb-3">
+                        <label for="fichier" class="form-label fw-bold">Fichier Excel (.xlsx)</label>
+                        <input type="file" name="fichier" id="fichier" class="form-control" accept=".xlsx,.xls" required>
+                        <div class="form-text">Taille max : 5 Mo</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="periode_type_import" class="form-label fw-bold">Type de période <span class="text-danger">*</span></label>
+                        <select name="periode_type_import" id="periode_type_import" class="form-select" required>
+                            <option value="">-- Choisir le type --</option>
+                            <option value="MENSUEL">Mensuel</option>
+                            <option value="TRIMESTRIEL">Trimestriel</option>
+                            <option value="ANNUEL">Annuel</option>
+                        </select>
+                        <div class="form-text">Sera appliqué à toutes les lignes du fichier (si non précisé dans le fichier)</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload me-1"></i> Importer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

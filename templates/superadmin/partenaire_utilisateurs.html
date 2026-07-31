@@ -1,0 +1,106 @@
+{% extends 'superadmin/base_superadmin.html' %}
+{% block title %}Utilisateurs — {{ partenaire.nom_etablissement }}{% endblock %}
+{% block page_title %}{{ partenaire.code_partenaire }} — Utilisateurs{% endblock %}
+{% block page_subtitle %}Gérer les comptes utilisateurs de {{ partenaire.nom_etablissement }}{% endblock %}
+{% block nav_hopitaux %}active{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'superadmin:partenaire_detail' partenaire.pk %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-people"></i> Comptes utilisateurs</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nom d'utilisateur</th>
+                            <th>Rôle</th>
+                            <th>Email</th>
+                            <th>Téléphone</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in utilisateurs %}
+                        <tr>
+                            <td><strong>{{ u.username }}</strong></td>
+                            <td>{{ u.get_role_display }}</td>
+                            <td>{{ u.email|default:"—" }}</td>
+                            <td>{{ u.telephone|default:"—" }}</td>
+                            <td>
+                                <span class="badge {% if u.actif %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ u.actif|yesno:"Actif,Inactif" }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'superadmin:partenaire_modifier' partenaire.pk %}" class="btn btn-sm btn-outline-vert" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-people fs-1 d-block mb-2"></i>
+                                Aucun utilisateur créé
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-6 mx-auto">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-person-plus"></i> Ajouter un utilisateur</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nom d'utilisateur <span class="text-danger">*</span></label>
+                            {{ form.username }}
+                            {% if form.username.errors %}<div class="invalid-feedback d-block">{{ form.username.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mot de passe <span class="text-danger">*</span></label>
+                            {{ form.password }}
+                            {% if form.password.errors %}<div class="invalid-feedback d-block">{{ form.password.errors.0 }}</div>{% endif %}
+                            <small class="text-muted">Min. 6 caractères</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Rôle <span class="text-danger">*</span></label>
+                            {{ form.role }}
+                            {% if form.role.errors %}<div class="invalid-feedback d-block">{{ form.role.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            {{ form.email }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Téléphone</label>
+                            {{ form.telephone }}
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle me-1"></i>Créer l'utilisateur
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

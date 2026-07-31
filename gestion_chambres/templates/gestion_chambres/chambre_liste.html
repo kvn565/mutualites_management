@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Chambres — {{ block.super }}{% endblock %}
+{% block page_title %}Chambres{% endblock %}
+{% block page_icon %}bi bi-door-open{% endblock %}
+{% block page_subtitle %}Liste des chambres d'hospitalisation{% endblock %}
+{% block nav_chambres %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="mb-0"><i class="bi bi-door-open me-2"></i> Chambres</h5>
+    <a href="{% url 'gestion_chambres:chambre_creer' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i> Nouvelle chambre
+    </a>
+</div>
+
+<!-- Filtres -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Statut</label>
+                <select name="statut" class="form-select">
+                    <option value="">Tous</option>
+                    {% for val, label in Chambre.STATUT_CHOICES %}
+                    <option value="{{ val }}" {% if filtres.statut == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Type de chambre</label>
+                <select name="type_chambre" class="form-select">
+                    <option value="">Tous</option>
+                    {% for t in types %}
+                    <option value="{{ t.pk }}" {% if filtres.type_chambre == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Étage</label>
+                <select name="etage" class="form-select">
+                    <option value="">Tous</option>
+                    {% for e in etages %}
+                    <option value="{{ e }}" {% if filtres.etage == e %}selected{% endif %}>{{ e }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-vert w-100"><i class="bi bi-search me-1"></i> Filtrer</button>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <a href="{% url 'gestion_chambres:chambre_liste' %}" class="btn btn-outline-secondary w-100"><i class="bi bi-x-circle me-1"></i> Effacer</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Liste -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        {% if chambres %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Numéro</th>
+                        <th>Type</th>
+                        <th>Étage / Aile</th>
+                        <th>Capacité</th>
+                        <th>Statut</th>
+                        <th>Occupation actuelle</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in chambres %}
+                    <tr>
+                        <td><code>{{ c.numero }}</code></td>
+                        <td>
+                            <strong>{{ c.type_chambre.nom }}</strong>
+                            <br><small class="text-muted">{{ c.type_chambre.tarif_base|floatformat:0|intcomma }} BIF/jour</small>
+                        </td>
+                        <td>
+                            {% if c.etage %}{{ c.etage }}{% if c.aile %} / {{ c.aile }}{% endif %}{% else %}{{ c.aile|default:"—" }}{% endif %}
+                        </td>
+                        <td>{{ c.capacite_totale }} lit(s)</td>
+                        <td>
+                            {% if c.statut == 'LIBRE' %}<span class="badge bg-success">Libre</span>
+                            {% elif c.statut == 'OCCUPEE' %}<span class="badge bg-primary">Occupée</span>
+                            {% elif c.statut == 'MAINTENANCE' %}<span class="badge bg-warning text-dark">Maintenance</span>
+                            {% elif c.statut == 'RESERVEE' %}<span class="badge bg-info">Réservée</span>
+                            {% elif c.statut == 'HORS_SERVICE' %}<span class="badge bg-dark">Hors service</span>
+                            {% else %}<span class="badge bg-secondary">{{ c.get_statut_display }}</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if c.hospitalisation_active %}
+                            <small>
+                                {{ c.hospitalisation_active.patient_nom }} {{ c.hospitalisation_active.patient_prenom }}<br>
+                                <code>{{ c.hospitalisation_active.numero_dossier }}</code>
+                            </small>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'gestion_chambres:chambre_detail' c.pk %}" class="btn btn-outline-primary" title="Détail"><i class="bi bi-eye"></i></a>
+                                <a href="{% url 'gestion_chambres:chambre_modifier' c.pk %}" class="btn btn-outline-secondary" title="Modifier"><i class="bi bi-pencil"></i></a>
+                                <form method="post" action="{% url 'gestion_chambres:chambre_changer_statut' c.pk %}" class="d-inline" title="Changer statut">
+                                    {% csrf_token %}
+                                    <select name="statut" class="form-select form-select-sm" onchange="this.form.submit()" title="Changer statut">
+                                        {% for val, label in Chambre.STATUT_CHOICES %}
+                                        <option value="{{ val }}" {% if c.statut == val %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-door-open fs-1 d-block mb-2"></i>
+            Aucune chambre trouvée
+        </div>
+        {% endif %}
+    </div>
+
+    {% if chambres.has_other_pages %}
+    <div class="card-footer bg-white">
+        <nav>
+            <ul class="pagination justify-content-center mb-0">
+                {% if chambres.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1{% if filtres.statut %}&statut={{ filtres.statut }}{% endif %}{% if filtres.type_chambre %}&type_chambre={{ filtres.type_chambre }}{% endif %}{% if filtres.etage %}&etage={{ filtres.etage }}{% endif %}">«</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ chambres.previous_page_number }}{% if filtres.statut %}&statut={{ filtres.statut }}{% endif %}{% if filtres.type_chambre %}&type_chambre={{ filtres.type_chambre }}{% endif %}{% if filtres.etage %}&etage={{ filtres.etage }}{% endif %}">‹</a></li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">{{ chambres.number }}/{{ chambres.paginator.num_pages }}</span></li>
+                {% if chambres.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ chambres.next_page_number }}{% if filtres.statut %}&statut={{ filtres.statut }}{% endif %}{% if filtres.type_chambre %}&type_chambre={{ filtres.type_chambre }}{% endif %}{% if filtres.etage %}&etage={{ filtres.etage }}{% endif %}">›</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ chambres.paginator.num_pages }}{% if filtres.statut %}&statut={{ filtres.statut }}{% endif %}{% if filtres.type_chambre %}&type_chambre={{ filtres.type_chambre }}{% endif %}{% if filtres.etage %}&etage={{ filtres.etage }}{% endif %}">»</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

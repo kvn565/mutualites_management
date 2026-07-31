@@ -10,5 +10,4 @@ urlpatterns = [
     path('ajouter/', views.ajouter, name='ajouter'),
     path('<int:pk>/modifier/', views.modifier, name='modifier'),
     path('<int:pk>/supprimer/', views.supprimer, name='supprimer'),
-    path('inscription-chef/', views.inscription_chef, name='inscription_chef'),
 ]

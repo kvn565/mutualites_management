@@ -9,4 +9,5 @@ urlpatterns = [
     path('ajouter/', views.ajouter, name='ajouter'),
     path('<int:pk>/modifier/', views.modifier, name='modifier'),
     path('<int:pk>/supprimer/', views.supprimer, name='supprimer'),
+    path('ajax/creer-categorie/', views.ajax_creer_categorie, name='ajax_creer_categorie'),
 ]

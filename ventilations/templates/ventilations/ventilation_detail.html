@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Détail ventilation{% endblock %}
+{% block page_title %}Ventilation #{{ ventilation.id }}{% endblock %}
+{% block page_icon %}bi bi-info-circle{% endblock %}
+{% block nav_ventilations %}active{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0">Détails</h6>
+        <div class="d-flex gap-2">
+          {% if ventilation.statut == 'PROVISOIRE' %}
+          <form method="post" action="{% url 'ventilations:ventilation_valider' ventilation.pk %}" style="display:inline">{% csrf_token %}
+            <button class="btn btn-success btn-sm"><i class="bi bi-check-circle me-1"></i>Valider</button>
+          </form>
+          <a href="{% url 'ventilations:ventilation_update' ventilation.pk %}" class="btn btn-outline-primary btn-sm">✏️ Modifier</a>
+          {% endif %}
+          {% if ventilation.statut != 'ANNULEE' %}
+          <form method="post" action="{% url 'ventilations:ventilation_annuler' ventilation.pk %}" style="display:inline">{% csrf_token %}
+            <button class="btn btn-outline-danger btn-sm" onclick="return confirm('Annuler cette ventilation ?')"><i class="bi bi-x-circle me-1"></i>Annuler</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body p-4">
+        <table class="table table-sm borderless mb-0">
+          <tr><th style="width:160px;">Écriture</th><td><code>{{ ventilation.ecriture.piece_reference }}</code> — {{ ventilation.ecriture.libelle }}</td></tr>
+          <tr><th>Date écriture</th><td>{{ ventilation.ecriture.date|date:'d/m/Y' }}</td></tr>
+          <tr><th>Montant écriture</th><td>{{ ventilation.ecriture.montant|floatformat:0|intcomma }} BIF</td></tr>
+          <tr><th>Centre</th><td>{{ ventilation.centre.libelle|default:'—' }}</td></tr>
+          <tr><th>Branche</th><td>{{ ventilation.branche.libelle|default:'—' }}</td></tr>
+          <tr><th>Pourcentage</th><td>{{ ventilation.pourcentage }}%</td></tr>
+          <tr><th>Montant ventilé</th><td class="fw-bold">{{ ventilation.montant|floatformat:0|intcomma }} BIF</td></tr>
+          <tr><th>Total ventilé (écriture)</th>
+            <td>
+              <span class="{% if total_pourcentage_ecriture > 100 %}text-danger fw-bold{% else %}text-success{% endif %}">
+                {{ total_pourcentage_ecriture }}%
+              </span>
+              {% if total_pourcentage_ecriture > 100 %}
+              <span class="text-danger ms-2">⚠️ Le total dépasse 100% !</span>
+              {% endif %}
+            </td>
+          </tr>
+          <tr><th>Type</th><td>{{ ventilation.get_type_ventilation_display }}</td></tr>
+          <tr><th>Statut</th>
+            <td>
+              {% if ventilation.statut == 'VALIDEE' %}<span class="badge bg-success">Validée</span>
+              {% elif ventilation.statut == 'PROVISOIRE' %}<span class="badge bg-warning text-dark">Provisoire</span>
+              {% else %}<span class="badge bg-secondary">Annulée</span>{% endif %}
+            </td>
+          </tr>
+          {% if ventilation.commentaire %}<tr><th>Commentaire</th><td>{{ ventilation.commentaire }}</td></tr>{% endif %}
+          <tr><th>Créée le</th><td>{{ ventilation.date_ventilation|date:'d/m/Y H:i' }}</td></tr>
+          <tr><th>Par</th><td>{{ ventilation.enregistre_par.get_full_name|default:ventilation.enregistre_par }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h6 class="fw-bold mb-0">Historique</h6></div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush small">
+          {% for h in historique %}
+          <div class="list-group-item py-2 px-3">
+            <div class="d-flex justify-content-between">
+              <span class="fw-bold">{{ h.get_action_display }}</span>
+              <span class="text-muted">{{ h.date_action|date:'d/m/Y H:i' }}</span>
+            </div>
+            <div class="text-muted">{{ h.utilisateur|default:'—' }}</div>
+            {% if h.ancien_pourcentage and h.nouveau_pourcentage %}
+              <div>{{ h.ancien_pourcentage }}% → {{ h.nouveau_pourcentage }}%</div>
+            {% endif %}
+          </div>
+          {% empty %}
+          <div class="list-group-item py-3 text-center text-muted">Aucun historique</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

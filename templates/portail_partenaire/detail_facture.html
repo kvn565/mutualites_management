@@ -1,0 +1,220 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% load humanize %}
+{% block title %}Facture {{ facture.numero }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1><i class="bi bi-receipt" style="color:var(--primary)"></i> Facture {{ facture.numero }}</h1>
+            <p>{{ facture.affilie.nom_complet }} — {{ facture.date|date:"d/m/Y" }}</p>
+        </div>
+        <div class="flex gap-2" style="flex-wrap:wrap;">
+            {% if facture.statut == 'BROUILLON' %}
+            <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="soumettre">
+                <button type="submit" class="btn btn-gold" onclick="return confirm('Soumettre cette facture pour validation ?')">
+                    <i class="bi bi-send"></i> Soumettre
+                </button>
+            </form>
+            {% endif %}
+            {% if partenaire.type_partenaire == 'PHARMACIE' %}
+            <a href="{% url 'portail_partenaire:imprimer_recu' facture.pk %}" class="btn btn-success" target="_blank">
+                <i class="bi bi-receipt-cutoff"></i> Reçu POS
+            </a>
+            {% else %}
+            <a href="{% url 'portail_partenaire:export_pdf' facture.pk %}" class="btn btn-primary">
+                <i class="bi bi-file-earmark-pdf"></i> Export PDF
+            </a>
+            {% endif %}
+            <a href="{% url 'portail_partenaire:liste_factures' %}" class="btn btn-outline">
+                <i class="bi bi-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <span><i class="bi bi-list-check"></i> Détail des prestations</span>
+            <span>
+                {% if facture.statut == 'BROUILLON' %}<span class="badge badge-secondary">Brouillon</span>
+                {% elif facture.statut == 'SOUMIS' %}<span class="badge badge-warning">Soumise</span>
+                {% elif facture.statut == 'VALIDE' %}<span class="badge badge-success">Validée</span>
+                {% elif facture.statut == 'PAYE' %}<span class="badge badge-info">Payée</span>
+                {% elif facture.statut == 'REJETE' %}<span class="badge badge-danger">Rejetée</span>
+                {% endif %}
+            </span>
+        </div>
+        <div class="card-body" style="padding:0;">
+            <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Prestation</th>
+                        <th class="text-center">Qté</th>
+                        <th class="text-right">P.U.</th>
+                        <th class="text-right">Total</th>
+                        <th class="text-center">%</th>
+                        <th class="text-right">Part Mut.</th>
+                        <th class="text-right">Patient</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ligne in facture.lignes.all %}
+                    <tr>
+                        <td>
+                            {% if ligne.service %}
+                            <div class="fw-bold">{{ ligne.service.nom }}</div>
+                            {% elif ligne.medicament %}
+                            <div class="fw-bold" style="color:#0d6efd;">💊 {{ ligne.medicament.nom }}</div>
+                            {% endif %}
+                            <div class="text-sm text-muted">{{ ligne.designation }}</div>
+                        </td>
+                        <td class="text-center">{{ ligne.quantite }}</td>
+                        <td class="text-right">{{ ligne.prix_unitaire|floatformat:0|intcomma }}</td>
+                        <td class="text-right fw-bold">{{ ligne.total_ligne|floatformat:0|intcomma }}</td>
+                        <td class="text-center">{{ ligne.taux_applique }}%</td>
+                        <td class="text-right fw-bold" style="color:var(--primary)">{{ ligne.part_mutualite|floatformat:0|intcomma }}</td>
+                        <td class="text-right">{{ ligne.part_patient|floatformat:0|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot style="background:#f8fafc;font-weight:700;">
+                    <tr>
+                        <td colspan="3" class="text-right">TOTAUX</td>
+                        <td class="text-right">{{ facture.montant_total|floatformat:0|intcomma }}</td>
+                        <td></td>
+                        <td class="text-right" style="color:var(--primary)">{{ facture.montant_mutualite|floatformat:0|intcomma }}</td>
+                        <td class="text-right">{{ facture.montant_ticket_moderateur|floatformat:0|intcomma }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card" style="margin-bottom:16px;">
+            <div class="card-header"><i class="bi bi-info-circle"></i> Informations facture</div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <div class="info-item"><label>N° Facture</label><span class="fw-bold">{{ facture.numero }}</span></div>
+                    <div class="info-item"><label>Mutualité</label><span><span class="badge badge-info">{{ facture.mutualite.sigle|default:facture.mutualite.nom }}</span></span></div>
+                    <div class="info-item"><label>Statut</label><span>
+                        {% if facture.statut == 'BROUILLON' %}<span class="badge badge-secondary">Brouillon</span>
+                        {% elif facture.statut == 'SOUMIS' %}<span class="badge badge-warning">Soumise</span>
+                        {% elif facture.statut == 'VALIDE' %}<span class="badge badge-success">Validée</span>
+                        {% elif facture.statut == 'PAYE' %}<span class="badge badge-info">Payée</span>
+                        {% elif facture.statut == 'REJETE' %}<span class="badge badge-danger">Rejetée</span>
+                        {% endif %}
+                    </span></div>
+                    <div class="info-item"><label>Date consultation</label><span>{{ facture.date|date:"d/m/Y" }}</span></div>
+                    <div class="info-item"><label>N° dossier de soins</label><span>{{ facture.numero_dossier_soins|default:"—" }}</span></div>
+                    <div class="info-item"><label>Établissement</label><span>{{ partenaire.nom_etablissement }}</span></div>
+                    <div class="info-item"><label>Créée le</label><span>{{ facture.date_creation|date:"d/m/Y H:i" }}</span></div>
+                    <div class="info-item"><label>Montant total</label><span class="fw-bold">{{ facture.montant_total|floatformat:0|intcomma }} BIF</span></div>
+                    <div class="info-item"><label>Part mutualité</label><span class="fw-bold" style="color:var(--primary);">{{ facture.montant_mutualite|floatformat:0|intcomma }} BIF</span></div>
+                    <div class="info-item"><label>Ticket modérateur</label><span>{{ facture.montant_ticket_moderateur|floatformat:0|intcomma }} BIF</span></div>
+                </div>
+                {% if facture.diagnostic %}
+                <hr style="margin:12px 0;border-color:#eef2f6;">
+                <label class="form-label">Diagnostic</label>
+                <p class="text-sm" style="background:#f8fafc;padding:8px 12px;border-radius:8px;margin:4px 0 0;">{{ facture.diagnostic }}</p>
+                {% endif %}
+                {% if facture.notes %}
+                <hr style="margin:12px 0;border-color:#eef2f6;">
+                <label class="form-label">Notes</label>
+                <p class="text-sm" style="background:#f8fafc;padding:8px 12px;border-radius:8px;margin:4px 0 0;">{{ facture.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+            <div class="card-header"><i class="bi bi-person"></i> Patient / Client</div>
+            <div class="card-body">
+                {% if facture.affilie %}
+                <div class="flex items-center gap-3 mb-3">
+                    {% if facture.affilie.photo %}
+                    <img src="{{ facture.affilie.photo.url }}" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">
+                    {% else %}
+                    <div style="width:48px;height:48px;border-radius:50%;background:#e8f5ee;display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:700;">{{ facture.affilie.prenom|first|upper }}{{ facture.affilie.nom|first|upper }}</div>
+                    {% endif %}
+                    <div>
+                        <div class="fw-bold" style="font-size:1rem;">{{ facture.affilie.nom_complet }}</div>
+                        <div class="text-sm text-muted">{{ facture.affilie.numero_affiliation }}</div>
+                    </div>
+                </div>
+                <div class="info-grid" style="font-size:0.82rem;">
+                    <div class="info-item"><label>Sexe</label><span>{{ facture.affilie.get_sexe_display }}</span></div>
+                    <div class="info-item"><label>Âge</label><span>{{ facture.affilie.age }} ans</span></div>
+                    <div class="info-item"><label>Téléphone</label><span>{{ facture.affilie.telephone|default:"—" }}</span></div>
+                    <div class="info-item"><label>Email</label><span>{{ facture.affilie.email|default:"—" }}</span></div>
+                    <div class="info-item"><label>Province</label><span>{{ facture.affilie.province|default:"—" }}</span></div>
+                    <div class="info-item"><label>Commune</label><span>{{ facture.affilie.commune|default:"—" }}</span></div>
+                    <div class="info-item"><label>Type adhésion</label><span>{{ facture.affilie.get_type_adhesion_display }}</span></div>
+                    <div class="info-item"><label>Statut membre</label><span>
+                        {% if facture.affilie.statut == 'ACTIF' %}<span class="badge badge-success">Actif</span>
+                        {% else %}<span class="badge badge-secondary">{{ facture.affilie.get_statut_display }}</span>
+                        {% endif %}
+                    </span></div>
+                </div>
+                {% if facture.ayant_droit %}
+                <hr style="margin:8px 0;border-color:#eef2f6;">
+                <div class="text-sm" style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f8fafc;border-radius:8px;">
+                    <i class="bi bi-people" style="color:var(--primary);"></i>
+                    <span><strong>Ayant droit :</strong> {{ facture.ayant_droit.nom_complet }} ({{ facture.ayant_droit.get_lien_parente_display }})</span>
+                </div>
+                {% endif %}
+                {% elif facture.client_nom %}
+                <div class="flex items-center gap-3 mb-2">
+                    <div style="width:48px;height:48px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8;"><i class="bi bi-person"></i></div>
+                    <div>
+                        <div class="fw-bold" style="font-size:1rem;">{{ facture.client_nom }}</div>
+                        <div class="text-sm text-muted">Client simple (non-membre)</div>
+                    </div>
+                </div>
+                <div class="info-grid" style="font-size:0.82rem;">
+                    <div class="info-item"><label>Téléphone</label><span>{{ facture.client_telephone|default:"—" }}</span></div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if facture.statut == 'REJETE' and facture.motif_rejet %}
+        <div class="card" style="margin-bottom:16px;border-left:4px solid #ef4444;">
+            <div class="card-header" style="color:#dc2626;"><i class="bi bi-exclamation-octagon"></i> Motif de rejet</div>
+            <div class="card-body">
+                <p style="margin:0;font-size:0.9rem;">{{ facture.motif_rejet }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if documents %}
+        <div class="card">
+            <div class="card-header"><i class="bi bi-paperclip"></i> Documents liés</div>
+            <div class="card-body" style="padding:0;">
+                <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr><th>Type</th><th>Description</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        {% for d in documents %}
+                        <tr>
+                            <td><span class="badge badge-info">{{ d.get_type_document_display }}</span></td>
+                            <td class="text-sm">{{ d.description|truncatechars:40|default:"—" }}</td>
+                            <td><a href="{{ d.fichier.url }}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

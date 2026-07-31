@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titre }} — {{ block.super }}{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-heart-pulse{% endblock %}
+{% block page_subtitle %}{{ hospitalisation.numero_dossier }} — {{ hospitalisation.patient_nom }} {{ hospitalisation.patient_prenom }}{% endblock %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-info-circle me-2" style="color:var(--or);"></i> Soin / Traitement</div>
+        <div class="card-body p-4 row g-3">
+            <div class="col-md-3">
+                <label class="form-label" for="{{ form.date_heure.id_for_label }}">{{ form.date_heure.label }} <span style="color:#e74c3c;">*</span></label>
+                {{ form.date_heure }}
+                {% if form.date_heure.errors %}<div class="text-danger small">{{ form.date_heure.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.type_soin.id_for_label }}">{{ form.type_soin.label }} <span style="color:#e74c3c;">*</span></label>
+                {{ form.type_soin }}
+                {% if form.type_soin.errors %}<div class="text-danger small">{{ form.type_soin.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="{{ form.cout.id_for_label }}">{{ form.cout.label }} <span style="color:#e74c3c;">*</span></label>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    {{ form.cout }}
+                    <span>BIF</span>
+                </div>
+                {% if form.cout.errors %}<div class="text-danger small">{{ form.cout.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="{{ form.quantite.id_for_label }}">{{ form.quantite.label }}</label>
+                {{ form.quantite }}
+                {% if form.quantite.errors %}<div class="text-danger small">{{ form.quantite.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="{{ form.description.id_for_label }}">{{ form.description.label }} <span style="color:#e74c3c;">*</span></label>
+                {{ form.description }}
+                {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="{{ form.observations.id_for_label }}">{{ form.observations.label }}</label>
+                {{ form.observations }}
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 text-end">
+        <a href="{% url 'gestion_chambres:soin_liste' hospitalisation.pk %}" class="btn btn-outline-secondary me-2"><i class="bi bi-arrow-left me-1"></i> Annuler</a>
+        <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i> Enregistrer</button>
+    </div>
+</form>
+{% endblock %}

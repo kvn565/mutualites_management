@@ -146,7 +146,11 @@
                             {% for ligne in facture.lignes.all %}
                             <tr>
                                 <td>
+                                    {% if ligne.service %}
                                     <div class="fw-medium">{{ ligne.service.nom }}</div>
+                                    {% elif ligne.medicament %}
+                                    <div class="fw-medium text-primary">💊 {{ ligne.medicament.nom }}</div>
+                                    {% endif %}
                                     <div class="text-muted small">{{ ligne.designation }}</div>
                                 </td>
                                 <td class="text-center">{{ ligne.quantite }}</td>

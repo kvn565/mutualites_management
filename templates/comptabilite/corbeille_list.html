@@ -1,0 +1,415 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}Corbeille - Comptabilité{% endblock %}
+
+{% block page_icon %}bi bi-trash3{% endblock %}
+{% block page_title %}Corbeille{% endblock %}
+{% block page_subtitle %}Éléments supprimés - Restauration et purge{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <a href="{% url 'comptabilite:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Retour dashboard
+    </a>
+    {% if user.est_admin or user.est_super_admin %}
+    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalViderExpires">
+        <i class="bi bi-clock-history me-1"></i>Vider expirés
+    </button>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Filtres -->
+<div class="card mb-4">
+    <div class="card-header py-3">
+        <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtres</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3" id="filterForm">
+            <div class="col-md-3">
+                <label class="form-label">Type d'élément</label>
+                <select name="type" class="form-select">
+                    <option value="">Tous</option>
+                    {% for value, label in types %}
+                    <option value="{{ value }}" {% if request.GET.type == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Date de suppression (début)</label>
+                <input type="date" name="date_debut" class="form-control" value="{{ request.GET.date_debut }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Date de suppression (fin)</label>
+                <input type="date" name="date_fin" class="form-control" value="{{ request.GET.date_fin }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Supprimé par</label>
+                <select name="deleted_by" class="form-select">
+                    <option value="">Tous</option>
+                    {% for u in deleted_by_users %}
+                    <option value="{{ u.pk }}" {% if request.GET.deleted_by == u.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ u.nom_complet }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Expirés</label>
+                <select name="expires" class="form-select">
+                    <option value="">Tous</option>
+                    <option value="1" {% if request.GET.expires == '1' %}selected{% endif %}>Oui (expirés)</option>
+                    <option value="0" {% if request.GET.expires == '0' %}selected{% endif %}>Non (actifs)</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Recherche</label>
+                <input type="text" name="q" class="form-control" placeholder="Libellé, type..." value="{{ request.GET.q }}">
+            </div>
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search me-1"></i>Filtrer
+                </button>
+                <a href="{% url 'comptabilite:corbeille_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle me-1"></i>Réinitialiser
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-light border-0">
+            <div class="card-body text-center">
+                <h3 class="text-primary mb-0">{{ stats.total }}</h3>
+                <small class="text-muted">Total éléments</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-light border-0">
+            <div class="card-body text-center">
+                <h3 class="text-warning mb-0">{{ stats.expires }}</h3>
+                <small class="text-muted">Expirés (à purger)</small>
+            </div>
+        </div>
+    </div>
+    {% for type_code, count in stats.par_type.items %}
+    <div class="col-md-2">
+        <div class="card bg-light border-0">
+            <div class="card-body text-center">
+                <h5 class="mb-0">{{ count }}</h5>
+                <small class="text-muted">{{ type_code }}</small>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Liste -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0">Contenu de la corbeille ({{ page_obj.paginator.count }} éléments)</h5>
+        {% if peut_purger and items %}
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-danger btn-sm" id="btnPurgerSelection"
+                    data-url="{% url 'comptabilite:corbeille_purger_multiple' %}" disabled>
+                <i class="bi bi-trash me-1"></i>Purger sélection
+            </button>
+            <button type="button" class="btn btn-outline-success btn-sm" id="btnRestaurerSelection"
+                    data-url="{% url 'comptabilite:corbeille_restaurer_multiple' %}" disabled>
+                <i class="bi bi-arrow-return-left me-1"></i>Restaurer sélection
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        {% if items %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="corbeilleTable">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="checkAll" class="form-check-input">
+                        </th>
+                        <th>Type</th>
+                        <th>Élément</th>
+                        <th>Supprimé le</th>
+                        <th>Supprimé par</th>
+                        <th>Expire le</th>
+                        <th style="width: 140px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr class="{% if item.est_expire %}table-warning{% endif %}" data-id="{{ item.pk }}">
+                        <td>
+                            <input type="checkbox" class="form-check-input row-check" value="{{ item.pk }}">
+                        </td>
+                        <td>
+                            <span class="badge bg-{% if item.type_objet == 'ECRITURE' %}primary{% elif item.type_objet == 'COMPTE' %}success{% elif item.type_objet == 'CENTRE' %}info{% elif item.type_objet == 'BUDGET' %}warning{% elif item.type_objet == 'PREVISION' %}danger{% elif item.type_objet == 'RAPPROCHEMENT' %}dark{% else %}secondary{% endif %}">
+                                {{ item.get_type_objet_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong>{{ item.objet_repr|truncatechars:100 }}</strong>
+                            {% if item.objet_data %}
+                            <br><small class="text-muted">
+                                {% for k, v in item.objet_data.items %}
+                                {% if v %}{{ k }}: {{ v }}{% if not forloop.last %}, {% endif %}{% endif %}
+                                {% endfor %}
+                            </small>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.deleted_at|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            {% if item.deleted_by %}
+                            <span class="badge bg-light text-dark">{{ item.deleted_by.nom_complet }}</span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.expire_at %}
+                            <span class="{% if item.est_expire %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                                {{ item.expire_at|date:"d/m/Y" }}
+                                {% if item.est_expire %} <i class="bi bi-exclamation-triangle-fill"></i>{% endif %}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{% url 'comptabilite:corbeille_detail' item.pk %}"
+                                   class="btn btn-outline-primary" title="Détails">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-success btn-restaurer"
+                                        data-id="{{ item.pk }}"
+                                        data-url="{% url 'comptabilite:corbeille_restaurer' 0 %}"
+                                        title="Restaurer">
+                                    <i class="bi bi-arrow-return-left"></i>
+                                </button>
+                                {% if peut_purger %}
+                                <button type="button" class="btn btn-outline-danger btn-purger"
+                                        data-id="{{ item.pk }}"
+                                        data-url="{% url 'comptabilite:corbeille_purger' 0 %}"
+                                        title="Purger définitivement">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="card-footer">
+            <nav aria-label="Pagination corbeille">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% for num in paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-trash3 display-1 text-muted"></i>
+            <h4 class="mt-3 text-muted">Corbeille vide</h4>
+            <p class="text-muted">Aucun élément supprimé pour cette mutualité.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Vider expirés -->
+<div class="modal fade" id="modalViderExpires" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Vider les éléments expirés</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Cela va purger définitivement <strong>{{ stats.expires }}</strong> élément(s) expiré(s) de la corbeille.</p>
+                <p class="text-danger"><strong>Attention :</strong> Cette action est <strong>irréversible</strong>.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmerViderExpires"
+                        data-url="{% url 'comptabilite:corbeille_vider_expires' %}">
+                    <i class="bi bi-trash me-1"></i>Confirmer la purge
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkAll = document.getElementById('checkAll');
+    const rowChecks = document.querySelectorAll('.row-check');
+    const btnRestaurer = document.getElementById('btnRestaurerSelection');
+    const btnPurger = document.getElementById('btnPurgerSelection');
+    const btnViderExpires = document.getElementById('btnConfirmerViderExpires');
+
+    // Check all
+    if (checkAll) {
+        checkAll.addEventListener('change', function() {
+            rowChecks.forEach(cb => {
+                cb.checked = this.checked;
+            });
+            updateButtons();
+        });
+    }
+
+    // Row checks
+    rowChecks.forEach(cb => {
+        cb.addEventListener('change', updateButtons);
+    });
+
+    function updateButtons() {
+        const checked = document.querySelectorAll('.row-check:checked').length;
+        if (btnRestaurer) btnRestaurer.disabled = checked === 0;
+        if (btnPurger) btnPurger.disabled = checked === 0;
+    }
+
+    // Action buttons
+    function handleAction(btn, isPurge = false) {
+        if (!btn) return;
+        btn.addEventListener('click', async function() {
+            const ids = Array.from(document.querySelectorAll('.row-check:checked')).map(cb => cb.value);
+            if (ids.length === 0) return;
+
+            const url = this.dataset.url;
+            const confirmMsg = isPurge
+                ? 'ATTENTION : Purger définitivement ' + ids.length + ' élément(s) ? Cette action est IRRÉVERSIBLE.'
+                : 'Restaurer ' + ids.length + ' élément(s) ?';
+
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                const formData = new FormData();
+                ids.forEach(id => formData.append('ids[]', id));
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Erreur : ' + (data.error || 'Inconnue'));
+                }
+            } catch (e) {
+                alert('Erreur réseau : ' + e.message);
+            }
+        });
+    }
+
+    handleAction(btnRestaurer, false);
+    handleAction(btnPurger, true);
+
+    // Single row buttons
+    document.querySelectorAll('.btn-restaurer').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (confirm('Restaurer cet élément ?')) {
+                const id = this.dataset.id;
+                const url = this.dataset.url.replace('/0/', `/${id}/`);
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                }).then(() => location.reload());
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-purger').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (confirm('ATTENTION : Purger définitivement cet élément ? IRRÉVERSIBLE.')) {
+                const id = this.dataset.id;
+                const url = this.dataset.url.replace('/0/', `/${id}/`);
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                }).then(() => location.reload());
+            }
+        });
+    });
+
+    // Vider expirés
+    if (btnViderExpires) {
+        btnViderExpires.addEventListener('click', async function() {
+            if (!confirm('Purger tous les éléments expirés ? IRRÉVERSIBLE.')) return;
+            try {
+                const res = await fetch(this.dataset.url, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                });
+                const data = await res.json();
+                if (data.success) location.reload();
+                else alert('Erreur : ' + (data.error || 'Inconnue'));
+            } catch (e) {
+                alert('Erreur : ' + e.message);
+            }
+        });
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,193 @@
+{% extends 'superadmin/base_superadmin.html' %}
+{% block nav_hopitaux %}active{% endblock %}
+{% block title %}{% if obj %}Modifier — {{ obj.nom_etablissement }}{% else %}Nouvel établissement{% endif %}{% endblock %}
+{% block page_title %}{% if obj %}Modifier — {{ obj.nom_etablissement }}{% else %}Nouvel établissement de santé{% endif %}{% endblock %}
+{% block page_subtitle %}{% if obj %}Modifier les informations de l'établissement{% else %}Enregistrer un hôpital, clinique ou centre de santé{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+            {% csrf_token %}
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header"><i class="bi bi-building"></i> Identification</div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Code partenaire</label>
+                                    {{ form.code_partenaire }}
+                                    {% if form.code_partenaire.errors %}<div class="invalid-feedback d-block">{{ form.code_partenaire.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Mutualité</label>
+                                    {{ form.mutualite }}
+                                    {% if form.mutualite.errors %}<div class="invalid-feedback d-block">{{ form.mutualite.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Statut</label>
+                                    {{ form.statut }}
+                                    {% if form.statut.errors %}<div class="invalid-feedback d-block">{{ form.statut.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label">Nom de l'établissement <span class="text-danger">*</span></label>
+                                    {{ form.nom_etablissement }}
+                                    {% if form.nom_etablissement.errors %}<div class="invalid-feedback d-block">{{ form.nom_etablissement.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Type <span class="text-danger">*</span></label>
+                                    {{ form.type_partenaire }}
+                                    {% if form.type_partenaire.errors %}<div class="invalid-feedback d-block">{{ form.type_partenaire.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">NIF</label>
+                                    {{ form.nif }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">N° agrément</label>
+                                    {{ form.numero_agrement }}
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check" style="margin-top:30px;">
+                                        {{ form.assujetti_tva }}
+                                        <label class="form-check-label" for="{{ form.assujetti_tva.id_for_label }}">Assujetti à la TVA</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Logo</label>
+                                    {{ form.logo }}
+                                    {% if obj and obj.logo %}
+                                    <div class="mt-2">
+                                        <img src="{{ obj.logo.url }}" alt="Logo" style="max-height:60px;border-radius:6px;border:1px solid #e2e8f0;">
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header"><i class="bi bi-geo-alt"></i> Localisation</div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Province</label>
+                                    {{ form.province }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Commune</label>
+                                    {{ form.commune }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Zone</label>
+                                    {{ form.zone }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Colline</label>
+                                    {{ form.colline }}
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Adresse complète</label>
+                                    {{ form.adresse_complete }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header"><i class="bi bi-telephone"></i> Contact</div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Téléphone <span class="text-danger">*</span></label>
+                                    {{ form.telephone }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Téléphone secondaire</label>
+                                    {{ form.telephone_secondaire }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Email</label>
+                                    {{ form.email }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Site web</label>
+                                    {{ form.site_web }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header"><i class="bi bi-person-badge"></i> Responsable</div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Nom complet</label>
+                                    {{ form.nom_responsable }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Fonction</label>
+                                    {{ form.fonction_responsable }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Téléphone</label>
+                                    {{ form.telephone_responsable }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email</label>
+                                    {{ form.email_responsable }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header"><i class="bi bi-file-text"></i> Convention principale</div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Date début</label>
+                                    {{ form.date_debut_convention }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Date fin</label>
+                                    {{ form.date_fin_convention }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Taux prise en charge (%)</label>
+                                    {{ form.taux_prise_en_charge }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Plafond couverture (BIF)</label>
+                                    {{ form.plafond_couverture }}
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Observations</label>
+                                    {{ form.observations }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 text-center">
+                    <button type="submit" class="btn btn-primary btn-lg px-5">
+                        <i class="bi bi-check-lg me-2"></i>{% if obj %}Enregistrer les modifications{% else %}Créer l'établissement{% endif %}
+                    </button>
+                    <a href="{% url 'superadmin:partenaires_liste' %}" class="btn btn-outline-secondary btn-lg px-4 ms-2">Annuler</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

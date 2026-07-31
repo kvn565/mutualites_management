@@ -12,4 +12,8 @@ urlpatterns = [
     path('<int:pk>/modifier/', views.modifier, name='modifier'),
     path('<int:pk>/supprimer/', views.supprimer, name='supprimer'),
     path('<int:pk>/valider/', views.valider_paiement, name='valider_paiement'),
+    path('export/excel/', views.export_excel, name='export_excel'),
+    path('export/pdf/', views.export_pdf, name='export_pdf'),
+    path('import/excel/', views.importer_excel, name='importer_excel'),
+    path('import/modele/', views.telecharger_modele_import, name='telecharger_modele_import'),
 ]

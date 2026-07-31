@@ -1,0 +1,259 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% load humanize %}
+{% block title %}Nouvelle facture{% if mode == 'mutualite' %} — Mutualité{% else %} — Client simple{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-file-text" style="color:var(--primary)"></i> Nouvelle facture{% if mode == 'mutualite' %} (Mutualité){% else %} (client simple){% endif %}</h1>
+    <p>{% if mode == 'mutualite' %}Créer une facture pour la mutualité{% else %}Créer une facture pour un client non-membre{% endif %}</p>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header"><i class="bi bi-info-circle"></i> Informations générales</div>
+        <div class="card-body">
+            <form method="post" id="factureForm">
+                {% csrf_token %}
+                <input type="hidden" name="mode" value="{{ mode }}">
+                <input type="hidden" id="affilie_id" name="affilie_id" value="">
+
+                {% if mode == 'mutualite' %}
+                <div style="margin-bottom:16px;">
+                    <label class="form-label">Recherche affilié</label>
+                    <input type="text" id="affilieSearch" class="form-control form-control-lg" placeholder="Chercher par N° carte, nom ou n° affiliation..." autocomplete="off">
+                    <div id="affilieResults" class="list-group mt-1" style="display:none;position:absolute;z-index:1000;max-height:200px;overflow-y:auto;width:calc(100% - 24px);"></div>
+                    <div id="affilieInfo" class="mt-1 small text-muted" style="display:none;"></div>
+                </div>
+                {% endif %}
+
+                <div class="grid-2" style="margin-bottom:16px;">
+                    <div{% if mode == 'mutualite' %} style="display:none;"{% endif %}>
+                        <label class="form-label">Nom du client <span class="text-danger">*</span></label>
+                        {{ form.client_nom }}
+                    </div>
+                    <div>
+                        <label class="form-label">Téléphone du client</label>
+                        {{ form.client_telephone }}
+                    </div>
+                </div>
+                <div class="grid-2" style="margin-bottom:16px;grid-template-columns:2fr 1fr;">
+                    <div>
+                        <label class="form-label">N° dossier de soins</label>
+                        {{ form.numero_dossier_soins }}
+                    </div>
+                    <div>
+                        <label class="form-label">Date de consultation</label>
+                        {{ form.date }}
+                    </div>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label class="form-label">Mutualité</label>
+                    <select name="mutualite_id" class="form-select">
+                        {% for m in mutualites %}
+                        <option value="{{ m.pk }}" {% if mutualite.pk == m.pk %}selected{% endif %}>{{ m.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label class="form-label">Diagnostic / Raison</label>
+                    {{ form.diagnostic }}
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label class="form-label">Notes</label>
+                    {{ form.notes }}
+                </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><i class="bi bi-list-check"></i> Prestations</div>
+        <div class="card-body">
+            <div id="lignes-formset">
+                {{ formset.management_form }}
+                <div id="lignes-forms">
+                    {% for ligne_form in formset %}
+                    <div class="ligne-form" style="border:1px solid #eef2f6;border-radius:8px;padding:16px;margin-bottom:12px;background:#fafbfc;">
+                        <div class="ligne-grid">
+                            <div>
+                                <label class="form-label">Service</label>
+                                {{ ligne_form.service }}
+                            </div>
+                            <div>
+                                <label class="form-label">Médicament</label>
+                                {{ ligne_form.medicament }}
+                            </div>
+                            <div>
+                                <label class="form-label">Désignation</label>
+                                {{ ligne_form.designation }}
+                            </div>
+                            <div>
+                                <label class="form-label">Qté</label>
+                                {{ ligne_form.quantite }}
+                            </div>
+                            <div>
+                                <label class="form-label">P.U. (BIF)</label>
+                                {{ ligne_form.prix_unitaire }}
+                            </div>
+                            <div>
+                                <label class="form-label">Taux (%)</label>
+                                {{ ligne_form.taux_applique }}
+                            </div>
+                            <div style="display:flex;align-items:flex-end;padding-bottom:4px;">
+                                <button type="button" class="btn btn-sm btn-danger remove-ligne" style="display:none;">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% for hidden in ligne_form.hidden_fields %}{{ hidden }}{% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="button" id="add-ligne" class="btn btn-sm btn-outline-primary mt-2">
+                    <i class="bi bi-plus-circle"></i> Ajouter une ligne
+                </button>
+            </div>
+
+            <div style="margin-top:20px;border-top:1px solid #eef2f6;padding-top:16px;">
+                <div class="flex gap-3" style="justify-content:flex-end;">
+                    <a href="{% url 'portail_partenaire:liste_factures' %}" class="btn btn-outline">Annuler</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Créer la facture
+                    </button>
+                </div>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var container = document.querySelector('#lignes-forms');
+    var addBtn = document.querySelector('#add-ligne');
+    var totalForms = document.querySelector('#id_lignes-TOTAL_FORMS');
+    var prefix = 'lignes';
+
+    function updateDeleteButtons() {
+        var forms = container.querySelectorAll('.ligne-form');
+        forms.forEach(function(f, idx) {
+            var btn = f.querySelector('.remove-ligne');
+            if (btn) {
+                btn.style.display = forms.length > 1 ? 'flex' : 'none';
+                btn.onclick = function() { f.remove(); updateDeleteButtons(); updateTotalForms(); };
+            }
+            f.querySelectorAll('input, select, textarea').forEach(function(el) {
+                var name = el.name.replace(/^lignes-\d+-/, prefix + '-' + idx + '-');
+                var id = el.id.replace(/^id_lignes-\d+-/, 'id_' + prefix + '-' + idx + '-');
+                el.name = name;
+                el.id = id;
+            });
+        });
+    }
+
+    function updateTotalForms() {
+        totalForms.value = container.querySelectorAll('.ligne-form').length;
+    }
+
+    addBtn.addEventListener('click', function() {
+        var forms = container.querySelectorAll('.ligne-form');
+        var idx = forms.length;
+        var template = forms[0].cloneNode(true);
+        template.querySelectorAll('input, select, textarea').forEach(function(el) {
+            if (el.type !== 'hidden') {
+                if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number')) el.value = '';
+                else if (el.tagName === 'SELECT') el.selectedIndex = 0;
+                else if (el.tagName === 'TEXTAREA') el.value = '';
+            }
+            var name = el.name.replace(/^lignes-\d+-/, prefix + '-' + idx + '-');
+            var id = el.id.replace(/^id_lignes-\d+-/, 'id_' + prefix + '-' + idx + '-');
+            el.name = name;
+            el.id = id;
+        });
+        // Remove DELETE field value
+        var delInput = template.querySelector('input[name$="-DELETE"]');
+        if (delInput) delInput.value = '';
+        container.appendChild(template);
+        updateDeleteButtons();
+        updateTotalForms();
+    });
+
+    updateDeleteButtons();
+
+    // ── Affilie Search ──
+    var affilieSearch = document.getElementById('affilieSearch');
+    if (affilieSearch) {
+        var affilieResults = document.getElementById('affilieResults');
+        var affilieInfo = document.getElementById('affilieInfo');
+        var affilieIdInput = document.getElementById('affilie_id');
+        var clientNomInput = document.querySelector('[name="client_nom"]');
+        var searchTimeout;
+
+        affilieSearch.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            var q = this.value.trim();
+            if (q.length < 2) {
+                affilieResults.style.display = 'none';
+                return;
+            }
+            searchTimeout = setTimeout(function() {
+                fetch('/portail/affilie/search/?q=' + encodeURIComponent(q))
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        affilieResults.innerHTML = '';
+                        if (data.length === 0) {
+                            affilieResults.style.display = 'none';
+                            return;
+                        }
+                        data.forEach(function(a) {
+                            var item = document.createElement('a');
+                            item.href = '#';
+                            item.className = 'list-group-item list-group-item-action py-2';
+                            item.innerHTML = '<div class="fw-bold">' + a.nom_complet + '</div><small class="text-muted">' + (a.numero_carte_identite || '') + ' &middot; ' + (a.numero_affiliation || '') + '</small>';
+                            item.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                affilieIdInput.value = a.pk;
+                                affilieSearch.value = a.nom_complet + ' (' + (a.numero_carte_identite || '') + ')';
+                                affilieInfo.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> Membre sélectionné : ' + a.nom_complet + '</span>';
+                                affilieInfo.style.display = 'block';
+                                affilieResults.style.display = 'none';
+                                if (clientNomInput) clientNomInput.value = '';
+                            });
+                            affilieResults.appendChild(item);
+                        });
+                        affilieResults.style.display = 'block';
+                    });
+            }, 350);
+        });
+
+        affilieSearch.addEventListener('blur', function() {
+            setTimeout(function() { affilieResults.style.display = 'none'; }, 200);
+        });
+        affilieSearch.addEventListener('focus', function() {
+            if (affilieResults.children.length > 0) affilieResults.style.display = 'block';
+        });
+    }
+
+    // ── Auto-remplissage Service ──
+    container.addEventListener('change', function(e) {
+        var sel = e.target;
+        if (sel.matches('[name$="-service"]') || sel.matches('[name$="-medicament"]')) {
+            var form = sel.closest('.ligne-form');
+            var desInput = form.querySelector('input[name$="-designation"]');
+            var prixInput = form.querySelector('input[name$="-prix_unitaire"]');
+            var tauxInput = form.querySelector('input[name$="-taux_applique"]');
+            var selected = sel.options[sel.selectedIndex];
+            if (sel.value && desInput) desInput.value = selected.textContent.trim();
+            if (sel.matches('[name$="-medicament"]') && prixInput) {
+                prixInput.value = parseFloat(selected.getAttribute('data-prix')) || 0;
+            }
+            if (tauxInput) {
+                var tauxAttr = sel.matches('[name$="-service"]')
+                    ? selected.getAttribute('data-taux')
+                    : selected.getAttribute('data-taux');
+                if (tauxAttr) tauxInput.value = tauxAttr;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Établissements — {{ block.super }}{% endblock %}
+{% block page_title %}Établissements de santé{% endblock %}
+{% block page_icon %}bi bi-building{% endblock %}
+{% block page_subtitle %}Liste des établissements de santé conventionnés{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="mb-0"><i class="bi bi-building me-2"></i> Établissements de santé</h5>
+    <a href="{% url 'gestion_chambres:etablissement_creer' %}" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Nouvel établissement</a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        {% if etablissements %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Code</th>
+                        <th>Établissement</th>
+                        <th>Type</th>
+                        <th>Ville</th>
+                        <th>Services</th>
+                        <th>Chambres</th>
+                        <th>Libres</th>
+                        <th>Taux occupation</th>
+                        <th>Prise en charge défaut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in etablissements %}
+                    <tr>
+                        <td><code>{{ e.code }}</code></td>
+                        <td class="fw-medium">{{ e.nom }}</td>
+                        <td><span class="badge bg-secondary">{{ e.get_type_etablissement_display }}</span></td>
+                        <td>{{ e.ville|default:"—" }}</td>
+                        <td>{{ e.nb_services }}</td>
+                        <td>{{ e.nb_chambres }}</td>
+                        <td class="text-success">{{ e.nb_chambres_libres }}</td>
+                        <td>
+                            {% with taux=e.taux_occupation_moyen %}
+                            <span class="badge {% if taux > 80 %}bg-danger{% elif taux > 50 %}bg-warning text-dark{% else %}bg-success{% endif %}">{{ taux|floatformat:1 }}%</span>
+                            {% endwith %}
+                        </td>
+                        <td>{{ e.taux_prise_en_charge_defaut }}%</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'gestion_chambres:etablissement_modifier' e.pk %}" class="btn btn-outline-primary" title="Modifier"><i class="bi bi-pencil"></i></a>
+                                <a href="{% url 'gestion_chambres:etablissement_supprimer' e.pk %}" class="btn btn-outline-danger" title="Supprimer"><i class="bi bi-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-building fs-1 d-block mb-2"></i>
+            Aucun établissement enregistré
+            <a href="{% url 'gestion_chambres:etablissement_creer' %}" class="btn btn-primary mt-3"><i class="bi bi-plus-circle me-1"></i> Créer le premier établissement</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

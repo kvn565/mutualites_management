@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Reçu {{ facture.numero }}</title>
+    <style>
+        @page { size: 80mm auto; margin: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            width: 80mm;
+            padding: 8px 12px;
+            color: #000;
+        }
+        .header { text-align: center; margin-bottom: 8px; }
+        .header h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; }
+        .header p { font-size: 10px; margin: 2px 0; }
+        .header .infos { font-size: 10px; }
+        hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+        table { width: 100%; font-size: 11px; border-collapse: collapse; }
+        th, td { padding: 2px 4px; text-align: left; }
+        th { font-weight: 700; }
+        .right { text-align: right; }
+        .center { text-align: center; }
+        .total-row td { font-weight: 700; border-top: 1px solid #000; padding-top: 4px; }
+        .footer { text-align: center; margin-top: 8px; font-size: 10px; }
+        .patient-info { margin: 6px 0; font-size: 11px; }
+        .patient-info strong { display: inline-block; min-width: 80px; }
+        .badge-print { font-size: 10px; font-weight: 700; }
+        .details { display: none; }
+        @media print {
+            .no-print { display: none; }
+            .details { display: block; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if partenaire.logo %}
+        <img src="{{ partenaire.logo.url }}" alt="Logo" style="max-height:50px;margin-bottom:4px;">
+        {% endif %}
+        <h2>{{ partenaire.nom_etablissement }}</h2>
+        <p>{{ partenaire.adresse_complete|default:"" }}</p>
+        <p>Tél: {{ partenaire.telephone|default:"" }}</p>
+        <p class="infos">NIF: {{ partenaire.nif|default:"---" }} | Agrément: {{ partenaire.numero_agrement|default:"---" }}</p>
+        {% if partenaire.assujetti_tva %}<p class="infos">Assujetti à la TVA</p>{% endif %}
+        <hr>
+        <h3>REÇU DE PHARMACIE</h3>
+        <p>N° {{ facture.numero }}</p>
+        <p>Date: {{ facture.date|date:"d/m/Y" }}</p>
+        <hr>
+    </div>
+
+    <div class="patient-info">
+        {% if facture.affilie %}
+        <strong>Patient:</strong> {{ facture.affilie.nom_complet }}<br>
+        <strong>N° Aff:</strong> {{ facture.affilie.numero_affiliation }}<br>
+        {% if facture.ayant_droit %}
+        <strong>Ayant droit:</strong> {{ facture.ayant_droit.nom_complet }} ({{ facture.ayant_droit.get_lien_parente_display }})<br>
+        {% endif %}
+        {% elif facture.client_nom %}
+        <strong>Client:</strong> {{ facture.client_nom }}<br>
+        {% if facture.client_telephone %}<strong>Tél:</strong> {{ facture.client_telephone }}<br>{% endif %}
+        {% endif %}
+        {% if facture.diagnostic %}
+        <strong>Diag:</strong> {{ facture.diagnostic|truncatechars:50 }}<br>
+        {% endif %}
+    </div>
+
+    <hr>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Désignation</th>
+                <th class="right">Qté</th>
+                <th class="right">PU</th>
+                <th class="right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ligne in facture.lignes.all %}
+            <tr>
+                <td>{{ ligne.designation }}</td>
+                <td class="right">{{ ligne.quantite }}</td>
+                <td class="right">{{ ligne.prix_unitaire|floatformat:0 }}</td>
+                <td class="right">{{ ligne.total_ligne|floatformat:0 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <hr>
+
+    <table>
+        <tr>
+            <td><strong>Total</strong></td>
+            <td class="right"><strong>{{ facture.montant_total|floatformat:0 }} BIF</strong></td>
+        </tr>
+        <tr>
+            <td>Ticket modérateur</td>
+            <td class="right">{{ facture.montant_ticket_moderateur|floatformat:0 }} BIF</td>
+        </tr>
+        <tr>
+            <td><strong>Part Mutualité</strong></td>
+            <td class="right"><strong>{{ facture.montant_mutualite|floatformat:0 }} BIF</strong></td>
+        </tr>
+    </table>
+
+    {% if facture.statut == 'PAYE' %}
+    <div style="text-align:center;margin:8px 0;font-size:14px;font-weight:700;">
+        ✓ PAYÉ
+    </div>
+    {% endif %}
+
+    <hr>
+
+    <div class="footer">
+        <p>Merci de votre confiance</p>
+        <p>{{ mutualite.nom }}</p>
+        <p style="font-size:9px;margin-top:4px;">Imprimé le {% now "d/m/Y H:i" %}</p>
+    </div>
+
+    <div class="no-print" style="text-align:center;margin-top:12px;">
+        <button onclick="window.print()" style="padding:8px 24px;font-size:14px;cursor:pointer;">
+            <i class="bi bi-printer"></i> Imprimer
+        </button>
+        <br><br>
+        <a href="{% url 'portail_partenaire:detail_facture' facture.pk %}" style="font-size:12px;">← Retour à la facture</a>
+    </div>
+
+    <script>
+        window.onload = function() { window.print(); };
+    </script>
+</body>
+</html>

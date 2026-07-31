@@ -10,4 +10,5 @@ urlpatterns = [
     path('<int:pk>/', views.detail, name='detail'),
     path('<int:pk>/modifier/', views.modifier, name='modifier'),
     path('<int:pk>/supprimer/', views.supprimer, name='supprimer'),
+    path('ajax/creer/', views.ajax_creer, name='ajax_creer'),
 ]

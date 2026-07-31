@@ -1,0 +1,158 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% block title %}Configuration — {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="flex items-center justify-between w-full">
+        <div>
+            <h1><i class="bi bi-gear-wide" style="color:var(--primary)"></i> Configuration du compte</h1>
+            <p>Gérez votre mot de passe et les informations de connexion</p>
+        </div>
+        <a href="{% url 'portail_partenaire:profil' %}" class="btn btn-outline">
+            <i class="bi bi-arrow-left"></i> Retour au profil
+        </a>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header"><i class="bi bi-shield-lock"></i> Mot de passe</div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="changer_mot_de_passe" value="1">
+                <div class="info-grid" style="grid-template-columns:1fr;">
+                    <div class="info-item">
+                        <label class="form-label">{{ password_form.ancien_mot_de_passe.label }}</label>
+                        {{ password_form.ancien_mot_de_passe }}
+                        {% if password_form.ancien_mot_de_passe.errors %}
+                        <div class="text-danger text-sm mt-1">{{ password_form.ancien_mot_de_passe.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ password_form.nouveau_mot_de_passe.label }}</label>
+                        {{ password_form.nouveau_mot_de_passe }}
+                        {% if password_form.nouveau_mot_de_passe.errors %}
+                        <div class="text-danger text-sm mt-1">{{ password_form.nouveau_mot_de_passe.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ password_form.confirmer_mot_de_passe.label }}</label>
+                        {{ password_form.confirmer_mot_de_passe }}
+                        {% if password_form.confirmer_mot_de_passe.errors %}
+                        <div class="text-danger text-sm mt-1">{{ password_form.confirmer_mot_de_passe.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% if password_form.non_field_errors %}
+                    <div class="text-danger text-sm">{{ password_form.non_field_errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-primary mt-3 w-full">
+                    <i class="bi bi-check-circle"></i> Changer le mot de passe
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><i class="bi bi-person-lines-fill"></i> Informations de connexion</div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="modifier_infos_compte" value="1">
+                <div class="info-grid" style="grid-template-columns:1fr;">
+                    <div class="info-item" style="text-align:center;">
+                        <label class="form-label">Photo du gestionnaire</label>
+                        {% if user.photo %}
+                        <div style="margin-bottom:8px;">
+                            <img src="{{ user.photo.url }}" alt="Photo" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;">
+                        </div>
+                        {% endif %}
+                        {{ info_form.photo }}
+                        {% if info_form.photo.errors %}
+                        <div class="text-danger text-sm mt-1">{{ info_form.photo.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">Nom d'utilisateur</label>
+                        <input type="text" class="form-control" value="{{ user.username }}" disabled style="background:#f8fafc;color:#94a3b8;">
+                        <div class="text-xs text-muted mt-1">Le nom d'utilisateur ne peut pas être modifié.</div>
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ info_form.email.label }}</label>
+                        {{ info_form.email }}
+                        {% if info_form.email.errors %}
+                        <div class="text-danger text-sm mt-1">{{ info_form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ info_form.telephone.label }}</label>
+                        {{ info_form.telephone }}
+                        {% if info_form.telephone.errors %}
+                        <div class="text-danger text-sm mt-1">{{ info_form.telephone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3 w-full">
+                    <i class="bi bi-save"></i> Enregistrer
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header"><i class="bi bi-building"></i> Informations établissement</div>
+    <div class="card-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+                <div class="fw-bold">{{ partenaire.nom_etablissement }}</div>
+                <div class="text-sm text-muted">{{ partenaire.code_partenaire }} — {{ partenaire.get_type_partenaire_display }}</div>
+            </div>
+            <a href="{% url 'portail_partenaire:modifier_profil' %}" class="btn btn-outline-primary">
+                <i class="bi bi-pencil"></i> Modifier
+            </a>
+        </div>
+        {% if partenaire.logo %}
+        <hr style="margin:12px 0;border-color:#eef2f6;">
+        <div style="text-align:center;">
+            <img src="{{ partenaire.logo.url }}" alt="Logo" style="max-height:80px;border-radius:8px;">
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header"><i class="bi bi-people"></i> Gestion des utilisateurs</div>
+    <div class="card-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+                <div class="fw-bold">{{ partenaire.utilisateurs.count }} utilisateur(s)</div>
+                <div class="text-sm text-muted">Gérez les comptes des gestionnaires de votre établissement</div>
+            </div>
+            <a href="{% url 'portail_partenaire:creer_utilisateur' %}" class="btn btn-primary">
+                <i class="bi bi-person-plus"></i> Nouvel utilisateur
+            </a>
+        </div>
+        {% with users=partenaire.utilisateurs.all %}
+        {% if users %}
+        <hr style="margin:12px 0;border-color:#eef2f6;">
+        {% for u in users %}
+        <div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid #f1f5f9;">
+            {% if u.photo %}
+            <img src="{{ u.photo.url }}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+            {% else %}
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.85rem;">{{ u.username|first|upper }}</div>
+            {% endif %}
+            <div style="flex:1;">
+                <span class="fw-bold text-sm">{{ u.username }}</span>
+                <span class="text-xs text-muted"> · {{ u.get_role_display }}</span>
+                {% if u.pk == user.pk %}<span class="badge badge-info ms-1">Vous</span>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+</div>
+{% endblock %}

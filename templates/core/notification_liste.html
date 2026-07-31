@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notifications - Plafonds{% endblock %}
+
+{% block nav_notifications %}active{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h1 class="h3"><i class="bi bi-bell-fill"></i> Notifications de plafond</h1>
+        </div>
+        <div class="col text-end">
+            {% if notifications %}
+            <form action="{% url 'core:notification_tout_vu' %}" method="post" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-check-all"></i> Tout marquer comme lu
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <div class="btn-group" role="group">
+                <a href="{% url 'core:notification_liste' %}?vues=non"
+                   class="btn btn-sm {% if filtre_vues == 'non' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    Non lues
+                </a>
+                <a href="{% url 'core:notification_liste' %}?vues=toutes"
+                   class="btn btn-sm {% if filtre_vues == 'toutes' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    Toutes
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            {% if notifications %}
+            <div class="list-group list-group-flush">
+                {% for n in notifications %}
+                <div class="list-group-item list-group-item-action {% if not n.vue %}list-group-item-warning{% endif %}">
+                    <div class="d-flex w-100 justify-content-between align-items-start">
+                        <div class="me-3">
+                            {% if n.type_notification == 'APPROCHE' %}
+                            <span class="badge bg-warning">Approche limite</span>
+                            {% elif n.type_notification == 'ATTEINT' %}
+                            <span class="badge bg-danger">Limite atteinte</span>
+                            {% elif n.type_notification == 'DEBLOCAGE' %}
+                            <span class="badge bg-success">Débloqué</span>
+                            {% elif n.type_notification == 'BLOCAGE_DEF' %}
+                            <span class="badge bg-dark">Bloqué définitivement</span>
+                            {% elif n.type_notification == 'FACTURE' %}
+                            <span class="badge bg-info">Nouvelle facture</span>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted text-nowrap">{{ n.date_creation|date:'d/m/Y H:i' }}</small>
+                    </div>
+
+                    <p class="mb-1 mt-1">{{ n.message }}</p>
+
+                    {% if n.type_notification != 'FACTURE' %}
+                    <div class="row small text-muted mb-2">
+                        <div class="col-auto">
+                            <strong>Affilié :</strong>
+                            <a href="{% url 'affilies:detail' n.affilie.pk %}">{{ n.affilie.nom_complet }}</a>
+                        </div>
+                        <div class="col-auto">
+                            <strong>Consommation :</strong> {{ n.consommation|floatformat:0 }} FBU
+                        </div>
+                        <div class="col-auto">
+                            <strong>Plafond :</strong> {{ n.plafond|floatformat:0 }} FBU
+                        </div>
+                        <div class="col-auto">
+                            <strong>Taux :</strong> {{ n.pourcentage|floatformat:1 }}%
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-1">
+                        {% if not n.vue %}
+                        <form action="{% url 'core:notification_marquer_vue' n.pk %}" method="post" style="display:inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-check"></i> Marquer lue
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% if n.type_notification == 'ATTEINT' and not n.affilie.bloque_definitif %}
+                        {% if n.affilie.bloque %}
+                        <form action="{% url 'core:notification_debloquer' n.pk %}" method="post" style="display:inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-warning"
+                                    onclick="return confirm('Débloquer {{ n.affilie.nom_complet }} pour dépassement de plafond ?')">
+                                <i class="bi bi-unlock"></i> Débloquer (autoriser dépassement)
+                            </button>
+                        </form>
+                        {% endif %}
+                        <form action="{% url 'core:notification_bloquer_definitif' n.pk %}" method="post" style="display:inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger"
+                                    onclick="return confirm('Bloquer définitivement {{ n.affilie.nom_complet }} ? Cette action est irréversible.')">
+                                <i class="bi bi-lock-fill"></i> Bloque définitif
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-bell-slash" style="font-size:3rem"></i>
+                <p class="mt-2">Aucune notification pour le moment.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if paginator.num_pages > 1 %}
+    <nav class="mt-3">
+        <ul class="pagination pagination-sm justify-content-center">
+            {% if notifications.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ notifications.previous_page_number }}&vues={{ filtre_vues }}">Précédent</a>
+            </li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">{{ notifications.number }} / {{ paginator.num_pages }}</span></li>
+            {% if notifications.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ notifications.next_page_number }}&vues={{ filtre_vues }}">Suivant</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

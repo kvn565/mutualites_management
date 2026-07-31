@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titre }} — {{ block.super }}{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-grid{% endblock %}
+{% block page_subtitle %}{% if form.instance.pk %}Modifier {{ form.instance.nom }}{% else %}Nouveau type de chambre{% endif %}{% endblock %}
+{% block nav_chambres %}active{% endblock %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-info-circle me-2" style="color:var(--or);"></i> Informations générales</div>
+        <div class="card-body p-4 row g-3">
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.code.id_for_label }}">{{ form.code.label }} <span style="color:#e74c3c;">*</span></label>
+                {{ form.code }}
+                {% if form.code.errors %}<div class="text-danger small">{{ form.code.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-8">
+                <label class="form-label" for="{{ form.nom.id_for_label }}">{{ form.nom.label }} <span style="color:#e74c3c;">*</span></label>
+                {{ form.nom }}
+                {% if form.nom.errors %}<div class="text-danger small">{{ form.nom.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.tarif_base.id_for_label }}">{{ form.tarif_base.label }} <span style="color:#e74c3c;">*</span></label>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    {{ form.tarif_base }}
+                    <span>BIF/jour</span>
+                </div>
+                {% if form.tarif_base.errors %}<div class="text-danger small">{{ form.tarif_base.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.capacite.id_for_label }}">{{ form.capacite.label }} <span style="color:#e74c3c;">*</span></label>
+                {{ form.capacite }}
+                {% if form.capacite.errors %}<div class="text-danger small">{{ form.capacite.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.actif.id_for_label }}">{{ form.actif.label }}</label>
+                <div class="form-check mt-4">
+                    {{ form.actif }}
+                    <label class="form-check-label" for="{{ form.actif.id_for_label }}">{{ form.actif.label }}</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.ordre.id_for_label }}">{{ form.ordre.label }}</label>
+                {{ form.ordre }}
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                {{ form.description }}
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="{{ form.equipements.id_for_label }}">{{ form.equipements.label }}</label>
+                {{ form.equipements }}
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 text-end">
+        <a href="{% url 'gestion_chambres:type_chambre_liste' %}" class="btn btn-outline-secondary me-2"><i class="bi bi-arrow-left me-1"></i> Annuler</a>
+        <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i> Enregistrer</button>
+    </div>
+</form>
+{% endblock %}

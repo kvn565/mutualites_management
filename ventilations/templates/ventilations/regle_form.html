@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block page_title %}{{ titre|default:'Nouvelle règle de ventilation' }}{% endblock %}
+{% block page_icon %}bi bi-gear{% endblock %}
+{% block nav_ventilations %}active{% endblock %}
+
+{% block content %}
+<form method="post">{% csrf_token %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white"><h6 class="fw-bold mb-0">{{ titre|default:'Règle de ventilation' }}</h6></div>
+        <div class="card-body p-4 row g-3">
+          <div class="col-12"><label class="form-label">{{ form.libelle.label }}</label>{{ form.libelle }}</div>
+          <div class="col-md-6"><label class="form-label">{{ form.type_origine.label }}</label>{{ form.type_origine }}</div>
+          <div class="col-md-3"><label class="form-label">{{ form.pourcentage.label }}</label>{{ form.pourcentage }}</div>
+          <div class="col-md-3"><label class="form-label">{{ form.priorite.label }}</label>{{ form.priorite }}</div>
+          <div class="col-md-6"><label class="form-label">{{ form.centre.label }}</label>{{ form.centre }}</div>
+          <div class="col-md-6"><label class="form-label">{{ form.branche.label }}</label>{{ form.branche }}</div>
+          <div class="col-md-4"><label class="form-label">{{ form.date_debut.label }}</label>{{ form.date_debut }}</div>
+          <div class="col-md-4"><label class="form-label">{{ form.date_fin.label }}</label>{{ form.date_fin }}</div>
+          <div class="col-md-4 d-flex align-items-end gap-3">
+            <div class="form-check">{{ form.appliquer_solde_restant }}<label class="form-check-label">{{ form.appliquer_solde_restant.label }}</label></div>
+            <div class="form-check">{{ form.actif }}<label class="form-check-label">{{ form.actif.label }}</label></div>
+          </div>
+          <div class="col-12"><label class="form-label">{{ form.notes.label }}</label>{{ form.notes }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white"><h6 class="fw-bold mb-0">💡 Aide</h6></div>
+        <div class="card-body p-4 small text-muted">
+          <p>Les règles sont appliquées par ordre de priorité. Les règles avec "Appliquer au solde restant" ne sont appliquées qu'après les autres.</p>
+          <p class="mb-0">Le total des pourcentages ne doit pas dépasser 100%.</p>
+        </div>
+      </div>
+      <div class="d-grid mt-4 gap-2">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-circle me-2"></i>Enregistrer</button>
+        <a href="{% url 'ventilations:regle_list' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,19 @@
+<div class="table-responsive p-3">
+  <table class="table table-sm align-middle mb-0 small">
+    <thead class="table-light"><tr><th>Date</th><th>Pièce</th><th>Compte</th><th>Libellé</th><th class="text-end">Entrée</th><th class="text-end">Sortie</th></tr></thead>
+    <tbody>
+      {% for e in ecritures %}
+      <tr>
+        <td>{{ e.date|date:'d/m/Y' }}</td>
+        <td><code>{{ e.piece_reference }}</code></td>
+        <td>{{ e.compte.numero }}</td>
+        <td>{{ e.libelle }}</td>
+        <td class="text-end text-success">{% if e.type_mouvement == 'DEBIT' %}{{ e.montant|floatformat:0|intcomma }}{% endif %}</td>
+        <td class="text-end text-danger">{% if e.type_mouvement == 'CREDIT' %}{{ e.montant|floatformat:0|intcomma }}{% endif %}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center text-muted py-3">Aucun mouvement de trésorerie.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

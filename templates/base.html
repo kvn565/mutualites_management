@@ -1,10 +1,13 @@
-{% load static humanize %}
+{% load static humanize menu_tags %}
 <!DOCTYPE html>
 <html lang="fr" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Mutualité de Santé{% endblock %}</title>
+    {% if APP_FAVICON %}
+    <link rel="icon" type="image/png" href="{{ APP_FAVICON.url }}">
+    {% endif %}
+    <title>{% block title %}{{ APP_NOM }}{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}Système de gestion de la mutualité de santé{% endblock %}">
 
     <!-- Google Fonts: Inter + Outfit -->
@@ -20,22 +23,54 @@
 
     <style>
         :root {
-            --vert:         #0a5c36;
-            --vert-clair:   #0d7a48;
-            --vert-fonce:   #062c1a;
-            --or:           #c9a84c;
-            --or-clair:     #e8c97a;
+            --vert:         {{ MUTUALITE_PRIMARY_COLOR|default:APP_PRIMARY_COLOR|default:'#0a5c36' }};
+            --vert-clair:   {{ MUTUALITE_PRIMARY_COLOR|default:APP_PRIMARY_COLOR|default:'#0d7a48' }};
+            --vert-fonce:   {{ MUTUALITE_PRIMARY_COLOR|default:APP_PRIMARY_COLOR|default:'#062c1a' }};
+            --or:           {{ MUTUALITE_ACCENT_COLOR|default:APP_ACCENT_COLOR|default:'#c9a84c' }};
+            --or-clair:     {{ MUTUALITE_ACCENT_COLOR|default:APP_ACCENT_COLOR|default:'#e8c97a' }};
+            --bg:           {{ MUTUALITE_BACKGROUND_COLOR|default:APP_BACKGROUND_COLOR|default:'#f0f4f8' }};
+            --text-color:   {{ MUTUALITE_TEXT_COLOR|default:APP_TEXT_COLOR|default:'#1e293b' }};
 
             /* Bootstrap overrides */
-            --bs-primary: #0a5c36;
-            --bs-primary-rgb: 10, 92, 54;
-            --bs-success: #0a5c36;
-            --bs-success-rgb: 10, 92, 54;
+            --bs-primary: {{ MUTUALITE_PRIMARY_COLOR|default:APP_PRIMARY_COLOR|default:'#0a5c36' }};
+            --bs-primary-rgb: {{ MUTUALITE_PRIMARY_COLOR|default:APP_PRIMARY_COLOR|default:'#0a5c36'|cut:'#' }};
+            --bs-success: {{ MUTUALITE_PRIMARY_COLOR|default:APP_PRIMARY_COLOR|default:'#0a5c36' }};
+            --bs-success-rgb: {{ MUTUALITE_PRIMARY_COLOR|default:APP_PRIMARY_COLOR|default:'#0a5c36'|cut:'#' }};
+        }
+
+        .bg-primary, .badge.bg-primary {
+            background-color: var(--bs-primary) !important;
+            color: #fff !important;
+        }
+        .bg-success, .badge.bg-success {
+            background-color: #10b981 !important;
+            color: #fff !important;
+        }
+        .bg-danger, .badge.bg-danger {
+            background-color: #ef4444 !important;
+            color: #fff !important;
         }
 
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: var(--text-color);
+            background-color: var(--bg) !important;
+            position: relative;
         }
+
+        {% if MUTUALITE_BACKGROUND_IMAGE_URL or APP_BACKGROUND_IMAGE_URL %}
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background-image: url('{{ MUTUALITE_BACKGROUND_IMAGE_URL|default:APP_BACKGROUND_IMAGE_URL }}');
+            background-size: cover;
+            background-position: center;
+            opacity: {% if mutualite %}{{ MUTUALITE_BACKGROUND_OPACITY|default:"0.25" }}{% else %}{{ APP_BACKGROUND_OPACITY|default:"0.25" }}{% endif %};
+            filter: brightness({% if mutualite %}{{ MUTUALITE_BACKGROUND_BRIGHTNESS|default:"1" }}{% else %}{{ APP_BACKGROUND_BRIGHTNESS|default:"1" }}{% endif %});
+        }
+        {% endif %}
         h1, h2, h3, h4, h5, h6,
         .sidebar-brand .brand-text,
         .app-content-header h3 {
@@ -167,6 +202,51 @@
         }
         .page-subtitle:empty { display: none; }
 
+        /* ── Notification licence expirant ── */
+        .licence-overlay {
+            position: fixed; inset: 0; z-index: 10000;
+            background: rgba(0,0,0,0.55);
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+        .licence-modal {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px 36px 32px;
+            max-width: 460px; width: 90%;
+            text-align: center;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+            animation: modalIn 0.35s ease;
+        }
+        .licence-modal .icon {
+            width: 72px; height: 72px;
+            border-radius: 50%;
+            background: #fff3e0;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 2rem; color: #e67e22;
+        }
+        .licence-modal h4 { font-weight: 700; margin-bottom: 8px; }
+        .licence-modal p  { color: #64748b; font-size: 0.9rem; margin-bottom: 24px; }
+        .licence-modal .btn-ok {
+            background: var(--or); border: none; color: #fff;
+            padding: 10px 40px; border-radius: 10px;
+            font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }
+        .licence-modal .btn-ok:hover { background: var(--or-clair); transform: translateY(-1px); }
+        .licence-modal .jours {
+            font-size: 2.4rem; font-weight: 800; color: #e67e22;
+            line-height: 1;
+        }
+        .licence-modal .jours-label {
+            font-size: 0.85rem; color: #94a3b8; text-transform: uppercase;
+            letter-spacing: 1px; margin-bottom: 12px;
+        }
+        @keyframes modalIn {
+            from { transform: scale(0.92) translateY(15px); opacity: 0; }
+            to   { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
         /* ── Responsive ── */
         @media (max-width: 768px) {
             .app-content-header .col-sm-6.text-sm-end {
@@ -195,8 +275,145 @@
                 </li>
             </ul>
 
-            <!-- Right: date + user -->
+            <!-- Right: notifications + licence + date + user -->
             <ul class="navbar-nav ms-auto">
+                {% if user.is_authenticated and not user.est_super_admin %}
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link position-relative" data-bs-toggle="dropdown" role="button"
+                       aria-label="Notifications plafond">
+                        <i class="bi bi-bell-fill" style="font-size:1.15rem"></i>
+                        {% if nb_notifications_plafond > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark"
+                              style="font-size:0.6rem;min-width:18px;">
+                            {{ nb_notifications_plafond }}
+                        </span>
+                        {% endif %}
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end notification-dropdown">
+                        <div class="dropdown-header d-flex justify-content-between align-items-center">
+                            <span>Notifications plafond</span>
+                            {% if nb_notifications_plafond > 0 %}
+                            <form action="{% url 'core:notification_tout_vu' %}" method="post" style="display:inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-link p-0 text-decoration-none">Tout marquer lu</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        <div class="list-group list-group-flush" style="max-height:300px;overflow-y:auto">
+                            {% if nb_notifications_plafond > 0 %}
+                                {% for n in notifications_plafond_recents %}
+                                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-start {% if not n.vue %}list-group-item-warning{% endif %}">
+                                    <a href="#" onclick="dismissNotifPlafond({{ n.pk }}, '{% url 'core:notification_liste' %}');return false"
+                                       class="text-decoration-none text-body flex-grow-1" style="min-width:0">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <small class="fw-bold">
+                                                {% if n.type_notification == 'APPROCHE' %}
+                                                <span class="text-warning">⚠ Approche</span>
+                                                {% elif n.type_notification == 'ATTEINT' %}
+                                                <span class="text-danger">⛔ Limite atteinte</span>
+                                                {% elif n.type_notification == 'FACTURE' %}
+                                                <span class="text-info">📄 Nouvelle facture</span>
+                                                {% endif %}
+                                            </small>
+                                            <small class="text-muted">{{ n.date_creation|date:'d/m H:i' }}</small>
+                                        </div>
+                                        {% if n.type_notification == 'FACTURE' %}
+                                        <small class="d-block text-truncate">{{ n.message }}</small>
+                                        {% else %}
+                                        <small class="d-block text-truncate">{{ n.affilie.nom_complet }} — {{ n.pourcentage|floatformat:1 }}%</small>
+                                        {% endif %}
+                                    </a>
+                                    <button type="button" class="btn-close btn-close-sm ms-2 mt-1 flex-shrink-0"
+                                            onclick="dismissNotifPlafond({{ n.pk }}, null);event.stopPropagation();return false"
+                                            aria-label="Marquer lu"></button>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                            <div class="list-group-item text-center text-muted small py-3">
+                                <i class="bi bi-bell-slash"></i> Aucune notification
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="dropdown-footer text-center">
+                            <a href="{% url 'core:notification_liste' %}" class="btn btn-sm btn-outline-vert w-100">
+                                Voir toutes les notifications
+                            </a>
+                        </div>
+                    </div>
+                </li>
+                {% endif %}
+                {% if user.is_authenticated and user.est_super_admin %}
+                <li class="nav-item">
+                    <a href="{% url 'aide:superadmin_message_list' %}" class="nav-link position-relative"
+                       aria-label="Messages mutualités">
+                        <i class="bi bi-envelope-fill" style="font-size:1.15rem"></i>
+                        {% if superadmin_nb_messages_nouveaux > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark"
+                              style="font-size:0.6rem;min-width:18px;">
+                            {{ superadmin_nb_messages_nouveaux }}
+                        </span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link position-relative" data-bs-toggle="dropdown" role="button"
+                       aria-label="Demandes en attente de validation">
+                        <i class="bi bi-hourglass-split" style="font-size:1.15rem"></i>
+                        {% if superadmin_nb_mutualites_en_attente > 0 or superadmin_nb_partenaires_en_attente > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                              style="font-size:0.6rem;min-width:18px;">
+                            {{ superadmin_nb_mutualites_en_attente|add:superadmin_nb_partenaires_en_attente }}
+                        </span>
+                        {% endif %}
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
+                        <div class="dropdown-header d-flex justify-content-between align-items-center">
+                            <span>Demandes en attente de validation</span>
+                        </div>
+                        <div class="list-group list-group-flush" style="max-height:250px;overflow-y:auto">
+                            {% if superadmin_nb_mutualites_en_attente > 0 %}
+                            <a href="{% url 'superadmin:validations_mutualites' %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <small class="fw-bold"><i class="bi bi-building-check me-1"></i>Mutualités</small>
+                                    <span class="badge bg-warning text-dark">{{ superadmin_nb_mutualites_en_attente }}</span>
+                                </div>
+                                <small class="text-muted">En attente d'activation</small>
+                            </a>
+                            {% endif %}
+                            {% if superadmin_nb_partenaires_en_attente > 0 %}
+                            <a href="{% url 'superadmin:validations_partenaires' %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <small class="fw-bold"><i class="bi bi-hospital me-1"></i>Partenaires</small>
+                                    <span class="badge bg-warning text-dark">{{ superadmin_nb_partenaires_en_attente }}</span>
+                                </div>
+                                <small class="text-muted">En attente de rattachement</small>
+                            </a>
+                            {% endif %}
+                            {% if superadmin_nb_mutualites_en_attente == 0 and superadmin_nb_partenaires_en_attente == 0 %}
+                            <div class="list-group-item text-center text-muted py-3">
+                                <i class="bi bi-check-circle-fill text-success" style="font-size:1.5rem;"></i>
+                                <p class="mb-0 mt-1">Aucune demande en attente</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </li>
+                {% endif %}
+                {% if mutualite and not user.est_super_admin %}
+                <li class="nav-item d-none d-md-flex align-items-center me-2">
+                    <span class="nav-link small {% if mutualite.jours_restants <= 3 %}text-danger fw-bold{% else %}text-body-secondary{% endif %}">
+                        <i class="bi bi-shield-check me-1"></i>
+                        {{ mutualite.jours_restants }} jour{{ mutualite.jours_restants|pluralize }} restant{{ mutualite.jours_restants|pluralize }}
+                    </span>
+                </li>
+                {% if mutualite and not user.est_super_admin and mutualite.jours_restants <= 7 %}
+                <li class="nav-item d-none d-md-flex align-items-center me-2">
+                    <span class="nav-link small text-warning fw-bold">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        Licence bientôt expirée
+                    </span>
+                {% endif %}
+                {% endif %}
                 <li class="nav-item d-none d-md-flex align-items-center">
                     <span class="nav-link text-body-secondary small">
                         <i class="bi bi-calendar3 me-1"></i>
@@ -205,10 +422,16 @@
                 </li>
                 <li class="nav-item dropdown user-menu">
                     <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                        {% if user.photo %}
+                        <img src="{{ user.photo.url }}" alt="Photo"
+                             class="user-avatar rounded-circle"
+                             style="width:30px;height:30px;object-fit:cover;">
+                        {% else %}
                         <span class="user-avatar d-inline-block rounded-circle text-center fw-bold"
                               style="width:30px;height:30px;line-height:30px;font-size:0.75rem;">
                             {{ user.initiales }}
                         </span>
+                        {% endif %}
                         <span class="d-none d-md-inline ms-1">{{ user.nom_complet|truncatechars:16 }}</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
@@ -233,11 +456,15 @@
         <div class="sidebar-brand">
             <a href="{% if user.est_super_admin %}{% url 'superadmin:dashboard' %}{% else %}{% url 'dashboard:index' %}{% endif %}" class="brand-link">
                 <span class="brand-image">
+                    {% if APP_LOGO %}
+                    <img src="{{ APP_LOGO.url }}" alt="{{ APP_NOM }}" style="width:38px;height:38px;border-radius:8px;object-fit:contain;">
+                    {% else %}
                     <i class="bi bi-heart-pulse-fill"></i>
                     <span class="cross-plus">+</span>
+                    {% endif %}
                 </span>
                 <span class="brand-text fw-light">
-                    {% if mutualite %}{{ mutualite.nom|truncatechars:22 }}{% else %}Mutualité Santé{% endif %}
+                    {% if mutualite %}{{ mutualite.nom|truncatechars:22 }}{% else %}{{ APP_NOM }}{% endif %}
                 </span>
             </a>
         </div>
@@ -245,7 +472,40 @@
             <nav class="mt-2">
                 <ul class="nav sidebar-menu flex-column" role="navigation" aria-label="Navigation principale">
                     {% block sidebar_nav %}
+                    {% if not user.est_super_admin %}
+                    {% menu_autorise 'dashboard:index' as show_dashboard %}
+                    {% section_autorise 'affilies:liste' 'ayants_droit:liste' 'origines:liste' as show_membres %}
+                    {% menu_autorise 'affilies:liste' as show_affilies %}
+                    {% menu_autorise 'ayants_droit:liste' as show_ayants %}
+                    {% menu_autorise 'origines:liste' as show_origines %}
+                    {% section_autorise 'services_sante:liste' 'partenaires:liste' 'pharmacie:liste' as show_sante %}
+                    {% menu_autorise 'services_sante:liste' as show_services %}
+                    {% menu_autorise 'partenaires:liste' as show_partenaires %}
+                    {% menu_autorise 'pharmacie:liste' as show_pharmacie %}
+                    {% section_autorise 'factures:liste' 'factures:journal' as show_facturation %}
+                    {% menu_autorise 'factures:liste' as show_factures %}
+                    {% menu_autorise 'factures:journal' as show_journal_factures %}
+                    {% section_autorise 'cotisations:liste' 'cotisations:journal' as show_cotisations %}
+                    {% menu_autorise 'cotisations:liste' as show_cotisation_liste %}
+                    {% menu_autorise 'cotisations:journal' as show_journal_cotisations %}
+                    {% section_autorise 'comptabilite:dashboard' 'ventilations:index' as show_finance %}
+                    {% menu_autorise 'comptabilite:dashboard' as show_compta %}
+                    {% menu_autorise 'ventilations:index' as show_ventilations %}
+                    {% if user.est_admin and not user.est_super_admin %}
+                    {% section_autorise 'parametres_mutualite' 'activer_licence' 'groupe:liste' 'utilisateurs:index' as show_admin %}
+                    {% menu_autorise 'parametres_mutualite' as show_parametres %}
+                    {% menu_autorise 'activer_licence' as show_licence %}
+                    {% menu_autorise 'groupe:liste' as show_groupes %}
+                    {% menu_autorise 'utilisateurs:index' as show_utilisateurs %}
+                    {% endif %}
+                    {% section_autorise 'corbeille:index' 'aide:index' 'aide:message_list' 'aide:doc_superadmin_list' as show_outils %}
+                    {% menu_autorise 'corbeille:index' as show_corbeille %}
+                    {% menu_autorise 'aide:index' as show_aide %}
+                    {% menu_autorise 'aide:message_list' as show_mes_messages %}
+                    {% menu_autorise 'aide:doc_superadmin_list' as show_docs_officiels %}
+
                     <!-- Principal -->
+                    {% if show_dashboard %}
                     <li class="nav-header">Principal</li>
                     <li class="nav-item">
                         <a href="{% url 'dashboard:index' %}" class="nav-link {% block nav_dashboard %}{% endblock %}">
@@ -253,88 +513,131 @@
                             <p>Tableau de bord</p>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="{% url 'core:notification_liste' %}" class="nav-link {% block nav_notifications %}{% endblock %}">
+                            <i class="nav-icon bi bi-bell-fill"></i>
+                            <p>
+                                Notifications
+                                {% if nb_notifications_plafond > 0 %}
+                                <span class="badge bg-warning ms-1">{{ nb_notifications_plafond }}</span>
+                                {% endif %}
+                            </p>
+                        </a>
+                    </li>
+                    {% endif %}
 
                     <!-- Membres -->
+                    {% if show_membres %}
                     <li class="nav-header">Membres</li>
+                    {% if show_affilies %}
                     <li class="nav-item">
                         <a href="{% url 'affilies:liste' %}" class="nav-link {% block nav_affilies %}{% endblock %}">
                             <i class="nav-icon bi bi-people-fill"></i>
                             <p>Affiliés</p>
                         </a>
                     </li>
+                    {% endif %}
+                    {% if show_ayants %}
                     <li class="nav-item">
                         <a href="{% url 'ayants_droit:liste' %}" class="nav-link {% block nav_ayants_droit %}{% endblock %}">
                             <i class="nav-icon bi bi-person-heart"></i>
                             <p>Ayants droit</p>
                         </a>
                     </li>
+                    {% endif %}
+                    {% if show_origines %}
                     <li class="nav-item">
                         <a href="{% url 'origines:liste' %}" class="nav-link {% block nav_origines %}{% endblock %}">
                             <i class="nav-icon bi bi-diagram-3-fill"></i>
                             <p>Origines</p>
                         </a>
                     </li>
+                    {% endif %}
+                    {% endif %}
 
                     <!-- Santé -->
+                    {% if show_sante %}
                     <li class="nav-header">Santé</li>
+                    {% if show_services %}
                     <li class="nav-item">
                         <a href="{% url 'services_sante:liste' %}" class="nav-link {% block nav_services %}{% endblock %}">
                             <i class="nav-icon bi bi-hospital-fill"></i>
                             <p>Nos services</p>
                         </a>
                     </li>
+                    {% endif %}
+                    {% if show_partenaires %}
                     <li class="nav-item">
                         <a href="{% url 'partenaires:liste' %}" class="nav-link {% block nav_partenaire %}{% endblock %}">
                             <i class="nav-icon bi bi-building-fill-cross"></i>
                             <p>Partenaires</p>
                         </a>
                     </li>
+                    {% endif %}
+                    {% if show_pharmacie %}
                     <li class="nav-item">
                         <a href="{% url 'pharmacie:liste' %}" class="nav-link {% block nav_pharmacie %}{% endblock %}">
                             <i class="nav-icon bi bi-capsule-pill"></i>
                             <p>Médicaments & services</p>
                         </a>
                     </li>
+                    {% endif %}
+                    {% endif %}
 
                     <!-- Facturation -->
+                    {% if show_facturation %}
                     <li class="nav-header">Facturation</li>
+                    {% if show_factures %}
                     <li class="nav-item">
                         <a href="{% url 'factures:liste' %}" class="nav-link {% block nav_factures %}{% endblock %}">
                             <i class="nav-icon bi bi-receipt-cutoff"></i>
                             <p>Factures</p>
                         </a>
                     </li>
+                    {% endif %}
+                    {% if show_journal_factures %}
                     <li class="nav-item">
                         <a href="{% url 'factures:journal' %}" class="nav-link {% block nav_journal_factures %}{% endblock %}">
                             <i class="nav-icon bi bi-journal-text"></i>
                             <p>Journal des factures</p>
                         </a>
                     </li>
+                    {% endif %}
+                    {% endif %}
 
                     <!-- Cotisations -->
+                    {% if show_cotisations %}
                     <li class="nav-header">Cotisations</li>
+                    {% if show_cotisation_liste %}
                     <li class="nav-item">
                         <a href="{% url 'cotisations:liste' %}" class="nav-link {% block nav_cotisations %}{% endblock %}">
                             <i class="nav-icon bi bi-wallet2"></i>
                             <p>Cotisations</p>
                         </a>
                     </li>
+                    {% endif %}
+                    {% if show_journal_cotisations %}
                     <li class="nav-item">
                         <a href="{% url 'cotisations:journal' %}" class="nav-link {% block nav_journal_cotisations %}{% endblock %}">
                             <i class="nav-icon bi bi-journal-check"></i>
                             <p>Journal des cotisations</p>
                         </a>
                     </li>
+                    {% endif %}
+                    {% endif %}
 
                     <!-- Finance -->
-                    {% if user.est_comptable %}
+                    {% if show_finance %}
                     <li class="nav-header">Finance & Comptabilité</li>
+                    {% if show_compta %}
                     <li class="nav-item">
                         <a href="{% url 'comptabilite:dashboard' %}" class="nav-link {% block nav_compta %}{% endblock %}">
                             <i class="nav-icon bi bi-calculator-fill"></i>
                             <p>Comptabilité</p>
                         </a>
                     </li>
+                    {% endif %}
+                    {% if show_ventilations %}
                     <li class="nav-item">
                         <a href="{% url 'ventilations:index' %}" class="nav-link {% block nav_ventilations %}{% endblock %}">
                             <i class="nav-icon bi bi-pie-chart-fill"></i>
@@ -342,22 +645,110 @@
                         </a>
                     </li>
                     {% endif %}
+                    {% menu_autorise 'comptabilite:corbeille_list' as show_corbeille_compta %}
+                    {% if show_corbeille_compta %}
+                    <li class="nav-item">
+                        <a href="{% url 'comptabilite:corbeille_list' %}" class="nav-link {% block nav_corbeille_compta %}{% endblock %}">
+                            <i class="nav-icon bi bi-trash3-fill"></i>
+                            <p>Corbeille</p>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endif %}
+
+                    <!-- Hospitalisation -->
+                    {% if mutualite.module_chambres_actif %}
+                    <li class="nav-header">Hospitalisation</li>
+                    <li class="nav-item">
+                        <a href="{% url 'gestion_chambres:dashboard' %}" class="nav-link {% block nav_chambres %}{% endblock %}">
+                            <i class="nav-icon bi bi-bed"></i>
+                            <p>Gestion des Chambres</p>
+                        </a>
+                    </li>
+                    {% endif %}
 
                     <!-- Administration -->
-                    {% if user.est_admin %}
+                    {% if user.est_admin and not user.est_super_admin and show_admin %}
                     <li class="nav-header">Administration</li>
+                    {% if show_parametres %}
+                    <li class="nav-item">
+                        <a href="{% url 'parametres_mutualite' %}" class="nav-link {% block nav_parametres_mutualite %}{% endblock %}">
+                            <i class="nav-icon bi bi-building-gear"></i>
+                            <p>Ma mutualité</p>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if show_licence %}
+                    <li class="nav-item">
+                        <a href="{% url 'activer_licence' %}" class="nav-link {% block nav_licence %}{% endblock %}">
+                            <i class="nav-icon bi bi-shield-check"></i>
+                            <p>
+                                Licence
+                                {% if not mutualite.licence_valide %}
+                                <span class="nav-badge badge text-bg-danger ms-2">Expirée</span>
+                                {% elif mutualite.jours_restants <= 3 %}
+                                <span class="nav-badge badge text-bg-danger ms-2">{{ mutualite.jours_restants }}j</span>
+                                {% elif mutualite.jours_restants <= 7 %}
+                                <span class="nav-badge badge text-bg-warning ms-2">{{ mutualite.jours_restants }}j</span>
+                                {% endif %}
+                            </p>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if show_groupes %}
                     <li class="nav-item">
                         <a href="{% url 'groupe:liste' %}" class="nav-link {% block nav_groupes %}{% endblock %}">
                             <i class="nav-icon bi bi-people-fill"></i>
                             <p>Groupes</p>
                         </a>
                     </li>
+                    {% endif %}
+                    {% if show_utilisateurs %}
                     <li class="nav-item">
                         <a href="{% url 'utilisateurs:index' %}" class="nav-link {% block nav_utilisateurs %}{% endblock %}">
                             <i class="nav-icon bi bi-shield-person-fill"></i>
                             <p>Utilisateurs</p>
                         </a>
                     </li>
+                    {% endif %}
+                    {% endif %}
+
+                    <!-- Outils -->
+                    {% if show_outils %}
+                    <li class="nav-header">Outils</li>
+                    {% if show_corbeille %}
+                    <li class="nav-item">
+                        <a href="{% url 'corbeille:index' %}" class="nav-link {% block nav_corbeille %}{% endblock %}">
+                            <i class="nav-icon bi bi-trash3-fill"></i>
+                            <p>Corbeille</p>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if show_aide %}
+                    <li class="nav-item">
+                        <a href="{% url 'aide:index' %}" class="nav-link {% block nav_aide %}{% endblock %}">
+                            <i class="nav-icon bi bi-question-circle-fill"></i>
+                            <p>Aide</p>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if show_mes_messages %}
+                    <li class="nav-item">
+                        <a href="{% url 'aide:message_list' %}" class="nav-link {% block nav_mes_messages %}{% endblock %}">
+                            <i class="nav-icon bi bi-chat-left-text-fill"></i>
+                            <p>Mes messages</p>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if show_docs_officiels %}
+                    <li class="nav-item">
+                        <a href="{% url 'aide:doc_superadmin_list' %}" class="nav-link {% block nav_docs_officiels %}{% endblock %}">
+                            <i class="nav-icon bi bi-file-earmark-text-fill"></i>
+                            <p>Doc. officiels</p>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endif %}
                     {% endif %}
 
                     <!-- Super Admin shortcut -->
@@ -372,21 +763,6 @@
                         </a>
                     </li>
                     {% endif %}
-
-                    <!-- Outils -->
-                    <li class="nav-header">Outils</li>
-                    <li class="nav-item">
-                        <a href="{% url 'corbeille:index' %}" class="nav-link {% block nav_corbeille %}{% endblock %}">
-                            <i class="nav-icon bi bi-trash3-fill"></i>
-                            <p>Corbeille</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'aide:index' %}" class="nav-link {% block nav_aide %}{% endblock %}">
-                            <i class="nav-icon bi bi-question-circle-fill"></i>
-                            <p>Aide</p>
-                        </a>
-                    </li>
                     {% endblock %}
                 </ul>
             </nav>
@@ -432,6 +808,49 @@
 </div>
 <!-- /.app-wrapper -->
 
+{% if licence_15j %}
+<div id="licence-notif-overlay" class="licence-overlay">
+    <div class="licence-modal">
+        <div class="icon"><i class="bi bi-shield-exclamation"></i></div>
+        <div class="jours-label">Jours restants</div>
+        <div class="jours">{{ licence_15j }}</div>
+        <h4 class="mt-2">Votre licence expire bientôt</h4>
+        <p>Pensez à renouveler votre licence auprès de l'administrateur pour continuer à utiliser toutes les fonctionnalités sans interruption.</p>
+        <button class="btn-ok" id="btn-dismiss-licence">
+            <i class="bi bi-check-lg me-1"></i> OK
+        </button>
+    </div>
+</div>
+<script>
+(function() {
+    function getCookie(name) {
+        var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? decodeURIComponent(match[2]) : null;
+    }
+    document.getElementById('btn-dismiss-licence').addEventListener('click', function() {
+        var overlay = document.getElementById('licence-notif-overlay');
+        if (!overlay) return;
+        fetch('{% url "core:dismiss_notification_licence" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'dismiss=1',
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.ok) {
+                overlay.style.transition = 'opacity 0.3s';
+                overlay.style.opacity = '0';
+                setTimeout(function() { overlay.remove(); }, 300);
+            }
+        }).catch(function() {
+            overlay.remove();
+        });
+    });
+})();
+</script>
+{% endif %}
+
 <!-- ╔═ TOAST MESSAGES ═══════════════════════════════════════════ -->
 {% if messages %}
 <div class="toast-container">
@@ -466,8 +885,46 @@
 <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static 'vendor/adminlte/js/adminlte.min.js' %}"></script>
 <script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/inline-create.js' %}"></script>
+<script>
+function dismissNotifPlafond(pk, url) {
+    new Image().src = '/connexion/notifications/' + pk + '/marquer-vue-rapide/?r=' + Math.random();
+    if (url) {
+        setTimeout(function() { window.location.href = url; }, 150);
+    }
+}
+</script>
 
 {% block extra_js %}{% endblock %}
+
+<!-- Modal création inline -->
+<div class="modal fade" id="inlineCreateModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Ajouter</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="inlineCreateSelectId">
+                <input type="hidden" id="inlineCreateUrl">
+                <div class="mb-3">
+                    <label class="form-label">Nom</label>
+                    <input type="text" id="inlineCreateNom" class="form-control" placeholder="Saisissez le nom...">
+                </div>
+                <div class="mb-3" id="inlineCategorieGroup" style="display:none;">
+                    <label class="form-label">Catégorie</label>
+                    <select id="inlineCreateCategorie" class="form-select"></select>
+                </div>
+                <div id="inlineCreateFeedback" class="form-text"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="inlineCreateBtn">Créer</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>

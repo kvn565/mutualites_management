@@ -21,8 +21,13 @@
                     </div>
                     <div class="col-md-8">
                         <label class="form-label">{{ form.affilie.label }} <span class="text-danger">*</span></label>
+                        <div class="position-relative">
+                            <input type="text" id="affilie-search" class="form-control" placeholder="Saisir ID, nom ou prénom de l'affilié..." autocomplete="off">
+                            <div id="affilie-search-results" class="list-group position-absolute w-100 mt-1" style="display: none; z-index: 1000; max-height: 300px; overflow-y: auto;"></div>
+                        </div>
                         {{ form.affilie }}
                         {% if form.affilie.errors %}<div class="text-danger small">{{ form.affilie.errors.0 }}</div>{% endif %}
+                        <div class="form-text small">Tapez au moins 2 caractères pour rechercher un affilié</div>
                     </div>
                     
                     <div class="col-12 mt-4 mb-2">
@@ -95,8 +100,99 @@
                         <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i> Enregistrer le paiement</button>
                     </div>
                 </form>
-            </div>
-        </div>
+</div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const affilieSelect = document.getElementById('id_affilie');
+    const searchInput = document.getElementById('affilie-search');
+    const searchResults = document.getElementById('affilie-search-results');
+    let debounceTimer = null;
+    let selectedAffilieId = affilieSelect.value;
+
+    // Masquer le select original
+    if (affilieSelect) {
+        affilieSelect.style.display = 'none';
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (query.length < 2) {
+                    searchResults.innerHTML = '';
+                    searchResults.style.display = 'none';
+                    return;
+                }
+                
+                fetch(`{% url 'affilies:recherche_ajax' %}?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        searchResults.innerHTML = '';
+                        if (data.length > 0) {
+                            data.forEach(item => {
+                                const div = document.createElement('div');
+                                div.className = 'list-group-item list-group-item-action';
+                                div.style.cursor = 'pointer';
+                                div.textContent = item.text;
+                                div.dataset.id = item.id;
+                                div.addEventListener('click', () => selectAffilie(item.id, item.text));
+                                searchResults.appendChild(div);
+                            });
+                            searchResults.style.display = 'block';
+                        } else {
+                            const div = document.createElement('div');
+                            div.className = 'list-group-item text-muted';
+                            div.textContent = 'Aucun affilié trouvé';
+                            searchResults.appendChild(div);
+                            searchResults.style.display = 'block';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Erreur recherche:', err);
+                        searchResults.innerHTML = '';
+                        searchResults.style.display = 'none';
+                    });
+            }, 300);
+        });
+
+        // Fermer les résultats si on clique ailleurs
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.style.display = 'none';
+            }
+        });
+    }
+
+    function selectAffilie(id, text) {
+        if (affilieSelect) {
+            affilieSelect.value = id;
+            // Déclencher l'événement change pour d'éventuels listeners
+            affilieSelect.dispatchEvent(new Event('change'));
+        }
+        selectedAffilieId = id;
+        searchInput.value = text;
+        searchResults.style.display = 'none';
+        
+        // Mettre à jour l'affichage visuel
+        searchInput.classList.add('is-valid');
+        searchInput.classList.remove('is-invalid');
+    }
+
+    // Si une valeur est déjà sélectionnée (modification), afficher le nom
+    if (selectedAffilieId) {
+        const selectedOption = affilieSelect.querySelector(`option[value="${selectedAffilieId}"]`);
+        if (selectedOption && searchInput) {
+            searchInput.value = selectedOption.textContent;
+            searchInput.classList.add('is-valid');
+        }
+    }
+});
+</script>
 {% endblock %}

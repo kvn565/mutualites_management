@@ -1,0 +1,29 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% block title %}Supprimer {{ obj.nom }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-trash" style="color:var(--primary)"></i> Supprimer un médicament</h1>
+</div>
+
+<div class="card" style="max-width:500px;margin:0 auto;border-left:4px solid #ef4444;">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-exclamation-triangle" style="font-size:3rem;color:#ef4444;display:block;margin-bottom:16px;"></i>
+        <h3 class="fw-bold">Supprimer {{ obj.nom }}</h3>
+        <p class="text-muted">
+            Code: <code>{{ obj.code }}</code><br>
+            DCI: {{ obj.dci|default:"—" }}<br>
+            Forme: {{ obj.get_forme_display }} — Dosage: {{ obj.dosage|default:"—" }}<br>
+            Mutualité: <span class="badge badge-info">{{ obj.mutualite.nom }}</span>
+        </p>
+        <p class="text-danger">Cette action est irréversible.</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash"></i> Oui, supprimer
+            </button>
+            <a href="{% url 'portail_partenaire:liste_medicaments' %}" class="btn btn-outline">Annuler</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

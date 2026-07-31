@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Prévisions de trésorerie{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-bold mb-0">📅 Prévisions de trésorerie</h5>
+    <a href="{% url 'comptabilite:prevision_create' %}" class="btn btn-primary btn-sm">+ Nouvelle prévision</a>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-6"><div class="card border-0 shadow-sm p-3 text-center"><span class="text-success fw-bold fs-5">{{ total_encaissements|floatformat:0|intcomma }} BIF</span><small class="text-muted">Encaissements prévus</small></div></div>
+    <div class="col-md-6"><div class="card border-0 shadow-sm p-3 text-center"><span class="text-danger fw-bold fs-5">{{ total_decaissements|floatformat:0|intcomma }} BIF</span><small class="text-muted">Décaissements prévus</small></div></div>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light"><tr><th>Date</th><th>Libellé</th><th>Type</th><th class="text-end">Montant</th><th>Compte</th><th>Statut</th></tr></thead>
+        <tbody>
+          {% for p in previsions %}
+          <tr>
+            <td>{{ p.date_prevision|date:'d/m/Y' }}</td>
+            <td>{{ p.libelle }}</td>
+            <td>{% if p.type == 'ENCAISSEMENT' %}<span class="badge bg-success">Encaissement</span>{% else %}<span class="badge bg-danger">Décaissement</span>{% endif %}</td>
+            <td class="text-end {% if p.type == 'DECAISSEMENT' %}text-danger{% else %}text-success{% endif %}">{{ p.montant|floatformat:0|intcomma }}</td>
+            <td>{{ p.compte.numero|default:'—' }}</td>
+            <td>{% if p.statut == 'PREVU' %}<span class="badge bg-info text-dark">Prévu</span>{% elif p.statut == 'REALISE' %}<span class="badge bg-success">Réalisé</span>{% else %}<span class="badge bg-secondary">Annulé</span>{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center py-4 text-muted">Aucune prévision.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

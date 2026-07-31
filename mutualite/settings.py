@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     'corbeille',
     'groupe',
     'aide',
+    'portail_partenaire',
+    'gestion_chambres',
 ]
 
 
@@ -89,6 +91,10 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'mutualite.urls'
 
 AUTH_USER_MODEL    = 'core.Utilisateur'
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'partenaires.auth_backends.PartenaireAuthBackend',
+]
 LOGIN_URL          = '/connexion/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/connexion/'
@@ -110,6 +116,12 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.mutualite_context',
+                'core.context_processors.app_config',
+                'core.context_processors.menus_context',
+                'core.context_processors.notifications_portail',
+                'core.context_processors.notification_plafond_context',
+                'core.context_processors.superadmin_notifications',
+                'core.context_processors.superadmin_pending_validations',
             ],
         },
     },

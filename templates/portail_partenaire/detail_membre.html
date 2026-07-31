@@ -1,0 +1,278 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% load humanize %}
+{% block title %}{{ membre.nom_complet }} — Membre{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1><i class="bi bi-person-badge" style="color:var(--primary)"></i> {{ membre.nom_complet }}</h1>
+            <p>{{ membre.numero_affiliation }} — {{ membre.get_statut_display }}</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'portail_partenaire:ajouter_facture' membre.pk %}" class="btn btn-gold">
+                <i class="bi bi-plus-circle"></i> Nouvelle facture
+            </a>
+            <a href="{% url 'portail_partenaire:transferer_document' membre.pk %}" class="btn btn-outline-primary">
+                <i class="bi bi-upload"></i> Transférer document
+            </a>
+            <a href="{% url 'portail_partenaire:recherche_membre' %}?q={{ membre.numero_affiliation }}" class="btn btn-outline">
+                <i class="bi bi-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="grid-3">
+    <div class="card">
+        <div class="card-header"><i class="bi bi-person"></i> Identité</div>
+        <div class="card-body">
+            <div class="flex items-center gap-3 mb-4">
+                {% if membre.photo %}
+                <img src="{{ membre.photo.url }}" alt="" class="member-photo">
+                {% else %}
+                <div class="member-photo" style="background:#e8f5ee;display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:700;font-size:1.2rem;">
+                    {{ membre.nom|first|upper }}{{ membre.prenom|first|upper }}
+                </div>
+                {% endif %}
+                <div>
+                    <div class="fw-bold" style="font-size:1.1rem;">{{ membre.nom_complet }}</div>
+                    <div class="text-muted text-sm">{{ membre.numero_affiliation }}</div>
+                    <div>
+                        {% if membre.statut == 'ACTIF' %}<span class="badge badge-success">Actif</span>
+                        {% elif membre.statut == 'SUSPENDU' %}<span class="badge badge-warning">Suspendu</span>
+                        {% else %}<span class="badge badge-secondary">{{ membre.get_statut_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="info-grid">
+                <div class="info-item"><label>Sexe</label><span>{{ membre.get_sexe_display }}</span></div>
+                <div class="info-item"><label>Âge</label><span>{{ membre.age }} ans</span></div>
+                <div class="info-item"><label>Groupe sanguin</label><span>{{ membre.get_groupe_sanguin_display|default:"—" }}</span></div>
+                <div class="info-item"><label>État civil</label><span>{{ membre.get_etat_civil_display }}</span></div>
+                <div class="info-item"><label>Téléphone</label><span>{{ membre.telephone|default:"—" }}</span></div>
+                <div class="info-item"><label>Email</label><span>{{ membre.email|default:"—" }}</span></div>
+                <div class="info-item"><label>Adhésion</label><span>{{ membre.date_adhesion|date:"d/m/Y" }}</span></div>
+                <div class="info-item"><label>Mutualité</label><span><span class="badge badge-info">{{ membre.mutualite.nom }}</span></span></div>
+                <div class="info-item"><label>Type</label><span>{{ membre.get_type_adhesion_display }}</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><i class="bi bi-shield-check"></i> Garanties & Plafonds</div>
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Soins ambulatoires</label>
+                    <span>{{ membre.soins_ambulatoires|floatformat:0|intcomma }} BIF</span>
+                </div>
+                <div class="info-item">
+                    <label>Hospitalisation générale</label>
+                    <span>{{ membre.limite_hospitalisation_generale|floatformat:0|intcomma }} BIF</span>
+                </div>
+                <div class="info-item">
+                    <label>Pharmacie / Médicaments</label>
+                    <span>{{ membre.limites_medicaments|floatformat:0|intcomma }} BIF</span>
+                </div>
+                <div class="info-item">
+                    <label>Laboratoire</label>
+                    <span>{{ membre.limite_laboratoire|floatformat:0|intcomma }} BIF</span>
+                </div>
+                <div class="info-item">
+                    <label>Imagerie médicale</label>
+                    <span>{{ membre.limite_imagerie_medicale|floatformat:0|intcomma }} BIF</span>
+                </div>
+                <div class="info-item">
+                    <label>Maternité (forfait)</label>
+                    <span>{{ membre.maternite_forfait|floatformat:0|intcomma }} BIF</span>
+                </div>
+                <div class="info-item">
+                    <label>Plafond chambre/nuit</label>
+                    <span>{{ membre.hopital_plafond_chambre|floatformat:0|intcomma }} BIF</span>
+                </div>
+                <div class="info-item">
+                    <label>Cotisation mensuelle</label>
+                    <span class="fw-bold">{{ membre.cotisation_mensuelle|floatformat:0|intcomma }} BIF</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><i class="bi bi-telephone"></i> Contact & Références</div>
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Province</label>
+                    <span>{{ membre.province|default:"—" }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Commune</label>
+                    <span>{{ membre.commune|default:"—" }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Zone</label>
+                    <span>{{ membre.zone|default:"—" }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Profession</label>
+                    <span>{{ membre.profession|default:"—" }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Contact urgence</label>
+                    <span>{{ membre.contact_urgence_nom|default:"—" }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Tél. urgence</label>
+                    <span>{{ membre.contact_urgence_telephone|default:"—" }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Hôpital référence</label>
+                    <span>{{ membre.hopital_reference|default:"—" }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Total consommé</label>
+                    <span class="fw-bold">{{ total_consomme|floatformat:0|intcomma }} BIF</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if exclusions_actives %}
+<div class="card" style="margin-top:20px;border-color:#dc3545;">
+    <div class="card-header" style="background:#fff5f5;color:#dc3545;">
+        <i class="bi bi-exclamation-triangle-fill"></i> Exclusions sur ce membre
+    </div>
+    <div class="card-body" style="padding:10px 14px;font-size:0.82rem;">
+        {% for e in exclusions_actives %}
+        <div>⛔ <strong>{% if e.medicament %}{{ e.medicament.nom }}{% else %}{{ e.service.nom }}{% endif %}</strong>
+            {% if e.motif %}<span class="text-muted">— {{ e.motif }}</span>{% endif %}
+            <span class="text-muted small">({% if e.medicament %}médicament{% else %}service{% endif %})</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if ayants_droit %}
+<div class="card" style="margin-top:20px;">
+    <div class="card-header"><i class="bi bi-people"></i> Ayants droit ({{ ayants_droit|length }})</div>
+    <div class="card-body" style="padding:0;">
+        <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nom complet</th>
+                    <th>Sexe</th>
+                    <th>Âge</th>
+                    <th>Lien parenté</th>
+                    <th>Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ad in ayants_droit %}
+                <tr>
+                    <td class="fw-bold">{{ ad.nom_complet }}</td>
+                    <td>{{ ad.get_sexe_display }}</td>
+                    <td>{{ ad.age }} ans</td>
+                    <td>{{ ad.get_lien_parente_display }}</td>
+                    <td>
+                        {% if ad.statut == 'ACTIF' %}<span class="badge badge-success">Actif</span>
+                        {% else %}<span class="badge badge-secondary">{{ ad.get_statut_display }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if factures %}
+<div class="card" style="margin-top:20px;">
+    <div class="card-header">
+        <span><i class="bi bi-clock-history"></i> Historique des soins</span>
+        <a href="{% url 'portail_partenaire:ajouter_facture' membre.pk %}" class="btn btn-sm btn-gold">
+            <i class="bi bi-plus-circle"></i> Nouvelle facture
+        </a>
+    </div>
+    <div class="card-body" style="padding:0;">
+        <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>N° Facture</th>
+                    <th>Date</th>
+                    <th>Établissement</th>
+                    <th>Montant</th>
+                    <th>Part Mut.</th>
+                    <th>Ticket</th>
+                    <th>Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in factures %}
+                <tr>
+                    <td><a href="{% url 'portail_partenaire:detail_facture' f.pk %}">{{ f.numero }}</a></td>
+                    <td>{{ f.date|date:"d/m/Y" }}</td>
+                    <td>{{ f.partenaire.nom_etablissement }}</td>
+                    <td>{{ f.montant_total|floatformat:0|intcomma }}</td>
+                    <td class="fw-bold" style="color:var(--primary)">{{ f.montant_mutualite|floatformat:0|intcomma }}</td>
+                    <td>{{ f.montant_ticket_moderateur|floatformat:0|intcomma }}</td>
+                    <td>
+                        {% if f.statut == 'BROUILLON' %}<span class="badge badge-secondary">Brouillon</span>
+                        {% elif f.statut == 'SOUMIS' %}<span class="badge badge-warning">Soumise</span>
+                        {% elif f.statut == 'VALIDE' %}<span class="badge badge-success">Validée</span>
+                        {% elif f.statut == 'PAYE' %}<span class="badge badge-info">Payée</span>
+                        {% elif f.statut == 'REJETE' %}<span class="badge badge-danger">Rejetée</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if documents %}
+<div class="card" style="margin-top:20px;">
+    <div class="card-header">
+        <span><i class="bi bi-file-earmark"></i> Documents médicaux</span>
+        <a href="{% url 'portail_partenaire:transferer_document' membre.pk %}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-upload"></i> Ajouter
+        </a>
+    </div>
+    <div class="card-body" style="padding:0;">
+        <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Date</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in documents %}
+                <tr>
+                    <td><span class="badge badge-info">{{ d.get_type_document_display }}</span></td>
+                    <td>{{ d.description|truncatechars:60|default:"—" }}</td>
+                    <td>{{ d.date_creation|date:"d/m/Y H:i" }}</td>
+                    <td><a href="{{ d.fichier.url }}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titre }} — {{ block.super }}{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-building-gear{% endblock %}
+{% block page_subtitle %}{{ etablissement.nom|default:"Nouveau service" }}{% endblock %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-info-circle me-2" style="color:var(--or);"></i> Informations du service</div>
+        <div class="card-body p-4 row g-3">
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.etablissement.id_for_label }}">{{ form.etablissement.label }} <span style="color:#e74c3c;">*</span></label>
+                {{ form.etablissement }}
+                {% if form.etablissement.errors %}<div class="text-danger small">{{ form.etablissement.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.code.id_for_label }}">{{ form.code.label }} <span style="color:#e74c3c;">*</span></label>
+                {{ form.code }}
+                {% if form.code.errors %}<div class="text-danger small">{{ form.code.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-8">
+                <label class="form-label" for="{{ form.nom.id_for_label }}">{{ form.nom.label }} <span style="color:#e74c3c;">*</span></label>
+                {{ form.nom }}
+                {% if form.nom.errors %}<div class="text-danger small">{{ form.nom.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="{{ form.specialite.id_for_label }}">{{ form.specialite.label }}</label>
+                {{ form.specialite }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="{{ form.responsable.id_for_label }}">{{ form.responsable.label }}</label>
+                {{ form.responsable }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.telephone.id_for_label }}">{{ form.telephone.label }}</label>
+                {{ form.telephone }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                {{ form.email }}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="{{ form.etage.id_for_label }}">{{ form.etage.label }}</label>
+                {{ form.etage }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.aile.id_for_label }}">{{ form.aile.label }}</label>
+                {{ form.aile }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="{{ form.ordre.id_for_label }}">{{ form.ordre.label }}</label>
+                {{ form.ordre }}
+            </div>
+            <div class="col-md-3">
+                <div class="form-check mt-4">
+                    {{ form.actif }}
+                    <label class="form-check-label" for="{{ form.actif.id_for_label }}">{{ form.actif.label }}</label>
+                </div>
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                {{ form.description }}
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 text-end">
+        <a href="{% url 'gestion_chambres:service_liste' %}" class="btn btn-outline-secondary me-2"><i class="bi bi-arrow-left me-1"></i> Annuler</a>
+        <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i> Enregistrer</button>
+    </div>
+</form>
+{% endblock %}

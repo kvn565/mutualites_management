@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Budgets{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-bold mb-0">📊 Budgets</h5>
+    <a href="{% url 'comptabilite:budget_create' %}" class="btn btn-primary btn-sm">+ Nouveau budget</a>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light"><tr><th>Exercice</th><th>Type</th><th>Centre</th><th>Statut</th><th class="text-end">Prévu</th><th class="text-end">Réalisé</th><th class="text-end">Taux</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for b in budgets %}
+          <tr>
+            <td>{{ b.annee }}</td>
+            <td>{{ b.get_type_budget_display }}</td>
+            <td>{{ b.centre.code|default:'—' }}</td>
+            <td>{% include 'comptabilite/_statut_budget.html' %}</td>
+            <td class="text-end">{{ b.total_prevu|floatformat:0|intcomma }}</td>
+            <td class="text-end">{{ b.total_realise|floatformat:0|intcomma }}</td>
+            <td class="text-end">{% widthratio b.total_realise b.total_prevu 100 %}%</td>
+            <td><a href="{% url 'comptabilite:budget_detail' b.pk %}" class="btn btn-sm btn-outline-info">👁️</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="text-center py-4 text-muted">Aucun budget.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

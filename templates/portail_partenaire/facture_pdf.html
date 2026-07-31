@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+{% load humanize %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Facture {{ facture.numero }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm 1.5cm;
+            @top-center {
+                content: "";
+                font-size: 8px;
+                color: #666;
+            }
+            @bottom-center {
+                content: "Page " counter(page) " / " counter(pages);
+                font-size: 8px;
+                color: #666;
+            }
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 11px;
+            color: #1a1a1a;
+            line-height: 1.5;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 3px solid #0a5c36;
+        }
+        .header-left h1 {
+            font-size: 20px;
+            color: #0a5c36;
+            margin-bottom: 4px;
+        }
+        .header-left p {
+            font-size: 10px;
+            color: #555;
+        }
+        .header-right {
+            text-align: right;
+            font-size: 10px;
+        }
+        .header-right h2 {
+            font-size: 14px;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        .badge-paye { background: #dcfce7; color: #166534; }
+        .badge-valide { background: #dbeafe; color: #1e40af; }
+        .badge-soumis { background: #fef9c3; color: #854d0e; }
+        .badge-rejete { background: #fee2e2; color: #991b1b; }
+        .badge-brouillon { background: #f1f5f9; color: #475569; }
+
+        .info-section {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .info-box {
+            flex: 1;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px;
+        }
+        .info-box h3 {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #eef2f6;
+        }
+        .info-box p {
+            font-size: 11px;
+            margin: 3px 0;
+        }
+        .info-box .label {
+            color: #94a3b8;
+            font-size: 9px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        thead th {
+            background: #0a5c36;
+            color: #fff;
+            padding: 8px 10px;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            text-align: left;
+        }
+        thead th.right { text-align: right; }
+        thead th.center { text-align: center; }
+        tbody td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 10px;
+        }
+        tbody td.right { text-align: right; }
+        tbody td.center { text-align: center; }
+        tbody tr:nth-child(even) { background: #fafbfc; }
+
+        tfoot td {
+            padding: 6px 10px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        tfoot td.right { text-align: right; }
+        .totals {
+            margin-left: auto;
+            width: 320px;
+        }
+        .totals table { margin-bottom: 0; }
+        .totals td { padding: 4px 10px; border: none; }
+        .totals .final td {
+            border-top: 2px solid #0a5c36;
+            font-size: 12px;
+            padding-top: 6px;
+        }
+
+        .footer {
+            margin-top: 32px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 9px;
+            color: #94a3b8;
+            text-align: center;
+        }
+        .footer p { margin: 2px 0; }
+
+        .diagnostic {
+            margin-top: 16px;
+            padding: 10px 12px;
+            background: #f8fafc;
+            border-radius: 6px;
+            border-left: 3px solid #0a5c36;
+        }
+        .diagnostic h4 {
+            font-size: 10px;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+        .diagnostic p { font-size: 11px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-left">
+            {% if partenaire.logo %}
+            <img src="{{ partenaire.logo.url }}" alt="Logo" style="max-height:50px;margin-bottom:8px;">
+            {% endif %}
+            <h1>{{ partenaire.nom_etablissement }}</h1>
+            <p>{{ partenaire.adresse_complete|default:"" }}</p>
+            <p>Tél: {{ partenaire.telephone|default:"" }} | Email: {{ partenaire.email|default:"" }}</p>
+            <p>NIF: {{ partenaire.nif|default:"---" }}</p>
+        </div>
+        <div class="header-right">
+            <h2>FACTURE</h2>
+            <p><strong>N° {{ facture.numero }}</strong></p>
+            <p>Date: {{ facture.date|date:"d/m/Y" }}</p>
+            <p>
+                {% if facture.statut == 'PAYE' %}<span class="badge badge-paye">Payée</span>
+                {% elif facture.statut == 'VALIDE' %}<span class="badge badge-valide">Validée</span>
+                {% elif facture.statut == 'SOUMIS' %}<span class="badge badge-soumis">Soumise</span>
+                {% elif facture.statut == 'REJETE' %}<span class="badge badge-rejete">Rejetée</span>
+                {% else %}<span class="badge badge-brouillon">Brouillon</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-box">
+            <h3>Mutualité</h3>
+            <p><strong>{{ mutualite.nom }}</strong></p>
+            <p class="label">Code: {{ mutualite.code_mutualite|default:"---" }}</p>
+            <p class="label">Adresse: {{ mutualite.adresse|default:"---" }}</p>
+        </div>
+        <div class="info-box">
+            <h3>Patient / Client</h3>
+            {% if facture.affilie %}
+            <p><strong>{{ facture.affilie.nom_complet }}</strong></p>
+            <p class="label">N° Affiliation: {{ facture.affilie.numero_affiliation }}</p>
+            {% if facture.ayant_droit %}
+            <p class="label">Ayant droit: {{ facture.ayant_droit.nom_complet }} ({{ facture.ayant_droit.get_lien_parente_display }})</p>
+            {% endif %}
+            {% elif facture.client_nom %}
+            <p><strong>{{ facture.client_nom }}</strong></p>
+            <p class="label">Client simple</p>
+            {% if facture.client_telephone %}
+            <p class="label">Tél: {{ facture.client_telephone }}</p>
+            {% endif %}
+            {% endif %}
+            <p class="label">N° Dossier: {{ facture.numero_dossier_soins|default:"---" }}</p>
+        </div>
+    </div>
+
+    {% if facture.diagnostic %}
+    <div class="diagnostic">
+        <h4>Diagnostic</h4>
+        <p>{{ facture.diagnostic }}</p>
+    </div>
+    {% endif %}
+
+    <h3 style="font-size:11px;margin:16px 0 8px;color:#0a5c36;">Détail des prestations</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:40%;">Prestation</th>
+                <th class="center" style="width:8%;">Qté</th>
+                <th class="right" style="width:12%;">P.U. (BIF)</th>
+                <th class="right" style="width:12%;">Total (BIF)</th>
+                <th class="center" style="width:8%;">%</th>
+                <th class="right" style="width:12%;">Part Mut.</th>
+                <th class="right" style="width:12%;">Patient</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ligne in facture.lignes.all %}
+            <tr>
+                <td>
+                    <div>{{ ligne.designation }}</div>
+                </td>
+                <td class="center">{{ ligne.quantite }}</td>
+                <td class="right">{{ ligne.prix_unitaire|floatformat:0|intcomma }}</td>
+                <td class="right">{{ ligne.total_ligne|floatformat:0|intcomma }}</td>
+                <td class="center">{{ ligne.taux_applique }}%</td>
+                <td class="right">{{ ligne.part_mutualite|floatformat:0|intcomma }}</td>
+                <td class="right">{{ ligne.part_patient|floatformat:0|intcomma }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table>
+            <tr>
+                <td>Total facture</td>
+                <td class="right">{{ facture.montant_total|floatformat:0|intcomma }} BIF</td>
+            </tr>
+            <tr>
+                <td>Part mutualité ({{ facture.lignes.first.taux_applique|default:"80" }}%)</td>
+                <td class="right">{{ facture.montant_mutualite|floatformat:0|intcomma }} BIF</td>
+            </tr>
+            <tr class="final">
+                <td>Ticket modérateur (patient)</td>
+                <td class="right">{{ facture.montant_ticket_moderateur|floatformat:0|intcomma }} BIF</td>
+            </tr>
+        </table>
+    </div>
+
+    {% if facture.notes %}
+    <div style="margin-top:16px;padding:8px 12px;background:#fffbeb;border-radius:4px;font-size:10px;">
+        <strong>Notes:</strong> {{ facture.notes }}
+    </div>
+    {% endif %}
+
+    {% if facture.statut == 'REJETE' and facture.motif_rejet %}
+    <div style="margin-top:16px;padding:8px 12px;background:#fef2f2;border-radius:4px;font-size:10px;color:#991b1b;">
+        <strong>Motif de rejet:</strong> {{ facture.motif_rejet }}
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>{{ partenaire.nom_etablissement }} — {{ partenaire.adresse_complete|default:"" }}</p>
+        <p>Document généré le {% now "d/m/Y H:i" %}</p>
+        <p>Ce document est une facture officielle faisant office de justificatif de soins.</p>
+    </div>
+
+</body>
+</html>

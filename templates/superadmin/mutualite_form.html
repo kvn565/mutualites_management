@@ -5,7 +5,7 @@
 {% if mutualite %}
 <p style="color:#8a9aaa;font-size:0.82rem;margin:2px 0 0;">NIF : {{ mutualite.nif }}</p>
 {% else %}
-<p style="color:#8a9aaa;font-size:0.82rem;margin:2px 0 0;">Une clé d'essai 14 jours sera activée automatiquement</p>
+<p style="color:#8a9aaa;font-size:0.82rem;margin:2px 0 0;">Une clé d'essai 14 jours sera activée automatiquement. Remplissez aussi la localisation pour que le responsable voie ces infos lors de son inscription.</p>
 {% endif %}
 {% endblock %}
 {% block breadcrumb %}
@@ -20,7 +20,6 @@
 <div class="row justify-content-center">
     <div class="col-lg-7">
 
-        {# ── Infos clé d'essai (création uniquement) ── #}
         {% if not mutualite %}
         <div class="alert alert-info mb-4" style="border-left:4px solid #3498db;">
             <div class="d-flex gap-3">
@@ -28,10 +27,10 @@
                 <div>
                     <strong>Comment ça fonctionne ?</strong>
                     <ol class="mb-0 mt-2" style="font-size:0.85rem;padding-left:18px;">
-                        <li>Vous saisissez le <strong>nom</strong> et le <strong>NIF exact</strong> de la mutualité</li>
+                        <li>Vous saisissez le <strong>nom</strong>, le <strong>NIF</strong> et la <strong>localisation</strong> de la mutualité</li>
                         <li>Une clé d'essai <strong>14 jours</strong> est activée automatiquement</li>
-                        <li>L'administrateur de la mutualité se rend sur <code>/setup/</code> et entre son NIF pour s'inscrire</li>
-                        <li>Après l'essai, l'administrateur contacte le super admin pour recevoir une clé payante</li>
+                        <li>Le responsable de la mutualité se rend sur <code>/inscription/</code> et entre son NIF pour créer son compte</li>
+                        <li>Après l'essai, le responsable contacte le super admin pour une clé payante</li>
                     </ol>
                 </div>
             </div>
@@ -44,46 +43,41 @@
                 {{ titre }}
             </div>
             <div class="card-body p-4">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
 
-                    {# ── Nom ── #}
-                    <div class="mb-4">
-                        <label class="form-label" for="{{ form.nom.id_for_label }}">
-                            Nom de la mutualité <span style="color:#e74c3c;">*</span>
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ field.id_for_label }}">
+                            {{ field.label }}
+                            {% if field.field.required %}<span style="color:#e74c3c;">*</span>{% endif %}
                         </label>
-                        {{ form.nom }}
-                        {% if form.nom.errors %}
-                        <div style="color:#e74c3c;font-size:0.8rem;margin-top:5px;">
-                            <i class="bi bi-x-circle me-1"></i>{{ form.nom.errors.0 }}
+                        <div class="input-group">
+                            {{ field }}
+                            {% if field.name == 'nif' and not mutualite %}
+                            <span id="nif-status" style="display:flex;align-items:center;padding:0 10px;"></span>
+                            {% endif %}
                         </div>
+                        {% if field.name == 'nif' and not mutualite %}
+                        <div id="nif-msg" style="font-size:0.78rem;margin-top:5px;"></div>
                         {% endif %}
-                    </div>
-
-                    {# ── NIF ── #}
-                    <div class="mb-4">
-                        <label class="form-label" for="{{ form.nif.id_for_label }}">
-                            NIF (Numéro d'Identification Fiscale) <span style="color:#e74c3c;">*</span>
-                        </label>
-                        {{ form.nif }}
-                        {% if form.nif.help_text %}
+                        {% if field.help_text %}
                         <div style="font-size:0.78rem;color:#8a9aaa;margin-top:5px;">
-                            <i class="bi bi-info-circle me-1"></i>{{ form.nif.help_text }}
+                            <i class="bi bi-info-circle me-1"></i>{{ field.help_text }}
                         </div>
                         {% endif %}
-                        {% if form.nif.errors %}
+                        {% if field.errors %}
                         <div style="color:#e74c3c;font-size:0.8rem;margin-top:5px;">
-                            <i class="bi bi-x-circle me-1"></i>{{ form.nif.errors.0 }}
+                            <i class="bi bi-x-circle me-1"></i>{{ field.errors.0 }}
                         </div>
                         {% endif %}
                     </div>
+                    {% endfor %}
 
-                    {# ── Erreurs globales ── #}
                     {% if form.non_field_errors %}
                     <div class="alert alert-danger">{{ form.non_field_errors.0 }}</div>
                     {% endif %}
 
-                    {# ── Boutons ── #}
                     <div class="d-flex gap-3 mt-4 pt-2" style="border-top:1px solid #f0f2f5;">
                         <button type="submit" class="btn btn-gold">
                             <i class="bi bi-{% if mutualite %}check-circle{% else %}plus-circle{% endif %} me-2"></i>
@@ -98,7 +92,6 @@
             </div>
         </div>
 
-        {# ── Infos modification ── #}
         {% if mutualite %}
         <div class="card mt-4" style="background:#fff8e5;border:1px solid rgba(201,168,76,0.3);">
             <div class="card-body py-3 px-4">
@@ -115,4 +108,67 @@
 
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if not mutualite %}
+<script>
+(function() {
+    var nifInput = document.getElementById('id_nif');
+    var nomInput = document.getElementById('id_nom');
+    var statusEl = document.getElementById('nif-status');
+    var msgEl = document.getElementById('nif-msg');
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    var timer = null;
+
+    if (!nifInput || !nomInput) return;
+
+    nifInput.addEventListener('input', function() {
+        clearTimeout(timer);
+        var val = this.value.trim();
+
+        if (!statusEl) {
+            statusEl = document.getElementById('nif-status');
+        }
+        if (!msgEl) {
+            msgEl = document.getElementById('nif-msg');
+        }
+
+        if (statusEl) statusEl.textContent = '';
+        if (msgEl) msgEl.textContent = '';
+
+        if (val.length < 10) return;
+
+        timer = setTimeout(function() {
+            if (statusEl) statusEl.innerHTML = '<span class="spinner-border spinner-border-sm" style="color:#8a9aaa;"></span>';
+
+            fetch('{% url "superadmin:ajax_verifier_nif" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'nif=' + encodeURIComponent(val),
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.ok) {
+                    nomInput.value = data.nom || '';
+                    if (statusEl) statusEl.innerHTML = '<i class="bi bi-check-circle-fill" style="color:#10b981;"></i>';
+                    if (msgEl) msgEl.innerHTML = '<span style="color:#10b981;">Nom trouvé : <strong>' + (data.nom || '') + '</strong></span>';
+                } else {
+                    nomInput.value = '';
+                    if (statusEl) statusEl.innerHTML = '<i class="bi bi-x-circle-fill" style="color:#e74c3c;"></i>';
+                    if (msgEl) msgEl.innerHTML = '<span style="color:#e74c3c;">' + (data.error || 'Erreur') + '</span>';
+                }
+            })
+            .catch(function() {
+                if (statusEl) statusEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;"></i>';
+                if (msgEl) msgEl.innerHTML = '<span style="color:#f59e0b;">Erreur de connexion</span>';
+            });
+        }, 500);
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

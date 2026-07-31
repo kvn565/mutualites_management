@@ -1,12 +1,21 @@
+import json
+from datetime import date
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
+from django.db.models.functions import ExtractMonth
+from django.http import JsonResponse
 
 from .models import Facture, LigneFacture
 from .forms import FactureForm, LigneFactureFormSet
 from core.mixins import enregistrer_audit
+from affilies.models import Affilie
+from ayants_droit.models import AyantDroit
+from partenaires.models import Partenaire
+from services_sante.models import ServiceSante
+from pharmacie.models import Medicament
 
 
 def _get_facture_qs(user):
@@ -33,27 +42,47 @@ def liste(request):
 
     q = request.GET.get('q', '')
     statut = request.GET.get('statut', '')
+    mois = request.GET.get('mois', '')
+    annee = request.GET.get('annee', '')
 
     if q:
         qs = qs.filter(
             Q(numero__icontains=q) |
             Q(partenaire__nom_etablissement__icontains=q) |
             Q(affilie__nom__icontains=q) |
-            Q(affilie__numero_affiliation__icontains=q)
+            Q(affilie__prenom__icontains=q) |
+            Q(affilie__numero_affiliation__icontains=q) |
+            Q(affilie__numero_carte_identite__icontains=q)
         )
     if statut:
         qs = qs.filter(statut=statut)
+    if mois:
+        qs = qs.filter(date__month=mois)
+    if annee:
+        qs = qs.filter(date__year=annee)
 
     paginator = Paginator(qs, 10)
     page = request.GET.get('page', 1)
     factures = paginator.get_page(page)
 
+    from datetime import datetime
+    annee_courante = datetime.now().year
+    annees = [str(a) for a in range(annee_courante, annee_courante - 5, -1)]
+
     return render(request, 'factures/liste.html', {
         'factures': factures,
         'q': q,
         'statut': statut,
+        'mois': mois,
+        'annee': annee,
         'total': qs.count(),
         'statut_choices': Facture.STATUT_CHOICES,
+        'mois_choices': [
+            (1, 'Janvier'), (2, 'Février'), (3, 'Mars'), (4, 'Avril'),
+            (5, 'Mai'), (6, 'Juin'), (7, 'Juillet'), (8, 'Août'),
+            (9, 'Septembre'), (10, 'Octobre'), (11, 'Novembre'), (12, 'Décembre'),
+        ],
+        'annees': annees,
     })
 
 
@@ -63,21 +92,80 @@ def journal(request):
         messages.warning(request, "Accès réservé aux utilisateurs de la mutualité.")
         return redirect('superadmin:dashboard')
 
-    qs = _get_facture_qs(request.user).filter(statut='VALIDE')
+    mutualite = request.user.mutualite
+    if not mutualite:
+        messages.error(request, "Aucune mutualité associée.")
+        return redirect('dashboard')
 
-    total_mut = qs.aggregate(Sum('montant_mutualite'))['montant_mutualite__sum'] or 0
-    total_patient = qs.aggregate(Sum('montant_ticket_moderateur'))['montant_ticket_moderateur__sum'] or 0
-    total_global = qs.aggregate(Sum('montant_total'))['montant_total__sum'] or 0
+    annee = request.GET.get('annee', str(date.today().year))
+    try:
+        annee = int(annee)
+    except ValueError:
+        annee = date.today().year
 
-    paginator = Paginator(qs, 10)
+    q = request.GET.get('q', '').strip()
+
+    facture_qs = Facture.objects.filter(
+        mutualite=mutualite,
+        date__year=annee,
+        statut__in=('SOUMIS', 'VALIDE', 'PAYE'),
+        affilie__isnull=False,
+    ).select_related('affilie')
+
+    rows = {}
+    for fac in facture_qs:
+        aff = fac.affilie
+        pk = aff.pk
+        if pk not in rows:
+            rows[pk] = {
+                'affilie': aff,
+                'mois': [0] * 13,
+            }
+        rows[pk]['mois'][fac.date.month] += fac.montant_total
+
+    lignes = sorted(rows.values(), key=lambda r: (r['affilie'].nom, r['affilie'].prenom))
+    for r in lignes:
+        r['total'] = sum(r['mois'][1:])
+
+    if q:
+        q_lower = q.lower()
+        lignes = [
+            r for r in lignes
+            if q_lower in r['affilie'].numero_affiliation.lower()
+            or (r['affilie'].numero_carte_identite and q_lower in r['affilie'].numero_carte_identite.lower())
+            or q_lower in r['affilie'].nom.lower()
+            or q_lower in r['affilie'].prenom.lower()
+        ]
+
+    total_mut = facture_qs.aggregate(Sum('montant_mutualite'))['montant_mutualite__sum'] or 0
+    total_global = facture_qs.aggregate(Sum('montant_total'))['montant_total__sum'] or 0
+
+    total_par_mois = [0] * 13
+    for r in lignes:
+        for i in range(1, 13):
+            total_par_mois[i] += r['mois'][i]
+
+    annees_qs = list(Facture.objects.filter(
+        mutualite=mutualite, affilie__isnull=False,
+    ).dates('date', 'year', order='DESC'))
+    annees_list = sorted(set(
+        [a.year for a in annees_qs] + list(range(date.today().year, date.today().year - 5, -1))
+    ), reverse=True)
+
+    paginator = Paginator(lignes, 15)
     page = request.GET.get('page', 1)
-    factures = paginator.get_page(page)
+    lignes_page = paginator.get_page(page)
 
     return render(request, 'factures/journal.html', {
-        'factures': factures,
+        'lignes': lignes_page,
+        'annee': annee,
+        'q': q,
+        'annees': annees_list,
         'total_mut': total_mut,
-        'total_patient': total_patient,
         'total_global': total_global,
+        'total_par_mois': total_par_mois,
+        'mois_noms': ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                       'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'],
     })
 
 
@@ -130,10 +218,46 @@ def ajouter(request):
             messages.success(request, f"Facture {facture.numero} enregistrée avec succès.")
             return redirect('factures:detail', pk=facture.pk)
     else:
-        form = FactureForm(initial={'numero': Facture.generer_numero()})
+        form = FactureForm(initial={'numero': Facture.generer_numero(), 'date': date.today()})
+        form.fields['ayant_droit'].queryset = AyantDroit.objects.none()
         formset = LigneFactureFormSet()
 
-    return render(request, 'factures/form.html', {'form': form, 'formset': formset, 'titre': 'Saisir une facture'})
+    mutualite = request.user.mutualite
+
+    if not Partenaire.objects.filter(mutualite=mutualite).exists():
+        Partenaire.objects.create(
+            mutualite=mutualite,
+            code_partenaire=f"MUT-{mutualite.pk:04d}",
+            nom_etablissement=mutualite.nom,
+            type_partenaire='CENTRE_SANTE',
+        )
+    form.fields['partenaire'].queryset = Partenaire.objects.filter(mutualite=mutualite)
+
+    services = ServiceSante.objects.filter(mutualite=mutualite, actif=True)
+    medicaments = Medicament.objects.filter(mutualite=mutualite, actif=True, pris_en_charge=True)
+
+    for f in formset:
+        f.fields['service'].queryset = services
+        f.fields['medicament'].queryset = medicaments
+
+    services_json = json.dumps([
+        {'id': s.pk, 'nom': str(s), 'taux': float(s.taux_prise_en_charge or 80)}
+        for s in services
+    ])
+    medicaments_json = json.dumps([
+        {'id': m.pk, 'nom': str(m), 'prix': float(m.prix_reference or 0), 'taux': float(m.taux_remboursement or 80)}
+        for m in medicaments
+    ])
+
+    return render(request, 'factures/form.html', {
+        'form': form,
+        'formset': formset,
+        'titre': 'Saisir une facture',
+        'services': services,
+        'medicaments': medicaments,
+        'services_json': services_json,
+        'medicaments_json': medicaments_json,
+    })
 
 
 @login_required
@@ -171,9 +295,48 @@ def modifier(request, pk):
             return redirect('factures:detail', pk=facture.pk)
     else:
         form = FactureForm(instance=facture)
+        form.fields['partenaire'].queryset = Partenaire.objects.filter(mutualite=facture.mutualite)
+        form.fields['ayant_droit'].queryset = AyantDroit.objects.filter(affilie=facture.affilie, actif=True, supprime=False) if facture.affilie else AyantDroit.objects.none()
         formset = LigneFactureFormSet(instance=facture)
 
+    services = ServiceSante.objects.filter(mutualite=facture.mutualite, actif=True)
+    medicaments = Medicament.objects.filter(mutualite=facture.mutualite, actif=True, pris_en_charge=True)
+    for f in formset:
+        f.fields['service'].queryset = services
+        f.fields['medicament'].queryset = medicaments
+
     return render(request, 'factures/form.html', {'form': form, 'formset': formset, 'obj': facture, 'titre': 'Modifier la facture'})
+
+
+@login_required
+def rechercher_affilie_json(request):
+    q = request.GET.get('q', '').strip()
+    if not q or len(q) < 2:
+        return JsonResponse([], safe=False)
+    mutualite = request.user.mutualite
+    affilies = Affilie.objects.filter(
+        mutualite=mutualite, supprime=False, actif=True
+    ).filter(
+        Q(numero_carte_identite__icontains=q) |
+        Q(numero_affiliation__icontains=q) |
+        Q(nom__icontains=q) |
+        Q(prenom__icontains=q)
+    )[:10]
+    results = []
+    for a in affilies:
+        ayants_droit = list(AyantDroit.objects.filter(
+            affilie=a, actif=True, supprime=False
+        ).values('pk', 'nom', 'postnom', 'prenom', 'lien_parente'))
+        results.append({
+            'pk': a.pk,
+            'nom': a.nom,
+            'postnom': a.postnom,
+            'prenom': a.prenom,
+            'numero_carte_identite': a.numero_carte_identite,
+            'numero_affiliation': a.numero_affiliation,
+            'ayants_droit': ayants_droit,
+        })
+    return JsonResponse(results, safe=False)
 
 
 @login_required
@@ -194,7 +357,7 @@ def supprimer(request, pk):
 
     if request.method == 'POST':
         numero = facture.numero
-        facture.delete()
+        facture.delete(user=request.user)
         enregistrer_audit(request, 'SUPPRESSION', 'factures', f"Suppression facture : {numero}", 'Facture', pk)
         messages.success(request, f"Facture {numero} supprimée.")
         return redirect('factures:liste')
@@ -215,6 +378,26 @@ def _update_facture_totals(facture):
     facture.montant_total = total
     facture.montant_mutualite = mut
     facture.montant_ticket_moderateur = pat
+    if facture.affilie and facture.statut in ('SOUMIS', 'VALIDE', 'PAYE'):
+        from core.utils import verifier_plafond_affilie
+        verifier_plafond_affilie(facture.affilie)
+        from core.models import Notification
+        if not Notification.objects.filter(
+            mutualite=facture.mutualite,
+            affilie=facture.affilie,
+            type_notification='FACTURE',
+            message__startswith=f"Nouvelle facture {facture.numero} —",
+        ).exists():
+            Notification.objects.create(
+                mutualite=facture.mutualite,
+                affilie=facture.affilie,
+                type_notification='FACTURE',
+                message=(
+                    f"Nouvelle facture {facture.numero} — "
+                    f"{facture.affilie.nom_complet} — "
+                    f"{facture.montant_mutualite:,.0f} FBU"
+                ),
+            )
 
 
 @login_required
@@ -224,8 +407,16 @@ def soumettre(request, pk):
         return redirect('factures:liste')
     facture = get_object_or_404(_get_facture_qs(request.user), pk=pk, statut='BROUILLON')
     if request.method == 'POST':
+        if facture.affilie and facture.affilie.bloque:
+            messages.error(
+                request,
+                f"L'affilié {facture.affilie.nom_complet} est actuellement bloqué "
+                f"(plafond mensuel atteint). La soumission est refusée."
+            )
+            return redirect('factures:detail', pk=pk)
         facture.statut = 'SOUMIS'
         facture.save(update_fields=['statut'])
+        _update_facture_totals(facture)
         enregistrer_audit(request, 'MODIFICATION', 'factures', f"Soumission facture : {facture.numero}", 'Facture', pk)
         messages.success(request, f"Facture {facture.numero} soumise pour validation.")
     return redirect('factures:detail', pk=pk)
@@ -238,8 +429,16 @@ def valider(request, pk):
         return redirect('factures:liste')
     facture = get_object_or_404(_get_facture_qs(request.user), pk=pk, statut='SOUMIS')
     if request.method == 'POST':
+        if facture.affilie and facture.affilie.bloque:
+            messages.error(
+                request,
+                f"L'affilié {facture.affilie.nom_complet} est bloqué "
+                f"(plafond mensuel atteint). Validation refusée."
+            )
+            return redirect('factures:detail', pk=pk)
         facture.statut = 'VALIDE'
         facture.save(update_fields=['statut'])
+        _update_facture_totals(facture)
         enregistrer_audit(request, 'VALIDATION', 'factures', f"Validation facture : {facture.numero}", 'Facture', pk)
         messages.success(request, f"Facture {facture.numero} validée.")
     return redirect('factures:detail', pk=pk)

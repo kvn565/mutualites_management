@@ -8,6 +8,7 @@ from django.db.models import Q
 from .models import Origine
 from .forms import OrigineForm
 from core.mixins import enregistrer_audit
+from django.views.decorators.http import require_POST
 
 @login_required
 def liste(request):
@@ -48,10 +49,25 @@ def detail(request, pk):
         affilies = origine.affilies.filter(supprime=False)[:50]
     except:
         pass
-        
+
+    # Exclusions
+    exclusions = []
+    medicaments = []
+    services = []
+    try:
+        from .models import OrigineExclusion
+        exclusions = OrigineExclusion.objects.filter(origine=origine).select_related('medicament', 'service')
+        medicaments = origine.mutualite.medicament_set.all() if origine.mutualite else []
+        services = origine.mutualite.servicesante_set.all() if origine.mutualite else []
+    except:
+        pass
+
     return render(request, 'origines/detail.html', {
         'origine': origine,
         'affilies': affilies,
+        'exclusions': exclusions,
+        'medicaments': medicaments,
+        'services': services,
     })
 
 @login_required
@@ -66,7 +82,9 @@ def ajouter(request):
     if request.method == 'POST':
         form = OrigineForm(request.POST)
         if form.is_valid():
-            obj = form.save()
+            obj = form.save(commit=False)
+            obj.mutualite = request.user.mutualite
+            obj.save()
             enregistrer_audit(request, 'CREATION', 'origines', f"Création origine : {obj.nom}", 'Origine', obj.pk)
             messages.success(request, f"✅ Origine {obj.nom} ajoutée avec succès.")
             return redirect('origines:liste')
@@ -97,6 +115,23 @@ def modifier(request, pk):
         
     return render(request, 'origines/form.html', {'form': form, 'obj': obj, 'titre': 'Modifier origine'})
 
+from django.http import JsonResponse
+
+@login_required
+def ajax_creer(request):
+    if request.user.est_super_admin or not request.user.peut_modifier:
+        return JsonResponse({'ok': False, 'error': 'Permission refusée.'})
+    nom = request.POST.get('nom', '').strip()
+    if not nom:
+        return JsonResponse({'ok': False, 'error': 'Le nom est requis.'})
+    obj = Origine.objects.create(
+        mutualite=request.user.mutualite,
+        nom=nom,
+        type_origine='AUTRE',
+    )
+    return JsonResponse({'ok': True, 'id': obj.pk, 'text': str(obj)})
+
+
 @login_required
 def supprimer(request, pk):
     if request.user.est_super_admin:
@@ -119,3 +154,59 @@ def supprimer(request, pk):
         return redirect('origines:liste')
         
     return render(request, 'origines/confirm_supprimer.html', {'obj': obj})
+
+
+# ── Exclusions d'origine ──────────────────────────────────
+
+@login_required
+@require_POST
+def exclusion_ajouter(request, origine_pk):
+    from .models import Origine
+    from .models import OrigineExclusion
+    origine = get_object_or_404(Origine, pk=origine_pk, mutualite=request.user.mutualite)
+    type_excl = request.POST.get('type')
+    item_pk = request.POST.get('item_pk')
+    motif = request.POST.get('motif', '')
+
+    if not type_excl or not item_pk:
+        messages.error(request, "Veuillez sélectionner un type et un élément.")
+        return redirect('origines:detail', pk=origine_pk)
+
+    if type_excl == 'medicament':
+        from pharmacie.models import Medicament
+        item = get_object_or_404(Medicament, pk=item_pk, mutualite=request.user.mutualite)
+        if OrigineExclusion.objects.filter(origine=origine, medicament=item).exists():
+            messages.warning(request, "Ce médicament est déjà exclu pour cette origine.")
+            return redirect('origines:detail', pk=origine_pk)
+        OrigineExclusion.objects.create(
+            mutualite=request.user.mutualite,
+            origine=origine, medicament=item,
+            motif=motif, cree_par=request.user,
+        )
+        messages.success(request, f"Médicament « {item.nom} » exclu pour l'origine {origine.nom}.")
+    elif type_excl == 'service':
+        from services_sante.models import ServiceSante
+        item = get_object_or_404(ServiceSante, pk=item_pk, mutualite=request.user.mutualite)
+        if OrigineExclusion.objects.filter(origine=origine, service=item).exists():
+            messages.warning(request, "Ce service est déjà exclu pour cette origine.")
+            return redirect('origines:detail', pk=origine_pk)
+        OrigineExclusion.objects.create(
+            mutualite=request.user.mutualite,
+            origine=origine, service=item,
+            motif=motif, cree_par=request.user,
+        )
+        messages.success(request, f"Service « {item.nom} » exclu pour l'origine {origine.nom}.")
+
+    return redirect('origines:detail', pk=origine_pk)
+
+
+@login_required
+@require_POST
+def exclusion_supprimer(request, pk):
+    from .models import OrigineExclusion
+    exclusion = get_object_or_404(OrigineExclusion, pk=pk, mutualite=request.user.mutualite)
+    origine_pk = exclusion.origine.pk
+    label = str(exclusion)
+    exclusion.delete()
+    messages.success(request, f"Exclusion supprimée : {label}")
+    return redirect('origines:detail', pk=origine_pk)

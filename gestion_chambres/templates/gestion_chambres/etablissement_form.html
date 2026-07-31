@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — {{ block.super }}{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-building{% endblock %}
+{% block page_subtitle %}{{ etablissement.nom|default:"Nouvel établissement" }}{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-info-circle me-2" style="color:var(--or);"></i> Informations générales</div>
+                <div class="card-body p-4 row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.code.label }} <span class="text-danger">*</span></label>
+                        {{ form.code }}
+                        {% if form.code.errors %}<div class="text-danger small">{{ form.code.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">{{ form.nom.label }} <span class="text-danger">*</span></label>
+                        {{ form.nom }}
+                        {% if form.nom.errors %}<div class="text-danger small">{{ form.nom.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.sigle.label }}</label>
+                        {{ form.sigle }}
+                        {% if form.sigle.errors %}<div class="text-danger small">{{ form.sigle.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.type_etablissement.label }}</label>
+                        {{ form.type_etablissement }}
+                        {% if form.type_etablissement.errors %}<div class="text-danger small">{{ form.type_etablissement.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">{{ form.adresse.label }}</label>
+                        {{ form.adresse }}
+                        {% if form.adresse.errors %}<div class="text-danger small">{{ form.adresse.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.ville.label }}</label>
+                        {{ form.ville }}
+                        {% if form.ville.errors %}<div class="text-danger small">{{ form.ville.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.telephone.label }}</label>
+                        {{ form.telephone }}
+                        {% if form.telephone.errors %}<div class="text-danger small">{{ form.telephone.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.directeur.label }}</label>
+                        {{ form.directeur }}
+                        {% if form.directeur.errors %}<div class="text-danger small">{{ form.directeur.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.autorisation_fonctionnement.label }}</label>
+                        {{ form.autorisation_fonctionnement }}
+                        {% if form.autorisation_fonctionnement.errors %}<div class="text-danger small">{{ form.autorisation_fonctionnement.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.taux_prise_en_charge_defaut.label }} <span class="text-danger">*</span></label>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            {{ form.taux_prise_en_charge_defaut }}
+                            <span>%</span>
+                        </div>
+                        {% if form.taux_prise_en_charge_defaut.errors %}<div class="text-danger small">{{ form.taux_prise_en_charge_defaut.errors.0 }}</div>{% endif %}
+                        {% if form.taux_prise_en_charge_defaut.help_text %}<div class="form-text">{{ form.taux_prise_en_charge_defaut.help_text }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check mt-4">
+                            {{ form.conventionne }}
+                            <label class="form-check-label" for="{{ form.conventionne.id_for_label }}">{{ form.conventionne.label }}</label>
+                        </div>
+                        {% if form.conventionne.errors %}<div class="text-danger small">{{ form.conventionne.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check mt-4">
+                            {{ form.actif }}
+                            <label class="form-check-label" for="{{ form.actif.id_for_label }}">{{ form.actif.label }}</label>
+                        </div>
+                        {% if form.actif.errors %}<div class="text-danger small">{{ form.actif.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 text-end">
+                <a href="{% url 'gestion_chambres:etablissement_liste' %}" class="btn btn-outline-secondary me-2"><i class="bi bi-arrow-left me-1"></i> Annuler</a>
+                <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i> Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

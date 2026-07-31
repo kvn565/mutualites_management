@@ -37,7 +37,7 @@ class Affilie(models.Model):
         verbose_name='Mutualité',
     )
     
-    numero_affiliation = models.CharField(max_length=20, unique=True, verbose_name='N° de membre')
+    numero_affiliation = models.CharField(max_length=20, unique=True, verbose_name='ID du membre')
     nom = models.CharField(max_length=100, db_index=True, verbose_name='Nom')
     postnom = models.CharField(max_length=100, blank=True, db_index=True, verbose_name='Postnom')
     prenom = models.CharField(max_length=100, db_index=True, verbose_name='Prénom')
@@ -79,7 +79,7 @@ class Affilie(models.Model):
         max_length=200, blank=True, verbose_name='Hôpital de référence',
     )
 
-    date_adhesion = models.DateField(default=timezone.now, verbose_name="Date d'inscription")
+    date_adhesion = models.DateField(default=timezone.localdate, verbose_name="Date d'inscription")
     type_adhesion = models.CharField(
         max_length=20, choices=TYPE_ADHESION_CHOICES, default='INDIVIDUELLE',
         verbose_name="Type d'adhésion",
@@ -98,6 +98,77 @@ class Affilie(models.Model):
         verbose_name='Origine',
     )
     
+    # ── Garanties / Plafonds de remboursement ────────────────────
+    cotisation_mensuelle = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Cotisation mensuelle (BIF)',
+    )
+    limite_laboratoire = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Limite Laboratoire (BIF)',
+    )
+    limite_kinesitherapie = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Limite Kinésithérapie (BIF)',
+    )
+    limite_reanimation = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Limite Réanimation (BIF)',
+    )
+    limite_imagerie_medicale = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Limite Imagerie Médicale (BIF)',
+    )
+    soins_ambulatoires = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Soins Ambulatoires (BIF)',
+    )
+    hopital_plafond_chambre = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Hôpital plafond chambre/nuit (BIF)',
+    )
+    hpc_nuit = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='HPC / Nuit (BIF)',
+    )
+    limite_hospitalisation_generale = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Limite Hospitalisation Générale (BIF)',
+    )
+    maternite_forfait = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Maternité forfait (BIF)',
+    )
+    pourcentage_maternite = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0,
+        verbose_name='Pourcentage Maternité (%)',
+    )
+    pharmacie_forfait = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Pharmacie forfait (BIF)',
+    )
+    limites_medicaments = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Limites Médicaments (BIF)',
+    )
+    limites_lunettes = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Limites Lunettes (verre et monture) (BIF)',
+    )
+    limites_dents = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Limites Soins Dentaires (BIF)',
+    )
+
+    # ── Plafond mensuel global & blocage ─────────────────────────
+    plafond_mensuel = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Plafond mensuel global (BIF)',
+        help_text='Montant total remboursable par mois. 0 = pas de limite.',
+    )
+    bloque = models.BooleanField(default=False, verbose_name='Bloqué')
+    bloque_definitif = models.BooleanField(default=False, verbose_name='Bloqué définitivement')
+
     # Soft delete
     actif = models.BooleanField(default=True, db_index=True)
     supprime = models.BooleanField(default=False, db_index=True, verbose_name='Supprimé')
@@ -137,17 +208,101 @@ class Affilie(models.Model):
     def nombre_beneficiaires(self):
         return self.ayants_droit.filter(actif=True).count()
     
-    def soft_delete(self):
-        self.supprime = True
-        self.actif = False
-        self.date_suppression = timezone.now()
-        self.save(update_fields=['supprime','actif','date_suppression'])
-    
-    @classmethod
-    def generer_numero(cls):
-        """Génère le prochain numéro d'affiliation automatiquement."""
-        annee = timezone.now().year
-        count = cls.objects.filter(
-            date_creation__year=annee
-        ).count() + 1
-        return f"AFF-{annee}-{count:04d}"
+    def save(self, *args, **kwargs):
+        if not self.numero_affiliation:
+            super().save(*args, **kwargs)
+            code = self.mutualite.code_mutualite if self.mutualite else 'MUT'
+            self.numero_affiliation = f"{code}-{self.pk}"
+            super().save(update_fields=['numero_affiliation'])
+        else:
+            super().save(*args, **kwargs)
+
+    def delete(self, using=None, keep_parents=False, hard=False, user=None):
+        if hard:
+            super().delete(using=using, keep_parents=keep_parents)
+        else:
+            self.supprime = True
+            self.actif = False
+            self.date_suppression = timezone.now()
+            self.save(update_fields=['supprime', 'actif', 'date_suppression'])
+            from comptabilite.models import DeletedItem
+            DeletedItem.objects.enregistrer(self, user)
+
+    def restore(self, user=None):
+        self.supprime = False
+        self.actif = True
+        self.date_suppression = None
+        self.save(update_fields=['supprime', 'actif', 'date_suppression'])
+        from comptabilite.models import DeletedItem
+        from django.contrib.contenttypes.models import ContentType
+        DeletedItem.objects.filter(
+            content_type=ContentType.objects.get_for_model(self),
+            object_id=self.pk,
+            mutualite=getattr(self, 'mutualite', None),
+            restored_at__isnull=True
+        ).update(restored_at=timezone.now(), restored_by=user)
+
+    def _serialiser_pour_corbeille(self):
+        return {
+            'numero_affiliation': self.numero_affiliation,
+            'nom': self.nom,
+            'postnom': self.postnom,
+            'prenom': self.prenom,
+            'sexe': self.sexe,
+            'date_naissance': self.date_naissance.isoformat() if self.date_naissance else None,
+            'etat_civil': self.etat_civil,
+            'telephone': self.telephone,
+            'email': self.email,
+            'statut': self.statut,
+            'cotisation_mensuelle': str(self.cotisation_mensuelle),
+            'plafond_mensuel': str(self.plafond_mensuel),
+        }
+
+
+class AffilieExclusion(models.Model):
+    mutualite = models.ForeignKey(
+        'core.Mutualite', on_delete=models.CASCADE,
+        null=True, blank=True, related_name='%(class)ss',
+        verbose_name='Mutualité',
+    )
+    affilie = models.ForeignKey(
+        Affilie, on_delete=models.CASCADE,
+        related_name='exclusions', verbose_name='Affilié',
+    )
+    medicament = models.ForeignKey(
+        'pharmacie.Medicament', on_delete=models.CASCADE,
+        null=True, blank=True, verbose_name='Médicament',
+    )
+    service = models.ForeignKey(
+        'services_sante.ServiceSante', on_delete=models.CASCADE,
+        null=True, blank=True, verbose_name='Service',
+    )
+    motif = models.TextField(blank=True, verbose_name='Motif d\'exclusion')
+    date_creation = models.DateTimeField(auto_now_add=True, verbose_name='Date de création')
+    cree_par = models.ForeignKey(
+        Utilisateur, on_delete=models.SET_NULL,
+        null=True, blank=True, verbose_name='Créé par',
+    )
+
+    objects = TenantManager()
+
+    class Meta:
+        verbose_name = 'Exclusion'
+        verbose_name_plural = 'Exclusions'
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(medicament__isnull=False, service__isnull=True) |
+                    models.Q(medicament__isnull=True, service__isnull=False)
+                ),
+                name='exclusion_un_seul_type',
+                violation_error_message='Une exclusion doit concerner soit un médicament, soit un service.',
+            ),
+        ]
+
+    def __str__(self):
+        if self.medicament:
+            return f"{self.affilie.nom_complet} → Médicament: {self.medicament.nom}"
+        if self.service:
+            return f"{self.affilie.nom_complet} → Service: {self.service.nom}"
+        return f"Exclusion #{self.pk}"

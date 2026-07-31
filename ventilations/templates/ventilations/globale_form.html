@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block page_title %}Nouvelle ventilation globale{% endblock %}
+{% block page_icon %}bi bi-globe{% endblock %}
+{% block nav_ventilations %}active{% endblock %}
+
+{% block content %}
+<form method="post">{% csrf_token %}
+  <div class="card border-0 shadow-sm" style="max-width:600px;">
+    <div class="card-header bg-white"><h6 class="fw-bold mb-0">Ventilation globale</h6></div>
+    <div class="card-body p-4 row g-3">
+      <div class="col-12"><label class="form-label">{{ form.libelle.label }}</label>{{ form.libelle }}</div>
+      <div class="col-md-6"><label class="form-label">{{ form.date_debut.label }}</label>{{ form.date_debut }}</div>
+      <div class="col-md-6"><label class="form-label">{{ form.date_fin.label }}</label>{{ form.date_fin }}</div>
+      <div class="col-md-6"><label class="form-label">{{ form.montant_total.label }}</label>{{ form.montant_total }}</div>
+      <div class="col-12"><label class="form-label">{{ form.notes.label }}</label>{{ form.notes }}</div>
+      <div class="col-12 d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle me-1"></i>Enregistrer</button>
+        <a href="{% url 'ventilations:globale_list' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

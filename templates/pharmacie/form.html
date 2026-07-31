@@ -33,7 +33,12 @@
                     
                     <div class="col-md-4">
                         <label class="form-label">{{ form.categorie.label }}</label>
-                        {{ form.categorie }}
+                        <div class="input-group">
+                            {{ form.categorie }}
+                            <button type="button" class="btn btn-outline-primary" data-inline-create="{{ form.categorie.id_for_label }}" data-url="{% url 'pharmacie:ajax_creer_categorie' %}">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">{{ form.forme.label }} <span class="text-danger">*</span></label>

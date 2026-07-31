@@ -1,5 +1,5 @@
 {% extends 'base_auth.html' %}
-{% block title %}Connexion — Mutualité de Santé{% endblock %}
+{% block title %}Connexion — {{ APP_NOM }}{% endblock %}
 
 {% block auth_body %}
 <div class="login-box">
@@ -9,7 +9,7 @@
             <span class="cross-badge">+</span>
         </div>
         <div>
-            <div class="logo-text">Mutualité de Santé</div>
+            <div class="logo-text">{{ APP_NOM }}</div>
             <span class="logo-sub">Système de gestion</span>
         </div>
     </div>

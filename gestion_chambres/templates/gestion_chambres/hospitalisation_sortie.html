@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titre }} — {{ block.super }}{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-door-open{% endblock %}
+{% block page_subtitle %}{{ hospitalisation.numero_dossier }} — {{ hospitalisation.patient_nom }} {{ hospitalisation.patient_prenom }}{% endblock %}
+{% block nav_hospitalisations %}active{% endblock %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-door-open me-2" style="color:var(--or);"></i> Enregistrer la sortie</div>
+        <div class="card-body p-4 row g-3">
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.date_sortie_reelle.id_for_label }}">{{ form.date_sortie_reelle.label }} <span class="text-danger">*</span></label>
+                {{ form.date_sortie_reelle }}
+                {% if form.date_sortie_reelle.errors %}<div class="text-danger small">{{ form.date_sortie_reelle.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.mode_sortie.id_for_label }}">{{ form.mode_sortie.label }} <span class="text-danger">*</span></label>
+                {{ form.mode_sortie }}
+                {% if form.mode_sortie.errors %}<div class="text-danger small">{{ form.mode_sortie.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.taux_prise_en_charge.id_for_label }}">{{ form.taux_prise_en_charge.label }} <span class="text-danger">*</span></label>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    {{ form.taux_prise_en_charge }}
+                    <span>%</span>
+                </div>
+                {% if form.taux_prise_en_charge.errors %}<div class="text-danger small">{{ form.taux_prise_en_charge.errors.0 }}</div>{% endif %}
+                {% if form.taux_prise_en_charge.help_text %}<div class="form-text">{{ form.taux_prise_en_charge.help_text }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="{{ form.diagnostic_sortie.id_for_label }}">{{ form.diagnostic_sortie.label }}</label>
+                {{ form.diagnostic_sortie }}
+                {% if form.diagnostic_sortie.errors %}<div class="text-danger small">{{ form.diagnostic_sortie.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="{{ form.observations.id_for_label }}">{{ form.observations.label }}</label>
+                {{ form.observations }}
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-calculator me-2" style="color:var(--or);"></i> Coûts & Prise en charge</div>
+        <div class="card-body p-4 row g-3">
+            <div class="col-md-6">
+                <label class="form-label">{{ form.cout_total.label }}</label>
+                {{ form.cout_total }}
+                <div class="form-text">Calculé automatiquement (chambre + soins)</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">{{ form.prise_en_charge_mutualite.label }}</label>
+                {{ form.prise_en_charge_mutualite }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">{{ form.reste_a_charge.label }}</label>
+                {{ form.reste_a_charge }}
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 text-end">
+        <a href="{% url 'gestion_chambres:hospitalisation_detail' hospitalisation.pk %}" class="btn btn-outline-secondary me-2"><i class="bi bi-arrow-left me-1"></i> Annuler</a>
+        <button type="submit" class="btn btn-success"><i class="bi bi-door-open me-1"></i> Enregistrer la sortie</button>
+    </div>
+</form>
+{% endblock %}

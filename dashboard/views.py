@@ -1,5 +1,5 @@
 # dashboard/views.py
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.db.models import Sum, Count
@@ -9,6 +9,12 @@ import json
 
 @login_required
 def index(request):
+    # ── Superadmin et staff Django n'ont pas de mutualité ─────────
+    if request.user.est_super_admin:
+        return redirect('superadmin:dashboard')
+    if request.user.is_superuser or request.user.is_staff:
+        return redirect('admin:index')
+
     now = timezone.now()
     mois = now.month
     annee = now.year
@@ -59,22 +65,26 @@ def index(request):
     except Exception:
         pass
 
+    # ── Filtre par la mutualité de l'utilisateur ─────────────────
+    mutualite = request.user.mutualite
+
     # ── Comptages ────────────────────────────────────────────────
     if Affilie:
-        stats['nb_affilies'] = Affilie.objects.filter(actif=True, supprime=False).count()
-        stats['affilies_recents'] = Affilie.objects.filter(supprime=False).order_by('-date_creation')[:5]
+        stats['nb_affilies'] = Affilie.objects.filter(mutualite=mutualite, actif=True, supprime=False).count()
+        stats['affilies_recents'] = Affilie.objects.filter(mutualite=mutualite, supprime=False).order_by('-date_creation')[:5]
 
     if AyantDroit:
-        stats['nb_ayants_droit'] = AyantDroit.objects.filter(actif=True, supprime=False).count()
+        stats['nb_ayants_droit'] = AyantDroit.objects.filter(mutualite=mutualite, actif=True, supprime=False).count()
 
     if Partenaire:
-        stats['nb_partenaires'] = Partenaire.objects.filter(statut='ACTIF').count()
-        stats['top_partenaires'] = Partenaire.objects.filter(statut='ACTIF').annotate(
+        stats['nb_partenaires'] = Partenaire.objects.filter(mutualite=mutualite, statut='ACTIF').count()
+        stats['top_partenaires'] = Partenaire.objects.filter(mutualite=mutualite, statut='ACTIF').annotate(
             nb_factures=Count('factures')
         ).order_by('-nb_factures')[:5]
 
     if Cotisation:
         stats['cotisations_mois'] = Cotisation.objects.filter(
+            mutualite=mutualite,
             date_paiement__month=mois,
             date_paiement__year=annee,
             statut='PAYE'
@@ -82,11 +92,12 @@ def index(request):
 
     if Facture:
         stats['factures_mois'] = Facture.objects.filter(
+            mutualite=mutualite,
             date__month=mois,
             date__year=annee,
         ).exclude(statut='REJETE').aggregate(total=Sum('montant_mutualite'))['total'] or 0
 
-        stats['factures_en_attente'] = Facture.objects.filter(statut='SOUMIS').count()
+        stats['factures_en_attente'] = Facture.objects.filter(mutualite=mutualite, statut='SOUMIS').count()
 
     stats['solde'] = stats['cotisations_mois'] - stats['factures_mois']
 
@@ -102,6 +113,7 @@ def index(request):
         c_val = 0
         if Cotisation:
             c_val = float(Cotisation.objects.filter(
+                mutualite=mutualite,
                 date_paiement__month=d.month,
                 date_paiement__year=d.year,
                 statut='PAYE'
@@ -111,6 +123,7 @@ def index(request):
         f_val = 0
         if Facture:
             f_val = float(Facture.objects.filter(
+                mutualite=mutualite,
                 date__month=d.month,
                 date__year=d.year,
             ).exclude(statut='REJETE').aggregate(t=Sum('montant_mutualite'))['t'] or 0)

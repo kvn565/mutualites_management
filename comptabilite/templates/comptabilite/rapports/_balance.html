@@ -1,0 +1,18 @@
+<div class="table-responsive p-3">
+  <table class="table table-sm align-middle mb-0 small">
+    <thead class="table-light"><tr><th>Compte</th><th>Intitulé</th><th class="text-end">Total Débit</th><th class="text-end">Total Crédit</th><th class="text-end">Solde</th></tr></thead>
+    <tbody>
+      {% for item in rapport_data %}
+      <tr>
+        <td><code>{{ item.compte.numero }}</code></td>
+        <td>{{ item.compte.intitule }}</td>
+        <td class="text-end">{{ item.total_debit|floatformat:0|intcomma }}</td>
+        <td class="text-end">{{ item.total_credit|floatformat:0|intcomma }}</td>
+        <td class="text-end {% if item.solde < 0 %}text-danger{% endif %}">{{ item.solde|floatformat:0|intcomma }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-center text-muted py-3">Aucune donnée pour cette période.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

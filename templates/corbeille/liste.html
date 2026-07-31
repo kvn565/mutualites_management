@@ -1,0 +1,363 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}Corbeille - {{ APP_NOM }}{% endblock %}
+
+{% block page_icon %}bi-trash3-fill{% endblock %}
+{% block page_title %}Corbeille{% endblock %}
+{% block page_subtitle %}Éléments supprimés - {{ stats.total }} au total {% if stats.expires > 0 %}<span class="badge bg-warning ms-2">{{ stats.expires }} expirés</span>{% endif %}{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group">
+    <a href="?app=membres" class="btn btn-sm {% if current_app == 'membres' %}btn-warning{% else %}btn-outline-secondary{% endif %}">Membres</a>
+    <a href="?app=sante" class="btn btn-sm {% if current_app == 'sante' %}btn-warning{% else %}btn-outline-secondary{% endif %}">Santé</a>
+    <a href="?app=cotisations" class="btn btn-sm {% if current_app == 'cotisations' %}btn-warning{% else %}btn-outline-secondary{% endif %}">Cotisations</a>
+    <a href="?app=facturation" class="btn btn-sm {% if current_app == 'facturation' %}btn-warning{% else %}btn-outline-secondary{% endif %}">Facturation</a>
+    <a href="?app=finance" class="btn btn-sm {% if current_app == 'finance' %}btn-warning{% else %}btn-outline-secondary{% endif %}">Finance</a>
+    <a href="{% url 'corbeille:index' %}" class="btn btn-sm {% if not current_app %}btn-warning{% else %}btn-outline-secondary{% endif %}">Tous</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel-fill me-2"></i>Filtres</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3" id="filterForm">
+            <input type="hidden" name="app" value="{{ current_app }}">
+
+            <div class="col-md-3">
+                <label class="form-label">Recherche</label>
+                <input type="text" name="q" class="form-control" placeholder="Nom, type..." value="{{ request.GET.q }}">
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Type</label>
+                <select name="type" class="form-select">
+                    <option value="">Tous</option>
+                    {% for value, label in types %}
+                    <option value="{{ value }}" {% if request.GET.type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Date début</label>
+                <input type="date" name="date_debut" class="form-control" value="{{ request.GET.date_debut }}">
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Date fin</label>
+                <input type="date" name="date_fin" class="form-control" value="{{ request.GET.date_fin }}">
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Supprimé par</label>
+                <select name="deleted_by" class="form-select">
+                    <option value="">Tous</option>
+                    {% for u in deleted_by_users %}
+                    <option value="{{ u.pk }}" {% if request.GET.deleted_by == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.nom_complet }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-1">
+                <label class="form-label">Expirés</label>
+                <select name="expires" class="form-select">
+                    <option value="">Tous</option>
+                    <option value="1" {% if request.GET.expires == '1' %}selected{% endif %}>Oui</option>
+                    <option value="0" {% if request.GET.expires == '0' %}selected{% endif %}>Non</option>
+                </select>
+            </div>
+
+            <div class="col-md-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i>Filtrer</button>
+                <a href="{% url 'corbeille:index' %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Réinitialiser</a>
+                {% if peut_purger and stats.expires > 0 %}
+                <button type="button" class="btn btn-danger ms-auto" onclick="confirmerViderExpires()">
+                    <i class="bi bi-trash3-fill me-1"></i>Vider les expirés ({{ stats.expires }})
+                </button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Contenu de la corbeille</h5>
+        <div class="d-flex gap-2">
+            <span class="badge bg-primary fs-6">{{ page_obj.paginator.count }} éléments</span>
+            {% if peut_purger %}
+            <button type="button" class="btn btn-danger btn-sm" id="btnPurgerMultiple" disabled>
+                <i class="bi bi-trash3-fill me-1"></i>Purger sélection (<span id="countSelection">0</span>)
+            </button>
+            <button type="button" class="btn btn-success btn-sm" id="btnRestaurerMultiple" disabled>
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Restaurer sélection (<span id="countSelection2">0</span>)
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        {% if items %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="corbeilleTable">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:40px;">
+                            <input type="checkbox" id="selectAll" class="form-check-input">
+                        </th>
+                        <th>Type</th>
+                        <th>Élément</th>
+                        <th>Supprimé le</th>
+                        <th>Supprimé par</th>
+                        <th>Expire le</th>
+                        <th style="width:120px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr data-pk="{{ item.pk }}">
+                        <td>
+                            <input type="checkbox" class="form-check-input row-check" value="{{ item.pk }}" name="ids[]">
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ item.get_type_objet_display }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ item.objet_repr }}</strong>
+                            {% if item.objet_data %}
+                            <br><small class="text-muted">
+                                {% for k, v in item.objet_data.items %}
+                                {{ k }}: {{ v }}<br>
+                                {% endfor %}
+                            </small>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.deleted_at|date:"d/m/Y H:i" }}</td>
+                        <td>{{ item.deleted_by.nom_complet|default:"Système" }}</td>
+                        <td class="{% if item.est_expire %}text-danger fw-bold{% endif %}">
+                            {% if item.expire_at %}
+                            {{ item.expire_at|date:"d/m/Y" }}
+                            {% if item.est_expire %}<i class="bi bi-exclamation-triangle-fill ms-1"></i>{% endif %}
+                            {% else %}-{% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-success btn-restaurer" data-pk="{{ item.pk }}" title="Restaurer">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </button>
+                                {% if peut_purger %}
+                                <button type="button" class="btn btn-danger btn-purger" data-pk="{{ item.pk }}" title="Purger définitivement">
+                                    <i class="bi bi-trash3-fill"></i>
+                                </button>
+                                {% endif %}
+                                <a href="{% url 'corbeille:detail' item.pk %}" class="btn btn-outline-secondary" title="Détails">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer">
+            <nav aria-label="Pagination corbeille">
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page=1{{ request.GET.urlencode }}">&laquo;&laquo;</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{{ request.GET.urlencode }}">&laquo;</a></li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}{{ request.GET.urlencode }}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{{ request.GET.urlencode }}">&raquo;</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{{ request.GET.urlencode }}">&raquo;&raquo;</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-trash3 display-1 text-muted"></i>
+            <h4 class="mt-3 text-muted">Corbeille vide</h4>
+            <p class="text-muted">Aucun élément supprimé pour cette mutualité.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Stats par type -->
+{% if stats.par_type %}
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-bar-chart-fill me-2"></i>Répartition par type</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for type_key, count in stats.par_type.items %}
+            <div class="col-md-3 col-6 mb-2">
+                <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                    <span class="badge bg-secondary">{{ type_key }}</span>
+                    <span class="fw-bold">{{ count }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.getElementById('corbeilleTable');
+    if (!table) return;
+
+    const selectAll = document.getElementById('selectAll');
+    const rowChecks = table.querySelectorAll('.row-check');
+    const btnPurger = document.getElementById('btnPurgerMultiple');
+    const btnRestaurer = document.getElementById('btnRestaurerMultiple');
+    const countSel = document.getElementById('countSelection');
+    const countSel2 = document.getElementById('countSelection2');
+
+    function updateButtons() {
+        const checked = table.querySelectorAll('.row-check:checked').length;
+        const hasAdmin = {{ peut_purger|yesno:"true,false" }};
+
+        countSel.textContent = checked;
+        countSel2.textContent = checked;
+
+        if (hasAdmin) {
+            btnPurger.disabled = checked === 0;
+        }
+        btnRestaurer.disabled = checked === 0;
+    }
+
+    selectAll?.addEventListener('change', function() {
+        rowChecks.forEach(cb => cb.checked = this.checked);
+        updateButtons();
+    });
+
+    rowChecks.forEach(cb => cb.addEventListener('change', updateButtons));
+
+    // Actions individuelles
+    table.querySelectorAll('.btn-restaurer').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const pk = this.dataset.pk;
+            if (confirm('Restaurer cet élément ?')) {
+                fetch(`{% url 'corbeille:restaurer' 0 %}`.replace('0', pk), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                }).then(r => r.json()).then(data => {
+                    if (data.success) location.reload();
+                    else alert('Erreur : ' + data.error);
+                });
+            }
+        });
+    });
+
+    table.querySelectorAll('.btn-purger').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const pk = this.dataset.pk;
+            if (confirm('Purger définitivement cet élément ?\n⚠️ Action irréversible !')) {
+                fetch(`{% url 'corbeille:purger' 0 %}`.replace('0', pk), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                }).then(r => r.json()).then(data => {
+                    if (data.success) location.reload();
+                    else alert('Erreur : ' + data.error);
+                });
+            }
+        });
+    });
+
+    // Actions multiples
+    btnRestaurer?.addEventListener('click', function() {
+        const ids = Array.from(table.querySelectorAll('.row-check:checked')).map(cb => cb.value);
+        if (!ids.length) return;
+        if (confirm(`Restaurer ${ids.length} élément(s) ?`)) {
+            fetch('{% url "corbeille:restaurer_multiple" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'ids[]=' + ids.join('&ids[]=')
+            }).then(r => r.json()).then(data => {
+                if (data.success) location.reload();
+                else alert('Erreur : ' + data.error);
+            });
+        }
+    });
+
+    btnPurger?.addEventListener('click', function() {
+        const ids = Array.from(table.querySelectorAll('.row-check:checked')).map(cb => cb.value);
+        if (!ids.length) return;
+        if (confirm(`Purger définitivement ${ids.length} élément(s) ?\n⚠️ Action irréversible !`)) {
+            fetch('{% url "corbeille:purger_multiple" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'ids[]=' + ids.join('&ids[]=')
+            }).then(r => r.json()).then(data => {
+                if (data.success) location.reload();
+                else alert('Erreur : ' + data.error);
+            });
+        }
+    });
+});
+
+function confirmerViderExpires() {
+    if (confirm('Vider tous les éléments expirés ?\n⚠️ Action irréversible !')) {
+        fetch('{% url "corbeille:vider_expires" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        }).then(r => r.json()).then(data => {
+            if (data.success) location.reload();
+            else alert('Erreur : ' + data.error);
+        });
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

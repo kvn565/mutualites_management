@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Détail écriture{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <h5 class="fw-bold mb-0">🧾 {{ ecriture.piece_reference }}</h5>
+      <div>
+        <a href="{% url 'comptabilite:ecriture_list' %}" class="btn btn-sm btn-outline-secondary">← Toutes</a>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <table class="table table-sm borderless">
+            <tr><th>Date</th><td>{{ ecriture.date|date:'d/m/Y' }}</td></tr>
+            <tr><th>Compte</th><td><code>{{ ecriture.compte.numero }}</code> — {{ ecriture.compte.intitule }}</td></tr>
+            <tr><th>Mouvement</th><td><span class="badge {% if ecriture.type_mouvement == 'DEBIT' %}bg-danger{% else %}bg-success{% endif %}">{{ ecriture.type_mouvement }}</span></td></tr>
+            <tr><th>Montant</th><td><strong>{{ ecriture.montant|floatformat:0|intcomma }} BIF</strong></td></tr>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <table class="table table-sm borderless">
+            <tr><th>Statut</th>
+              <td>{% if ecriture.statut == 'VALIDE' %}<span class="badge bg-success">Validé</span>
+              {% elif ecriture.statut == 'SOUMIS' %}<span class="badge bg-warning text-dark">Soumis</span>
+              {% elif ecriture.statut == 'BROUILLON' %}<span class="badge bg-secondary">Brouillon</span>
+              {% else %}<span class="badge bg-danger">Rejeté</span>{% endif %}</td></tr>
+            <tr><th>Origine</th><td>{{ ecriture.get_origine_display }}</td></tr>
+            {% if ecriture.centre %}<tr><th>Centre</th><td>{{ ecriture.centre }}</td></tr>{% endif %}
+            {% if ecriture.valide_par %}<tr><th>Validé par</th><td>{{ ecriture.valide_par }} le {{ ecriture.date_validation|date:'d/m/Y H:i' }}</td></tr>{% endif %}
+            {% if ecriture.motif_rejet %}<tr><th>Rejet</th><td class="text-danger">{{ ecriture.motif_rejet }}</td></tr>{% endif %}
+          </table>
+        </div>
+      </div>
+      <div class="mt-2">
+        <strong>Libellé :</strong> {{ ecriture.libelle }}
+      </div>
+      {% if ecriture.notes %}
+      <div class="mt-2"><strong>Notes :</strong> {{ ecriture.notes }}</div>
+      {% endif %}
+
+      <div class="mt-4 d-flex gap-2">
+        {% if ecriture.statut == 'BROUILLON' %}
+        <form method="post" action="{% url 'comptabilite:ecriture_soumettre' ecriture.pk %}">{% csrf_token %}
+          <button class="btn btn-warning btn-sm" type="submit">📤 Soumettre pour validation</button>
+        </form>
+        <a href="{% url 'comptabilite:ecriture_update' ecriture.pk %}" class="btn btn-outline-primary btn-sm">✏️ Modifier</a>
+        {% endif %}
+        {% if ecriture.statut == 'SOUMIS' %}
+        <form method="post" action="{% url 'comptabilite:ecriture_valider' ecriture.pk %}">{% csrf_token %}
+          <input type="hidden" name="action" value="VALIDER">
+          <button class="btn btn-success btn-sm" type="submit">✅ Valider</button>
+        </form>
+        <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejetModal">❌ Rejeter</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if ecriture.statut == 'SOUMIS' %}
+<div class="modal fade" id="rejetModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'comptabilite:ecriture_valider' ecriture.pk %}">{% csrf_token %}
+        <div class="modal-header"><h5 class="modal-title">Motif du rejet</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <input type="hidden" name="action" value="REJETER">
+          <textarea name="motif_rejet" class="form-control" rows="3" required></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-danger">Confirmer le rejet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

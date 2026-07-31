@@ -30,6 +30,11 @@ class UtilisateurEditForm(UserChangeForm):
 
 class InscriptionChefForm(forms.Form):
     nif = forms.CharField(max_length=50, label="NIF de la Mutualité", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 4000123456'}))
+    province = forms.CharField(max_length=100, required=False, label="Province", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex : Bujumbura'}))
+    commune = forms.CharField(max_length=100, required=False, label="Commune", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex : Mukaza'}))
+    quartier = forms.CharField(max_length=100, required=False, label="Quartier", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex : Rohero'}))
+    adresse = forms.CharField(required=False, label="Adresse", widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Ex : Avenue de la Plage, 12'}))
+    telephone = forms.CharField(max_length=50, required=False, label="Téléphone", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+257 XX XX XX XX'}))
     nom_gerant = forms.CharField(max_length=100, label="Votre nom", widget=forms.TextInput(attrs={'class': 'form-control'}))
     prenom_gerant = forms.CharField(max_length=100, label="Votre prénom", widget=forms.TextInput(attrs={'class': 'form-control'}))
     username = forms.CharField(max_length=150, label="Nom d'utilisateur", widget=forms.TextInput(attrs={'class': 'form-control'}))

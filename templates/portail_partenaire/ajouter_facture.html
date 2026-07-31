@@ -1,0 +1,461 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% load humanize %}
+{% block title %}Nouvelle facture — {{ membre.nom_complet }}{% endblock %}
+{% block extra_css %}
+<style>
+.grid-2 { gap: 0; }
+.grid-2 > .card { border-radius: 0; border-left: none; border-right: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-file-text" style="color:var(--primary)"></i> Nouvelle facture</h1>
+    <p>Pour : <strong>{{ membre.nom_complet }}</strong> ({{ membre.numero_affiliation }})</p>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header"><i class="bi bi-info-circle"></i> Informations générales</div>
+        <div class="card-body">
+            <form method="post" id="factureForm">
+                {% csrf_token %}
+                <div class="grid-2" style="margin-bottom:16px;">
+                    <div>
+                        <label class="form-label">N° dossier de soins</label>
+                        {{ form.numero_dossier_soins }}
+                    </div>
+                    <div>
+                        <label class="form-label">Date de consultation</label>
+                        {{ form.date }}
+                    </div>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label class="form-label">Diagnostic / Raison</label>
+                    {{ form.diagnostic }}
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label class="form-label">Notes</label>
+                    {{ form.notes }}
+                </div>
+
+                <hr style="margin:20px 0;border-color:#eef2f6;">
+
+                <h4 style="font-size:0.95rem;font-weight:600;margin-bottom:16px;">
+                    <i class="bi bi-list-check" style="color:var(--primary)"></i> Prestations / Médicaments
+                </h4>
+
+                {{ formset.management_form }}
+
+                <div id="lignes-container">
+                    {% for ligne_form in formset %}
+                    <div class="ligne-form" style="background:#f8fafc;border-radius:10px;padding:20px;margin-bottom:12px;border:1px solid #eef2f6;">
+                        <div class="ligne-grid" style="align-items:end;">
+                            <div>
+                                <label class="form-label">Service</label>
+                                {{ ligne_form.service }}
+                            </div>
+                            <div>
+                                <label class="form-label">Médicament</label>
+                                {{ ligne_form.medicament }}
+                            </div>
+                            <div>
+                                <label class="form-label">Désignation</label>
+                                {{ ligne_form.designation }}
+                            </div>
+                            <div>
+                                <label class="form-label">Qté</label>
+                                {{ ligne_form.quantite }}
+                            </div>
+                            <div>
+                                <label class="form-label">P.U. (BIF)</label>
+                                {{ ligne_form.prix_unitaire }}
+                            </div>
+                            <div>
+                                <label class="form-label">Taux (%)</label>
+                                {{ ligne_form.taux_applique }}
+                            </div>
+                            <div style="display:flex;align-items:flex-end;padding-bottom:4px;">
+                                {% if ligne_form.instance.pk %}
+                                <label class="form-check-label" style="display:flex;align-items:center;gap:6px;">
+                                    {{ ligne_form.DELETE }} <i class="bi bi-trash3"></i>
+                                </label>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {{ ligne_form.id }}
+                        <div class="text-sm text-muted mt-2">
+                            <span>Total ligne: </span>
+                            <span class="ligne-total fw-bold" style="color:var(--primary)">0 BIF</span>
+                            <span style="margin-left:16px;">Part mut.: </span>
+                            <span class="ligne-mut fw-bold" style="color:#10b981;">0 BIF</span>
+                            <span style="margin-left:16px;">Patient: </span>
+                            <span class="ligne-patient fw-bold" style="color:#f59e0b;">0 BIF</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <button type="button" class="btn btn-outline-primary btn-sm" id="addLigne" style="margin-bottom:20px;">
+                    <i class="bi bi-plus"></i> Ajouter une ligne
+                </button>
+
+                <div style="background:#e8f5ee;border-radius:10px;padding:16px;margin-bottom:20px;">
+                    <div class="grid-3 text-center">
+                        <div>
+                            <div class="text-sm text-muted">Total facture</div>
+                            <div class="fw-bold" style="font-size:1.3rem;" id="totalGlobal">0 BIF</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-muted">Part Mutualité</div>
+                            <div class="fw-bold" style="font-size:1.3rem;color:var(--primary)" id="totalMutualite">0 BIF</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-muted">Ticket modérateur (Patient)</div>
+                            <div class="fw-bold" style="font-size:1.3rem;color:#f59e0b;" id="totalPatient">0 BIF</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2" style="justify-content:flex-end;">
+                    <a href="{% url 'portail_partenaire:detail_membre' membre.pk %}" class="btn btn-outline">Annuler</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Enregistrer en brouillon
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div>
+        <div class="card" style="margin-bottom:16px;">
+            <div class="card-header"><i class="bi bi-person"></i> Membre</div>
+            <div class="card-body">
+                <div class="flex items-center gap-3 mb-3">
+                    {% if membre.photo %}
+                    <img src="{{ membre.photo.url }}" alt="" class="member-photo-sm">
+                    {% else %}
+                    <div class="member-photo-sm" style="background:#e8f5ee;display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:700;">
+                        {{ membre.nom|first|upper }}{{ membre.prenom|first|upper }}
+                    </div>
+                    {% endif %}
+                    <div>
+                        <div class="fw-bold">{{ membre.nom_complet }}</div>
+                        <div class="text-sm text-muted">{{ membre.numero_affiliation }}</div>
+                    </div>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item"><label>Âge</label><span>{{ membre.age }} ans</span></div>
+                    <div class="info-item"><label>Sexe</label><span>{{ membre.get_sexe_display }}</span></div>
+                    <div class="info-item"><label>Groupe sanguin</label><span>{{ membre.get_groupe_sanguin_display|default:"—" }}</span></div>
+                    <div class="info-item"><label>Téléphone</label><span>{{ membre.telephone|default:"—" }}</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="bi bi-shield-check"></i> Plafonds disponibles</div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Soins ambulatoires</label>
+                        <span class="fw-bold">{{ membre.soins_ambulatoires|floatformat:0|intcomma }} BIF</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Hospitalisation</label>
+                        <span class="fw-bold">{{ membre.limite_hospitalisation_generale|floatformat:0|intcomma }} BIF</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Pharmacie</label>
+                        <span class="fw-bold">{{ membre.limites_medicaments|floatformat:0|intcomma }} BIF</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Maternité</label>
+                        <span class="fw-bold">{{ membre.maternite_forfait|floatformat:0|intcomma }} BIF</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if exclusions_actives %}
+        <div class="card" style="margin-top:16px;border-color:#dc3545;">
+            <div class="card-header" style="background:#fff5f5;color:#dc3545;">
+                <i class="bi bi-exclamation-triangle-fill"></i> Exclusions sur ce membre
+            </div>
+            <div class="card-body" style="padding:10px 14px;font-size:0.82rem;">
+                {% for e in exclusions_actives %}
+                <div>⛔ <strong>{% if e.medicament %}{{ e.medicament.nom }}{% else %}{{ e.service.nom }}{% endif %}</strong>
+                    {% if e.motif %}<span class="text-muted">— {{ e.motif }}</span>{% endif %}
+                    <span class="text-muted small">({% if e.medicament %}médicament{% else %}service{% endif %})</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if medicaments %}
+        <div class="card" style="margin-top:16px;">
+            <div class="card-header"><i class="bi bi-capsule-pill"></i> Catalogue médicaments</div>
+            <div class="card-body" style="padding:12px;">
+                <div class="flex gap-2" style="margin-bottom:8px;">
+                    <input type="text" id="medSearch" class="form-control" placeholder="Rechercher un médicament..." style="font-size:0.82rem;">
+                </div>
+                <div id="medList" style="max-height:300px;overflow-y:auto;">
+                    {% for m in medicaments %}
+                    {% if m.pk in excluded_medicament_ids %}
+                    <div class="med-item excluded" data-id="{{ m.pk }}" data-nom="{{ m }}" data-prix="{{ m.prix_reference|floatformat:0 }}" data-taux="{{ m.taux_remboursement|floatformat:0 }}"
+                         style="padding:8px 10px;border-radius:8px;font-size:0.82rem;border-bottom:1px solid #f1f5f9;background:#fff5f5;opacity:0.6;cursor:not-allowed;">
+                        <div class="fw-bold">{{ m.nom }} <span class="badge bg-danger" style="float:right">Exclu</span></div>
+                        <div class="text-muted text-sm">
+                            {{ m.get_forme_display }} {{ m.dosage }} —
+                            {{ m.prix_reference|floatformat:0 }} BIF —
+                            Remb. {{ m.taux_remboursement|floatformat:0 }}%
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="med-item" data-id="{{ m.pk }}" data-nom="{{ m }}" data-prix="{{ m.prix_reference|floatformat:0 }}" data-taux="{{ m.taux_remboursement|floatformat:0 }}"
+                         style="padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.15s;font-size:0.82rem;border-bottom:1px solid #f1f5f9;"
+                         onmouseover="this.style.background='#e8f5ee'" onmouseout="this.style.background=''"
+                         onclick="ajouterMedicament(this)">
+                        <div class="fw-bold">{{ m.nom }}</div>
+                        <div class="text-muted text-sm">
+                            {{ m.get_forme_display }} {{ m.dosage }} —
+                            {{ m.prix_reference|floatformat:0 }} BIF —
+                            Remb. {{ m.taux_remboursement|floatformat:0 }}%
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div id="emptyLigneTemplate" style="display:none;">
+    <div class="ligne-form" style="background:#f8fafc;border-radius:10px;padding:16px;margin-bottom:12px;border:1px solid #eef2f6;">
+        <div class="grid-3" style="align-items:end;">
+            <div>
+                <label class="form-label">Service</label>
+                <select class="form-select" name="lignes-__prefix__-service">
+                    <option value="">---------</option>
+                    {% for s in services %}
+                    <option value="{{ s.pk }}" data-taux="{{ s.taux_prise_en_charge|default:'80' }}">{{ s.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Médicament</label>
+                <select class="form-select" name="lignes-__prefix__-medicament">
+                    <option value="">---------</option>
+                    {% for m in medicaments %}
+                    <option value="{{ m.pk }}" data-prix="{{ m.prix_reference|default:0 }}" data-taux="{{ m.taux_remboursement|default:80 }}">{{ m.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Désignation</label>
+                <input type="text" class="form-control" name="lignes-__prefix__-designation" placeholder="Ex: Consultation générale">
+            </div>
+            <div>
+                <label class="form-label">Qté</label>
+                <input type="number" class="form-control" name="lignes-__prefix__-quantite" value="1" min="1">
+            </div>
+            <div>
+                <label class="form-label">Prix unitaire (BIF)</label>
+                <input type="number" class="form-control" name="lignes-__prefix__-prix_unitaire" min="0" step="100">
+            </div>
+            <div>
+                <label class="form-label">Taux mut. (%)</label>
+                <input type="number" class="form-control" name="lignes-__prefix__-taux_applique" min="0" max="100" step="5" value="80">
+            </div>
+            <div>
+                <label class="form-label">&nbsp;</label>
+                <button type="button" class="btn btn-sm btn-danger remove-ligne"><i class="bi bi-trash"></i></button>
+            </div>
+        </div>
+        <div class="text-sm text-muted mt-2">
+            <span>Total ligne: </span>
+            <span class="ligne-total fw-bold" style="color:var(--primary)">0 BIF</span>
+            <span style="margin-left:16px;">Part mut.: </span>
+            <span class="ligne-mut fw-bold" style="color:#10b981;">0 BIF</span>
+            <span style="margin-left:16px;">Patient: </span>
+            <span class="ligne-patient fw-bold" style="color:#f59e0b;">0 BIF</span>
+        </div>
+    </div>
+</div>
+
+<span id="excludedServiceIds" style="display:none">{{ excluded_service_ids|join:"," }}</span>
+<span id="excludedMedicamentIds" style="display:none">{{ excluded_medicament_ids|join:"," }}</span>
+
+<script>
+    function markExcludedServices(selectEl) {
+        const excluded = (document.getElementById('excludedServiceIds').textContent || '').split(',').filter(Boolean);
+        Array.from(selectEl.options).forEach(function(opt) {
+            if (excluded.includes(opt.value)) {
+                opt.style.color = '#dc3545';
+                opt.style.fontStyle = 'italic';
+                opt.textContent = '⛔ ' + opt.textContent.trim() + ' (exclu)';
+                opt.disabled = true;
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        let formCount = document.querySelectorAll('.ligne-form').length;
+        const container = document.getElementById('lignes-container');
+        const addBtn = document.getElementById('addLigne');
+        const emptyTemplate = document.getElementById('emptyLigneTemplate');
+
+        addBtn.addEventListener('click', function() {
+            const totalForms = document.querySelector('#id_lignes-TOTAL_FORMS');
+            const current = parseInt(totalForms.value);
+            const template = emptyTemplate.innerHTML.replace(/__prefix__/g, current);
+            const div = document.createElement('div');
+            div.innerHTML = template;
+            container.appendChild(div.firstElementChild);
+            totalForms.value = current + 1;
+            attachCalculs();
+        });
+
+        container.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-ligne')) {
+                const ligne = e.target.closest('.ligne-form');
+                if (document.querySelectorAll('.ligne-form').length > 1) {
+                    ligne.remove();
+                    const totalForms = document.querySelector('#id_lignes-TOTAL_FORMS');
+                    totalForms.value = parseInt(totalForms.value) - 1;
+                    recalcTotaux();
+                } else {
+                    alert('Au moins une ligne de prestation est requise.');
+                }
+            }
+        });
+
+        function markExcludedInLigne(ligne) {
+            const selectService = ligne.querySelector('[name$="-service"]');
+            if (selectService) markExcludedServices(selectService);
+        }
+
+        function attachCalculs() {
+            document.querySelectorAll('.ligne-form').forEach(function(ligne) {
+                markExcludedInLigne(ligne);
+                const qte = ligne.querySelector('[name$="-quantite"]');
+                const pu = ligne.querySelector('[name$="-prix_unitaire"]');
+                const taux = ligne.querySelector('[name$="-taux_applique"]');
+                const des = ligne.querySelector('[name$="-designation"]');
+                const totalSpan = ligne.querySelector('.ligne-total');
+                const mutSpan = ligne.querySelector('.ligne-mut');
+                const patSpan = ligne.querySelector('.ligne-patient');
+
+                [qte, pu, taux].forEach(function(input) {
+                    if (input) {
+                        input.addEventListener('input', function() {
+                            const q = parseFloat(qte?.value) || 0;
+                            const p = parseFloat(pu?.value) || 0;
+                            const t = parseFloat(taux?.value) || 0;
+                            const total = q * p;
+                            const mut = total * t / 100;
+                            const pat = total - mut;
+                            totalSpan.textContent = total.toLocaleString() + ' BIF';
+                            mutSpan.textContent = mut.toLocaleString() + ' BIF';
+                            patSpan.textContent = pat.toLocaleString() + ' BIF';
+                            recalcTotaux();
+                        });
+                    }
+                });
+
+                const selectService = ligne.querySelector('[name$="-service"]');
+                if (selectService) {
+                    selectService.addEventListener('change', function() {
+                        const selected = this.options[this.selectedIndex];
+                        const tauxVal = selected.getAttribute('data-taux');
+                        if (tauxVal && taux) { taux.value = tauxVal; }
+
+                        const design = selected.textContent.trim();
+                        if (selected.value && des) {
+                            des.value = design.replace(/^[─\s]+/, '').trim();
+                        }
+                    });
+                }
+
+                const selectMed = ligne.querySelector('[name$="-medicament"]');
+                if (selectMed) {
+                    selectMed.addEventListener('change', function() {
+                        const selected = this.options[this.selectedIndex];
+                        const prixVal = selected.getAttribute('data-prix');
+                        const tauxVal = selected.getAttribute('data-taux');
+                        if (prixVal && pu) pu.value = prixVal;
+                        if (tauxVal && taux) taux.value = tauxVal;
+                        if (selected.value && des) {
+                            des.value = selected.textContent.trim();
+                        }
+                    });
+                }
+            });
+        }
+
+        function recalcTotaux() {
+            let totalGlobal = 0, totalMut = 0, totalPat = 0;
+            document.querySelectorAll('.ligne-form').forEach(function(ligne) {
+                const qte = ligne.querySelector('[name$="-quantite"]');
+                const pu = ligne.querySelector('[name$="-prix_unitaire"]');
+                const taux = ligne.querySelector('[name$="-taux_applique"]');
+                const q = parseFloat(qte?.value) || 0;
+                const p = parseFloat(pu?.value) || 0;
+                const t = parseFloat(taux?.value) || 0;
+                const total = q * p;
+                totalGlobal += total;
+                totalMut += total * t / 100;
+                totalPat += total - (total * t / 100);
+            });
+            document.getElementById('totalGlobal').textContent = totalGlobal.toLocaleString() + ' BIF';
+            document.getElementById('totalMutualite').textContent = totalMut.toLocaleString() + ' BIF';
+            document.getElementById('totalPatient').textContent = totalPat.toLocaleString() + ' BIF';
+        }
+
+        // Recherche médicaments dans le catalogue
+        const medSearch = document.getElementById('medSearch');
+        if (medSearch) {
+            medSearch.addEventListener('input', function() {
+                const q = this.value.toLowerCase();
+                document.querySelectorAll('.med-item').forEach(function(item) {
+                    const nom = item.getAttribute('data-nom').toLowerCase();
+                    item.style.display = nom.includes(q) ? 'block' : 'none';
+                });
+            });
+        }
+
+        attachCalculs();
+        recalcTotaux();
+    });
+
+    function ajouterMedicament(el) {
+        const id = el.getAttribute('data-id');
+        const nom = el.getAttribute('data-nom');
+        const prix = parseFloat(el.getAttribute('data-prix')) || 0;
+        const taux = parseFloat(el.getAttribute('data-taux')) || 80;
+
+        document.getElementById('addLigne').click();
+
+        setTimeout(function() {
+            const lignes = document.querySelectorAll('.ligne-form');
+            const derniere = lignes[lignes.length - 1];
+            if (derniere) {
+                const medSelect = derniere.querySelector('[name$="-medicament"]');
+                const des = derniere.querySelector('[name$="-designation"]');
+                const pu = derniere.querySelector('[name$="-prix_unitaire"]');
+                const tauxInput = derniere.querySelector('[name$="-taux_applique"]');
+                if (medSelect && id) medSelect.value = id;
+                if (des) des.value = nom;
+                if (pu) pu.value = prix;
+                if (tauxInput) tauxInput.value = taux;
+                ['input', 'change'].forEach(function(evt) {
+                    if (pu) pu.dispatchEvent(new Event(evt));
+                });
+            }
+        }, 50);
+    }
+</script>
+{% endblock %}

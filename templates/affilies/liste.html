@@ -6,6 +6,9 @@
 {% block nav_affilies %}active{% endblock %}
 
 {% block page_actions %}
+    {% if user.peut_modifier %}
+    <a href="{% url 'affilies:importer' %}" class="btn btn-outline-info btn-sm"><i class="bi bi-upload"></i> Importer</a>
+    {% endif %}
     {% if user.peut_exporter %}
     <a href="{% url 'affilies:export_excel' %}" class="btn btn-outline-success btn-sm"><i class="bi bi-file-earmark-excel"></i> Exporter</a>
     {% endif %}
@@ -20,15 +23,23 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <form method="get" class="row g-3">
+        <form method="get" class="row g-3" id="filtreForm">
             <div class="col-md-5">
-                <input type="text" name="q" class="form-control" placeholder="Rechercher par nom, prénom ou n° d'affiliation..." value="{{ q }}" style="height:42px;">
+                <input type="text" name="q" class="form-control" placeholder="Rechercher par nom, prénom ou ID..." value="{{ q }}" style="height:42px;" onchange="this.form.submit()">
             </div>
-            <div class="col-md-3">
-                <select name="statut" class="form-select" style="height:42px;">
-                    <option value="">Tous les statuts</option>
+            <div class="col-md-2">
+                <select name="statut" class="form-select" style="height:42px;" onchange="this.form.submit()">
+                    <option value="">Statut</option>
                     {% for val, label in statut_choices %}
                     <option value="{{ val }}" {% if statut == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="origine" class="form-select" style="height:42px;" onchange="this.form.submit()">
+                    <option value="">Toutes origines</option>
+                    {% for o in origines %}
+                    <option value="{{ o.pk }}" {% if origine == o.pk|stringformat:'s' %}selected{% endif %}>{{ o.nom }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -49,7 +60,7 @@
         <table class="table table-hover mb-0">
             <thead>
                 <tr>
-                    <th>N° Affiliation</th>
+                    <th>ID Membre</th>
                     <th>Nom complet</th>
                     <th>Catégorie / Origine</th>
                     <th>Contact</th>
@@ -125,13 +136,13 @@
         <nav>
             <ul class="pagination justify-content-center mb-0">
                 {% if page_obj.has_previous %}
-                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&statut={{ statut }}">Précédent</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&statut={{ statut }}&origine={{ origine }}">Précédent</a></li>
                 {% endif %}
                 
                 <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
                 
                 {% if page_obj.has_next %}
-                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&statut={{ statut }}">Suivant</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&statut={{ statut }}&origine={{ origine }}">Suivant</a></li>
                 {% endif %}
             </ul>
         </nav>

@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}Dashboard Ventilation{% endblock %}
+{% block page_title %}Tableau de bord analytique{% endblock %}
+{% block page_icon %}bi bi-pie-chart-fill{% endblock %}
+{% block nav_ventilations %}active{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="fs-3 fw-bold text-primary">{{ total_ventile_mois|floatformat:0|intcomma }}</div>
+      <small class="text-muted">Montant ventilé (mois)</small>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="fs-3 fw-bold text-success">{{ nb_ventilations_mois }}</div>
+      <small class="text-muted">Ventilations (mois)</small>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="fs-3 fw-bold text-warning">{{ nb_provisoires }}</div>
+      <small class="text-muted">En attente de validation</small>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="fs-3 fw-bold text-info">{{ nb_regles_actives }}</div>
+      <small class="text-muted">Règles automatiques actives</small>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h6 class="fw-bold mb-0">Répartition par centre</h6></div>
+      <div class="card-body">
+        <canvas id="chartCentre" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h6 class="fw-bold mb-0">Répartition par branche</h6></div>
+      <div class="card-body">
+        <canvas id="chartBranche" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mt-2">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0">Dernières ventilations</h6>
+        <div class="d-flex gap-2">
+          <a href="{% url 'ventilations:ventilation_auto' %}" class="btn btn-sm btn-outline-primary" onclick="return confirm('Lancer la ventilation automatique des écritures non ventilées ?')">
+            <i class="bi bi-lightning me-1"></i>Auto
+          </a>
+          <a href="{% url 'ventilations:ventilation_create' %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Nouvelle
+          </a>
+          <a href="{% url 'comptabilite:guide' %}" class="btn btn-sm btn-outline-info">
+            <i class="bi bi-book me-1"></i>Guide
+          </a>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 small">
+          <thead class="table-light">
+            <tr><th>Pièce</th><th>Centre</th><th>Branche</th><th class="text-end">%</th><th class="text-end">Montant</th><th>Statut</th></tr>
+          </thead>
+          <tbody>
+            {% for v in dernieres_ventilations %}
+            <tr>
+              <td><code>{{ v.ecriture.piece_reference }}</code></td>
+              <td>{{ v.centre.libelle|default:'—' }}</td>
+              <td>{{ v.branche.libelle|default:'—' }}</td>
+              <td class="text-end">{{ v.pourcentage }}%</td>
+              <td class="text-end">{{ v.montant|floatformat:0|intcomma }}</td>
+              <td>
+                {% if v.statut == 'VALIDEE' %}<span class="badge bg-success">Validée</span>
+                {% elif v.statut == 'PROVISOIRE' %}<span class="badge bg-warning text-dark">Provisoire</span>
+                {% else %}<span class="badge bg-secondary">Annulée</span>{% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center text-muted py-3">Aucune ventilation.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white"><h6 class="fw-bold mb-0">Accès rapides</h6></div>
+      <div class="card-body d-grid gap-2">
+        <a href="{% url 'ventilations:branche_list' %}" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-diagram-3 me-2"></i>Branches</a>
+        <a href="{% url 'ventilations:regle_list' %}" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-gear me-2"></i>Règles de ventilation</a>
+        <a href="{% url 'ventilations:ventilation_list' %}" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-list me-2"></i>Toutes les ventilations</a>
+        <a href="{% url 'ventilations:globale_list' %}" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-globe me-2"></i>Ventilation globale</a>
+        <a href="{% url 'ventilations:historique' %}" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-clock-history me-2"></i>Historique</a>
+        <a href="{% url 'ventilations:rapport' %}" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-bar-chart me-2"></i>Rapport analytique</a>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h6 class="fw-bold mb-0">Écritures non ventilées</h6></div>
+      <div class="card-body text-center py-4">
+        <div class="display-6 fw-bold text-danger">{{ ecritures_non_ventilees }}</div>
+        <small class="text-muted">Écriture(s) en attente</small>
+        {% if ecritures_non_ventilees > 0 %}
+        <div class="mt-3">
+          <a href="{% url 'ventilations:ventilation_auto' %}" class="btn btn-warning btn-sm w-100" onclick="return confirm('Lancer la ventilation automatique ?')">
+            <i class="bi bi-lightning me-1"></i>Ventiler automatiquement
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var couleurs = ['#0d6efd','#198754','#ffc107','#dc3545','#0dcaf0','#6610f2','#fd7e14','#20c997'];
+
+  // Centre chart
+  var centreData = {{ repartition_centre|safe }};
+  if (centreData.length) {
+    new Chart(document.getElementById('chartCentre'), {
+      type: 'doughnut',
+      data: {
+        labels: centreData.map(function(d) { return d.libelle; }),
+        datasets: [{
+          data: centreData.map(function(d) { return d.total; }),
+          backgroundColor: couleurs.slice(0, centreData.length),
+        }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } } }
+    });
+  }
+
+  // Branche chart
+  var brancheData = {{ repartition_branche|safe }};
+  if (brancheData.length) {
+    new Chart(document.getElementById('chartBranche'), {
+      type: 'doughnut',
+      data: {
+        labels: brancheData.map(function(d) { return d.libelle; }),
+        datasets: [{
+          data: brancheData.map(function(d) { return d.total; }),
+          backgroundColor: couleurs.slice(0, brancheData.length),
+        }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } } }
+    });
+  }
+});
+</script>
+{% endblock %}

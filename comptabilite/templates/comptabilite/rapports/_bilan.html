@@ -1,0 +1,21 @@
+<div class="table-responsive p-3">
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr class="table-success"><th colspan="3">ACTIF</th></tr></thead>
+    <tbody>
+      {% for item in rapport_data.actif %}
+      <tr><td><code>{{ item.compte.numero }}</code></td><td>{{ item.compte.intitule }}</td><td class="text-end">{{ item.solde|floatformat:0|intcomma }}</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr class="fw-bold"><td colspan="2">Total Actif</td><td class="text-end">{{ rapport_data.total_actif|floatformat:0|intcomma }}</td></tr></tfoot>
+  </table>
+
+  <table class="table table-sm align-middle mb-0 mt-4">
+    <thead><tr class="table-warning"><th colspan="3">PASSIF</th></tr></thead>
+    <tbody>
+      {% for item in rapport_data.passif %}
+      <tr><td><code>{{ item.compte.numero }}</code></td><td>{{ item.compte.intitule }}</td><td class="text-end">{{ item.solde|floatformat:0|intcomma }}</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr class="fw-bold"><td colspan="2">Total Passif</td><td class="text-end">{{ rapport_data.total_passif|floatformat:0|intcomma }}</td></tr></tfoot>
+  </table>
+</div>

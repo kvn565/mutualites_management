@@ -1,8 +1,9 @@
 # services_sante/models.py
 from django.db import models
 from core.models import TenantManager
+from comptabilite.models import SoftDeleteMixin
 
-class ServiceSante(models.Model):
+class ServiceSante(SoftDeleteMixin):
     CATEGORIE_CHOICES = [
         ('CONSULTATION','Consultation'),
         ('HOSPITALISATION','Hospitalisation'),
@@ -54,3 +55,14 @@ class ServiceSante(models.Model):
         prefix = categorie[:3].upper()
         count = cls.objects.filter(categorie=categorie).count() + 1
         return f"{prefix}-{count:03d}"
+
+    def _serialiser_pour_corbeille(self):
+        return {
+            'code': self.code,
+            'nom': self.nom,
+            'categorie': self.categorie,
+            'description': self.description,
+            'taux_prise_en_charge': str(self.taux_prise_en_charge),
+            'plafond': str(self.plafond),
+            'actif': self.actif,
+        }

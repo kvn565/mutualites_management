@@ -1,11 +1,11 @@
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 
-from core.models import Mutualite
+from core.models import Mutualite, CleActivation, AuditCle
 
 User = get_user_model()
 
@@ -245,6 +245,97 @@ class MutualiteAPITest(APITestCase):
         response = self.client.get('/api/superadmin/mutualites/?search=9999999999')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 1)
+
+
+class ActivationKeyFlowTest(TestCase):
+    def setUp(self):
+        self.super_admin = User.objects.create_superuser(
+            username='superadmin',
+            password='test123',
+            email='super@admin.com',
+            role='SUPER_ADMIN',
+        )
+        self.mutualite = Mutualite.objects.create(
+            nif='4000000500',
+            nom='Mutualité Test Clé',
+            nom_responsable='Gestionnaire',
+            telephone='79123491',
+            email='gestionnaire@test.com',
+            province='Bujumbura',
+            commune='Mairie',
+            created_by=self.super_admin,
+        )
+        self.mutualite.activer_essai()
+        self.mutualite.date_expiration = timezone.now() - timedelta(days=1)
+        self.mutualite.date_fin_essai = timezone.now() - timedelta(days=1)
+        self.mutualite.statut = 'EXPIRE'
+        self.mutualite.save()
+
+    def test_generer_cle_pour_mutualite_expiree(self):
+        """Une clé peut être générée pour une mutualité dont la licence est expirée."""
+        self.assertEqual(self.mutualite.statut, 'EXPIRE')
+        self.assertFalse(self.mutualite.licence_valide)
+
+        cle = CleActivation.objects.create(
+            mutualite=self.mutualite,
+            type_plan='6MOIS',
+            active=True,
+            utilisee=False,
+            statut='DISPONIBLE',
+            cree_par=self.super_admin.username,
+        )
+
+        self.assertEqual(cle.statut, 'DISPONIBLE')
+        self.assertIsNotNone(cle.cle_visible)
+        self.assertTrue(cle.cle_visible.startswith(('MUT', 'MUT')) or 'MUT' in cle.cle_visible)
+
+    def test_activer_mutualite_avec_cle_generee(self):
+        """Une mutualité expirée redevient ACTIF après activation d'une clé générée."""
+        cle = CleActivation.objects.create(
+            mutualite=self.mutualite,
+            type_plan='6MOIS',
+            active=True,
+            utilisee=False,
+            statut='DISPONIBLE',
+            cree_par=self.super_admin.username,
+        )
+
+        cle.utilisee = True
+        cle.date_utilisation = timezone.now()
+        cle.save()
+
+        self.mutualite.cle_activation = cle.cle_visible
+        self.mutualite.date_activation = cle.date_debut
+        self.mutualite.date_expiration = cle.date_fin
+        self.mutualite.type_abonnement = cle.type_plan
+        self.mutualite.essai_gratuit = False
+        self.mutualite.statut = 'ACTIF'
+        self.mutualite.save()
+
+        self.mutualite.refresh_from_db()
+        cle.refresh_from_db()
+
+        self.assertEqual(self.mutualite.statut, 'ACTIF')
+        self.assertTrue(self.mutualite.licence_valide)
+        self.assertEqual(cle.statut, 'ACTIVE')
+        self.assertTrue(cle.utilisee)
+
+    def test_generer_cle_via_vue_superadmin(self):
+        """La vue cle_generer crée une clé DISPONIBLE sans erreur."""
+        self.client.login(username='superadmin', password='test123')
+
+        response = self.client.post('/superadmin/cles/generer/', {
+            'mutualite': self.mutualite.pk,
+            'type_plan': '6MOIS',
+        })
+
+        self.assertRedirects(response, '/superadmin/cles/')
+
+        cle = CleActivation.objects.filter(mutualite=self.mutualite).first()
+        self.assertIsNotNone(cle)
+        self.assertEqual(cle.statut, 'DISPONIBLE')
+        self.assertFalse(cle.utilisee)
+        self.assertEqual(cle.type_plan, '6MOIS')
 
 
 class ExpiredLicenseCommandTest(TestCase):

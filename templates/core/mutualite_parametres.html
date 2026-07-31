@@ -1,0 +1,402 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Paramètres — {{ mutualite.nom }}{% endblock %}
+{% block page_title %}Paramètres de la mutualité{% endblock %}
+{% block page_icon %}bi bi-building-gear{% endblock %}
+{% block page_subtitle %}{{ mutualite.nom }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {{ form.non_field_errors.0 }}
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-info-circle me-2" style="color:var(--or);"></i>
+                    Informations générales
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        {% for field in form %}
+                        {% if field.name|slice:":4" != "def_" %}
+                        {% if field.name == 'module_chambres_actif' %}
+                        <div class="col-12">
+                            <label class="form-label">{{ field.label }}</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="{{ field.name }}" id="{{ field.id_for_label }}_1" value="True" {% if field.value %}checked{% endif %}>
+                                    <label class="form-check-label" for="{{ field.id_for_label }}_1">Activé</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="{{ field.name }}" id="{{ field.id_for_label }}_0" value="False" {% if not field.value %}checked{% endif %}>
+                                    <label class="form-check-label" for="{{ field.id_for_label }}_0">Désactivé</label>
+                                </div>
+                            </div>
+                            {% if field.help_text %}
+                            <div class="field-help"><i class="bi bi-info-circle me-1"></i>{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                            <div class="field-error"><i class="bi bi-x-circle me-1"></i>{{ field.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        {% elif field.name == 'logo' %}
+                        <div class="{% if field.name == 'adresse' or field.name == 'logo' or field.name == 'quartier' %}col-12{% else %}col-md-6{% endif %}">
+                            <label class="form-label" for="{{ field.id_for_label }}">
+                                {{ field.label }}
+                                {% if field.field.required %}<span style="color:#e74c3c;">*</span>{% endif %}
+                            </label>
+                            <div class="d-flex align-items-center gap-3">
+                                {% if mutualite.logo %}
+                                <img src="{{ mutualite.logo.url }}" alt="Logo" style="width:60px;height:60px;border-radius:8px;object-fit:contain;border:1px solid #dde3ea;">
+                                {% endif %}
+                                {{ field }}
+                            </div>
+                            {% if field.help_text %}
+                            <div class="field-help"><i class="bi bi-info-circle me-1"></i>{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                            <div class="field-error"><i class="bi bi-x-circle me-1"></i>{{ field.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="{% if field.name == 'adresse' or field.name == 'logo' or field.name == 'quartier' %}col-12{% else %}col-md-6{% endif %}">
+                            <label class="form-label" for="{{ field.id_for_label }}">
+                                {{ field.label }}
+                                {% if field.field.required %}<span style="color:#e74c3c;">*</span>{% endif %}
+                            </label>
+                            {{ field }}
+                            {% if field.help_text %}
+                            <div class="field-help"><i class="bi bi-info-circle me-1"></i>{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                            <div class="field-error"><i class="bi bi-x-circle me-1"></i>{{ field.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-palette me-2" style="color:var(--or);"></i>
+                    Apparence / Thème
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        {% for field in form %}
+                        {% if field.name in 'primary_color,accent_color,background_color,text_color,background_image' %}
+                        {% if field.name == 'background_image' %}
+                        <div class="col-12">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {% if mutualite.background_image %}
+                            <div class="mb-2" style="border-radius:8px;overflow:hidden;border:1px solid #dde3ea;max-height:120px;">
+                                <img src="{{ mutualite.background_image.url }}" alt="Fond actuel" style="width:100%;height:120px;object-fit:cover;">
+                            </div>
+                            {% endif %}
+                            {{ field }}
+                            {% if field.help_text %}
+                            <div class="field-help"><i class="bi bi-info-circle me-1"></i>{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                            <div class="field-error"><i class="bi bi-x-circle me-1"></i>{{ field.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                {{ field }}
+                                <span id="preview_{{ field.name }}" style="font-size:0.82rem;color:#64748b;font-family:monospace;">{{ field.value|default:'#000000' }}</span>
+                            </div>
+                            {% if field.help_text %}
+                            <div class="field-help"><i class="bi bi-info-circle me-1"></i>{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                            <div class="field-error"><i class="bi bi-x-circle me-1"></i>{{ field.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <script>
+                            document.getElementById('{{ field.id_for_label }}').addEventListener('input', function() {
+                                document.getElementById('preview_{{ field.name }}').textContent = this.value;
+                            });
+                        </script>
+                        {% endif %}
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-puzzle me-2" style="color:var(--or);"></i>
+                    Modules optionnels
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        {% for field in form %}
+                        {% if field.name == 'module_chambres_actif' %}
+                        <div class="col-12">
+                            <label class="form-label fw-bold">{{ field.label }}</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="{{ field.name }}" id="{{ field.id_for_label }}_1" value="True" {% if field.value == True or field.value == 'True' %}checked{% endif %}>
+                                <label class="form-check-label" for="{{ field.id_for_label }}_1">
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i> Activé
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="{{ field.name }}" id="{{ field.id_for_label }}_0" value="False" {% if field.value == False or field.value == 'False' or field.value == None %}checked{% endif %}>
+                                <label class="form-check-label" for="{{ field.id_for_label }}_0">
+                                    <i class="bi bi-x-circle-fill text-danger me-1"></i> Désactivé
+                                </label>
+                            </div>
+                            {% if field.help_text %}
+                            <div class="field-help mt-2"><i class="bi bi-info-circle me-1"></i>{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                            <div class="field-error"><i class="bi bi-x-circle me-1"></i>{{ field.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-shield-check me-2" style="color:var(--or);"></i>
+                    Plafonds par défaut (nouveaux affiliés)
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-muted small mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Ces plafonds seront appliqués automatiquement lors de la création d'un nouvel affilié.
+                    </p>
+                    <div class="row g-3">
+                        {% for field in form %}
+                        {% if field.name|slice:":4" == "def_" %}
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ field.id_for_label }}">
+                                {{ field.label }}
+                            </label>
+                            {{ field }}
+                            {% if field.help_text %}
+                            <div class="field-help"><i class="bi bi-info-circle me-1"></i>{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                            <div class="field-error"><i class="bi bi-x-circle me-1"></i>{{ field.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 text-end">
+                <a href="{% url 'dashboard:index' %}" class="btn btn-outline-secondary me-2">
+                    <i class="bi bi-arrow-left me-1"></i>Annuler
+                </a>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-lg me-1"></i>Enregistrer
+                </button>
+            </div>
+            <!-- Exclusions globales -->
+            <div class="card mb-4" id="exclusions-section">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-x-circle me-2 text-danger"></i> Exclusions globales (tous les affiliés)</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#globalExclusionModal">
+                        <i class="bi bi-plus"></i> Ajouter
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 border-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Élément</th>
+                                    <th>Motif</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for e in exclusions_globales %}
+                                <tr>
+                                    <td>
+                                        {% if e.medicament %}
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Médicament</span>
+                                        {% elif e.service %}
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Service</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="fw-medium">{% if e.medicament %}{{ e.medicament.nom }}{% else %}{{ e.service.nom }}{% endif %}</td>
+                                    <td><small class="text-muted">{{ e.motif|default:"-" }}</small></td>
+                                    <td class="text-end">
+                                        <form action="{% url 'core:mutualite_exclusion_supprimer' e.pk %}" method="post" style="display:inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Supprimer cette exclusion globale ?')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="bi bi-check-circle text-success"></i> Aucune exclusion globale
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if paginator_excl.num_pages > 1 %}
+                    <div class="pagination-nav px-3 py-2 border-top">
+                        <nav>
+                            <ul class="pagination pagination-sm justify-content-center mb-0">
+                                {% if exclusions_globales.has_previous %}
+                                <li class="page-item"><a class="page-link" href="?page_excl=1#exclusions-section">&laquo;</a></li>
+                                <li class="page-item"><a class="page-link" href="?page_excl={{ exclusions_globales.previous_page_number }}#exclusions-section">{{ exclusions_globales.previous_page_number }}</a></li>
+                                {% endif %}
+                                <li class="page-item active"><span class="page-link">{{ exclusions_globales.number }}</span></li>
+                                {% if exclusions_globales.has_next %}
+                                <li class="page-item"><a class="page-link" href="?page_excl={{ exclusions_globales.next_page_number }}#exclusions-section">{{ exclusions_globales.next_page_number }}</a></li>
+                                <li class="page-item"><a class="page-link" href="?page_excl={{ paginator_excl.num_pages }}#exclusions-section">&raquo;</a></li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+
+        <!-- Modal Ajouter Exclusion Globale -->
+        <div class="modal fade" id="globalExclusionModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form method="post" action="{% url 'core:mutualite_exclusion_ajouter' %}" class="modal-content">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-x-circle text-danger"></i> Ajouter exclusion globale</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small">Cette exclusion s'appliquera à <strong>tous les affiliés</strong> de la mutualité.</p>
+                        <div class="mb-3">
+                            <label class="form-label">Type <span class="text-danger">*</span></label>
+                            <select name="type" id="globalExclType" class="form-select" required>
+                                <option value="">--- Choisir ---</option>
+                                <option value="medicament">Médicament</option>
+                                <option value="service">Service de santé</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="globalExclItemGroup" style="display:none">
+                            <label class="form-label">Élément <span class="text-danger">*</span></label>
+                            <select name="item_pk" id="globalExclItem" class="form-select" required disabled>
+                                <option value="">--- Choisir ---</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Motif</label>
+                            <textarea name="motif" class="form-control" rows="2" placeholder="Optionnel"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle"></i> Exclure</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const typeSelect = document.getElementById('globalExclType');
+            const itemSelect = document.getElementById('globalExclItem');
+            const itemGroup = document.getElementById('globalExclItemGroup');
+
+            const medicaments = [
+                {% for m in medicaments %}
+                {pk: {{ m.pk }}, nom: "{{ m.nom|escapejs }} {{ m.get_forme_display|escapejs }} {{ m.dosage|escapejs }}" },
+                {% endfor %}
+            ];
+            const services = [
+                {% for s in services %}
+                {pk: {{ s.pk }}, nom: "{{ s.nom|escapejs }}" },
+                {% endfor %}
+            ];
+
+            typeSelect.addEventListener('change', function() {
+                const val = this.value;
+                itemSelect.innerHTML = '<option value="">--- Choisir ---</option>';
+                if (!val) { itemGroup.style.display = 'none'; itemSelect.disabled = true; return; }
+                itemGroup.style.display = 'block';
+                itemSelect.disabled = false;
+                const data = val === 'medicament' ? medicaments : services;
+                data.forEach(function(item) {
+                    const opt = document.createElement('option');
+                    opt.value = item.pk;
+                    opt.textContent = item.nom;
+                    itemSelect.appendChild(opt);
+                });
+            });
+        });
+        </script>
+
+        {% if mutualite.nif %}
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-shield-check me-2" style="color:var(--or);"></i>
+                Informations de licence
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted small">NIF</p>
+                        <p class="mb-0 fw-medium">{{ mutualite.nif }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted small">Code mutualité</p>
+                        <p class="mb-0 fw-medium">{{ mutualite.code_mutualite }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted small">Statut</p>
+                        <p class="mb-0 fw-medium">{{ mutualite.get_statut_display }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted small">Type d'abonnement</p>
+                        <p class="mb-0 fw-medium">{{ mutualite.type_abonnement|default:'—' }}</p>
+                    </div>
+                    {% if mutualite.date_expiration %}
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted small">Expiration licence</p>
+                        <p class="mb-0 fw-medium">{{ mutualite.date_expiration|date:'d/m/Y' }}</p>
+                    </div>
+                    {% endif %}
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted small">Max utilisateurs</p>
+                        <p class="mb-0 fw-medium">{{ mutualite.max_utilisateurs }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

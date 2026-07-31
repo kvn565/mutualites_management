@@ -16,5 +16,6 @@ urlpatterns = [
     path('<int:pk>/valider/', views.valider, name='valider'),
     path('<int:pk>/rejeter/', views.rejeter, name='rejeter'),
     path('<int:pk>/marquer-paye/', views.marquer_paye, name='marquer_paye'),
+    path('rechercher-affilie/', views.rechercher_affilie_json, name='rechercher_affilie'),
 ]
 

@@ -1,0 +1,100 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% block title %}Médicaments{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="flex items-center justify-between w-full">
+        <div>
+            <h1><i class="bi bi-capsule-pill" style="color:var(--primary)"></i> Médicaments</h1>
+            <p>{{ total }} médicament(s) référencé(s) pour {{ mutualites|length }} mutualité(s)</p>
+        </div>
+        <a href="{% url 'portail_partenaire:ajouter_medicament' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Ajouter
+        </a>
+    </div>
+</div>
+
+<form method="get" class="flex gap-2 mb-4" style="flex-wrap:wrap;">
+    <div class="search-bar" style="flex:1;">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" name="q" class="form-control" placeholder="Rechercher par nom, code ou DCI..." value="{{ q }}">
+    </div>
+    <select name="forme" class="form-select" style="width:180px;" onchange="this.form.submit()">
+        <option value="">Toutes formes</option>
+        {% for code, label in forme_choices %}
+        <option value="{{ code }}" {% if forme == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
+</form>
+
+{% if medicaments %}
+<div class="card" style="padding:0;">
+    <div class="table-scroll">
+    <table>
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Nom commercial</th>
+                <th>DCI</th>
+                <th>Forme</th>
+                <th>Dosage</th>
+                <th>Mutualité</th>
+                <th>Prix réf.</th>
+                <th>Taux remb.</th>
+                <th>Statut</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in medicaments %}
+            <tr>
+                <td><code>{{ m.code }}</code></td>
+                <td class="fw-bold">{{ m.nom }}</td>
+                <td>{{ m.dci|default:"—" }}</td>
+                <td>{{ m.get_forme_display }}</td>
+                <td>{{ m.dosage|default:"—" }}</td>
+                <td><span class="badge badge-info">{{ m.mutualite.sigle|default:m.mutualite.code_mutualite }}</span></td>
+                <td>{{ m.prix_reference|floatformat:0 }} BIF</td>
+                <td>{{ m.taux_remboursement|floatformat:0 }}%</td>
+                <td>
+                    {% if m.actif %}<span class="badge badge-success">Actif</span>
+                    {% else %}<span class="badge badge-secondary">Inactif</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'portail_partenaire:modifier_medicament' m.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <a href="{% url 'portail_partenaire:supprimer_medicament' m.pk %}" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+{% if medicaments.paginator.num_pages > 1 %}
+<div class="pagination">
+    {% if medicaments.has_previous %}
+    <a href="?page={{ medicaments.previous_page_number }}&q={{ q }}&forme={{ forme }}" class="page-link">&laquo;</a>
+    {% endif %}
+    {% for p in medicaments.paginator.page_range %}
+    <a href="?page={{ p }}&q={{ q }}&forme={{ forme }}" class="page-link {% if p == medicaments.number %}active{% endif %}">{{ p }}</a>
+    {% endfor %}
+    {% if medicaments.has_next %}
+    <a href="?page={{ medicaments.next_page_number }}&q={{ q }}&forme={{ forme }}" class="page-link">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <i class="bi bi-capsule-pill"></i>
+    <p>Aucun médicament trouvé. {% if not q %}Cliquez sur "Ajouter" pour commencer.{% endif %}</p>
+</div>
+{% endif %}
+{% endblock %}

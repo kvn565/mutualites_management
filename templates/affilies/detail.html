@@ -31,7 +31,7 @@
                 </div>
                 
                 <h4 class="mt-3 mb-1">{{ affilie.nom_complet }}</h4>
-                <div class="text-muted mb-3">{{ affilie.numero_affiliation }}</div>
+                <div class="text-muted mb-3">ID : {{ affilie.numero_affiliation }}</div>
                 
                 <div class="mb-3">
                     {% if affilie.statut == 'ACTIF' %}<span class="badge-actif px-3 py-2">Actif</span>
@@ -189,6 +189,267 @@
             </div>
         </div>
         
+        <!-- Garanties / Plafonds -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <span class="fw-bold text-vert"><i class="bi bi-shield-check me-2"></i> Garanties / Plafonds de remboursement</span>
+                {% if user.peut_modifier %}
+                <a href="{% url 'affilies:modifier' affilie.pk %}" class="btn btn-sm btn-outline-vert">
+                    <i class="bi bi-pencil"></i> Modifier
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">Cotisation mensuelle</div>
+                        <div class="fw-bold">{{ affilie.cotisation_mensuelle|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">Laboratoire</div>
+                        <div class="fw-bold">{{ affilie.limite_laboratoire|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">Kinésithérapie</div>
+                        <div class="fw-bold">{{ affilie.limite_kinesitherapie|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">Réanimation</div>
+                        <div class="fw-bold">{{ affilie.limite_reanimation|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">Imagerie Médicale</div>
+                        <div class="fw-bold">{{ affilie.limite_imagerie_medicale|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">Soins Ambulatoires (SA)</div>
+                        <div class="fw-bold">{{ affilie.soins_ambulatoires|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">Hôpital plafond chambre/nuit</div>
+                        <div class="fw-bold">{{ affilie.hopital_plafond_chambre|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">HPC / Nuit</div>
+                        <div class="fw-bold">{{ affilie.hpc_nuit|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">Hospitalisation Générale</div>
+                        <div class="fw-bold">{{ affilie.limite_hospitalisation_generale|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">Maternité forfait</div>
+                        <div class="fw-bold">{{ affilie.maternite_forfait|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">% Maternité</div>
+                        <div class="fw-bold">{{ affilie.pourcentage_maternite|floatformat:2 }} %</div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">Pharmacie forfait</div>
+                        <div class="fw-bold">{{ affilie.pharmacie_forfait|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">Médicaments</div>
+                        <div class="fw-bold">{{ affilie.limites_medicaments|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">Lunettes (verre et monture)</div>
+                        <div class="fw-bold">{{ affilie.limites_lunettes|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="text-muted small">Soins Dentaires</div>
+                        <div class="fw-bold">{{ affilie.limites_dents|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exclusions médicaments / services -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <span class="fw-bold text-danger"><i class="bi bi-x-circle me-2"></i> Exclusions</span>
+                {% if user.peut_modifier %}
+                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#exclusionModal">
+                    <i class="bi bi-plus"></i> Ajouter exclusion
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if exclusions_globales %}
+                <div class="px-3 pt-3 pb-1">
+                    <span class="badge bg-dark text-white mb-2">Exclusions globales (tous les affiliés)</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tbody>
+                            {% for e in exclusions_globales %}
+                            <tr>
+                                <td class="ps-3">
+                                    {% if e.medicament %}
+                                    <i class="bi bi-capsule-pill text-danger me-1"></i> Médicament : <strong>{{ e.medicament.nom }}</strong>
+                                    {% elif e.service %}
+                                    <i class="bi bi-heart-pulse text-danger me-1"></i> Service : <strong>{{ e.service.nom }}</strong>
+                                    {% endif %}
+                                </td>
+                                <td><small class="text-muted">{{ e.motif|truncatechars:50 }}</small></td>
+                            </tr>
+                            {% empty %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+                {% if exclusions_origine %}
+                <div class="px-3 pt-3 pb-1">
+                    <span class="badge bg-warning text-dark mb-2">Exclusions héritées de l'origine</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tbody>
+                            {% for e in exclusions_origine %}
+                            <tr>
+                                <td class="ps-3">
+                                    {% if e.medicament %}
+                                    <i class="bi bi-capsule-pill text-danger me-1"></i> Médicament : <strong>{{ e.medicament.nom }}</strong>
+                                    {% elif e.service %}
+                                    <i class="bi bi-heart-pulse text-danger me-1"></i> Service : <strong>{{ e.service.nom }}</strong>
+                                    {% endif %}
+                                </td>
+                                <td><small class="text-muted">{{ e.motif|truncatechars:50 }}</small></td>
+                            </tr>
+                            {% empty %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 border-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Type</th>
+                                <th>Élément exclu</th>
+                                <th>Motif</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for e in exclusions %}
+                            <tr>
+                                <td>
+                                    {% if e.medicament %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Médicament</span>
+                                    {% elif e.service %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Service</span>
+                                    {% endif %}
+                                </td>
+                                <td class="fw-medium">{% if e.medicament %}{{ e.medicament.nom }}{% else %}{{ e.service.nom }}{% endif %}</td>
+                                <td><small class="text-muted">{{ e.motif|default:"-" }}</small></td>
+                                <td class="text-end">
+                                    {% if user.peut_modifier %}
+                                    <form action="{% url 'affilies:exclusion_supprimer' e.pk %}" method="post" style="display:inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('Supprimer cette exclusion ?')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            {% if not exclusions_origine %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">
+                                    <i class="bi bi-check-circle text-success"></i> Aucune exclusion
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Ajouter Exclusion -->
+        {% if user.peut_modifier %}
+        <div class="modal fade" id="exclusionModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form method="post" action="{% url 'affilies:exclusion_ajouter' affilie.pk %}" class="modal-content">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-x-circle text-danger"></i> Ajouter une exclusion</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Type d'exclusion <span class="text-danger">*</span></label>
+                            <select name="type" id="exclusionType" class="form-select" required>
+                                <option value="">--- Choisir ---</option>
+                                <option value="medicament">Médicament</option>
+                                <option value="service">Service de santé</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="exclusionItemGroup" style="display:none">
+                            <label class="form-label">Élément à exclure <span class="text-danger">*</span></label>
+                            <select name="item_pk" id="exclusionItem" class="form-select" required disabled>
+                                <option value="">--- Choisir ---</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Motif</label>
+                            <textarea name="motif" class="form-control" rows="2" placeholder="Raison de l'exclusion (optionnel)"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle"></i> Exclure</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const typeSelect = document.getElementById('exclusionType');
+            const itemSelect = document.getElementById('exclusionItem');
+            const itemGroup = document.getElementById('exclusionItemGroup');
+
+            const medicaments = [
+                {% for m in medicaments %}
+                {pk: {{ m.pk }}, nom: "{{ m.nom|escapejs }} {{ m.get_forme_display|escapejs }} {{ m.dosage|escapejs }}" },
+                {% endfor %}
+            ];
+            const services = [
+                {% for s in services %}
+                {pk: {{ s.pk }}, nom: "{{ s.nom|escapejs }}" },
+                {% endfor %}
+            ];
+
+            typeSelect.addEventListener('change', function() {
+                const val = this.value;
+                itemSelect.innerHTML = '<option value="">--- Choisir ---</option>';
+                if (!val) {
+                    itemGroup.style.display = 'none';
+                    itemSelect.disabled = true;
+                    return;
+                }
+                itemGroup.style.display = 'block';
+                itemSelect.disabled = false;
+                const data = val === 'medicament' ? medicaments : services;
+                data.forEach(function(item) {
+                    const opt = document.createElement('option');
+                    opt.value = item.pk;
+                    opt.textContent = item.nom;
+                    itemSelect.appendChild(opt);
+                });
+            });
+        });
+        </script>
+        {% endif %}
+
         <!-- Cotisations récentes -->
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">

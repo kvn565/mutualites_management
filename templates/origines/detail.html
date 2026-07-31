@@ -129,6 +129,142 @@
                 </div>
             </div>
         </div>
+
+        <!-- Exclusions (médicaments / services) -->
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <span class="fw-bold text-danger"><i class="bi bi-x-circle me-2"></i> Exclusions (héritées par tous les affiliés)</span>
+                {% if user.peut_modifier %}
+                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#exclusionModal">
+                    <i class="bi bi-plus"></i> Ajouter exclusion
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 border-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Type</th>
+                                <th>Élément exclu</th>
+                                <th>Motif</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for e in exclusions %}
+                            <tr>
+                                <td>
+                                    {% if e.medicament %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Médicament</span>
+                                    {% elif e.service %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Service</span>
+                                    {% endif %}
+                                </td>
+                                <td class="fw-medium">{% if e.medicament %}{{ e.medicament.nom }}{% else %}{{ e.service.nom }}{% endif %}</td>
+                                <td><small class="text-muted">{{ e.motif|default:"-" }}</small></td>
+                                <td class="text-end">
+                                    {% if user.peut_modifier %}
+                                    <form action="{% url 'origines:exclusion_supprimer' e.pk %}" method="post" style="display:inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('Supprimer cette exclusion ?')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">
+                                    <i class="bi bi-check-circle text-success"></i> Aucune exclusion définie pour cette origine
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Ajouter Exclusion (Origine) -->
+        {% if user.peut_modifier %}
+        <div class="modal fade" id="exclusionModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form method="post" action="{% url 'origines:exclusion_ajouter' origine.pk %}" class="modal-content">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-x-circle text-danger"></i> Ajouter une exclusion (origine)</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small">Cette exclusion s'appliquera à tous les affiliés de <strong>{{ origine.nom }}</strong>.</p>
+                        <div class="mb-3">
+                            <label class="form-label">Type d'exclusion <span class="text-danger">*</span></label>
+                            <select name="type" id="exclusionType" class="form-select" required>
+                                <option value="">--- Choisir ---</option>
+                                <option value="medicament">Médicament</option>
+                                <option value="service">Service de santé</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="exclusionItemGroup" style="display:none">
+                            <label class="form-label">Élément à exclure <span class="text-danger">*</span></label>
+                            <select name="item_pk" id="exclusionItem" class="form-select" required disabled>
+                                <option value="">--- Choisir ---</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Motif</label>
+                            <textarea name="motif" class="form-control" rows="2" placeholder="Raison de l'exclusion (optionnel)"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle"></i> Exclure</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const typeSelect = document.getElementById('exclusionType');
+            const itemSelect = document.getElementById('exclusionItem');
+            const itemGroup = document.getElementById('exclusionItemGroup');
+
+            const medicaments = [
+                {% for m in medicaments %}
+                {pk: {{ m.pk }}, nom: "{{ m.nom|escapejs }} {{ m.get_forme_display|escapejs }} {{ m.dosage|escapejs }}" },
+                {% endfor %}
+            ];
+            const services = [
+                {% for s in services %}
+                {pk: {{ s.pk }}, nom: "{{ s.nom|escapejs }}" },
+                {% endfor %}
+            ];
+
+            typeSelect.addEventListener('change', function() {
+                const val = this.value;
+                itemSelect.innerHTML = '<option value="">--- Choisir ---</option>';
+                if (!val) {
+                    itemGroup.style.display = 'none';
+                    itemSelect.disabled = true;
+                    return;
+                }
+                itemGroup.style.display = 'block';
+                itemSelect.disabled = false;
+                const data = val === 'medicament' ? medicaments : services;
+                data.forEach(function(item) {
+                    const opt = document.createElement('option');
+                    opt.value = item.pk;
+                    opt.textContent = item.nom;
+                    itemSelect.appendChild(opt);
+                });
+            });
+        });
+        </script>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

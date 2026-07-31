@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Nouveau rapprochement{% endblock %}
+{% block page_title %}Nouveau rapprochement bancaire{% endblock %}
+{% block page_icon %}bi bi-arrow-left-right{% endblock %}
+{% block nav_compta %}active{% endblock %}
+
+{% block content %}
+<form method="post">{% csrf_token %}
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-pencil me-2"></i> Rapprochement</div>
+        <div class="card-body p-4 row g-3">
+          <div class="col-12">
+            <label class="form-label">{{ form.compte.label }} <span class="text-danger">*</span></label>
+            {{ form.compte }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.date_debut.label }} <span class="text-danger">*</span></label>
+            {{ form.date_debut }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.date_fin.label }} <span class="text-danger">*</span></label>
+            {{ form.date_fin }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.solde_comptable.label }} <span class="text-danger">*</span></label>
+            {{ form.solde_comptable }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.solde_bancaire.label }} <span class="text-danger">*</span></label>
+            {{ form.solde_bancaire }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">{{ form.notes.label }}</label>
+            {{ form.notes }}
+          </div>
+        </div>
+      </div>
+
+      <div class="d-grid mt-4 gap-2">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-circle me-2"></i> Enregistrer</button>
+        <a href="{% url 'comptabilite:rapprochement_list' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

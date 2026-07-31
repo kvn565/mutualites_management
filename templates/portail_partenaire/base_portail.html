@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Portail Hôpital — {{ partenaire.nom_etablissement }}{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="{% static 'vendor/adminlte/css/adminlte.min.css' %}" rel="stylesheet">
+    <link href="{% static 'vendor/bootstrap-icons/css/bootstrap-icons.min.css' %}" rel="stylesheet">
+    <style>
+        :root {
+            --primary: {{ PARTENAIRE_PRIMARY_COLOR|default:MUTUALITE_PRIMARY_COLOR|default:APP_PRIMARY_COLOR|default:'#0a5c36' }};
+            --primary-light: {{ PARTENAIRE_PRIMARY_COLOR|default:MUTUALITE_PRIMARY_COLOR|default:APP_PRIMARY_COLOR|default:'#0d7a48' }};
+            --primary-dark: {{ PARTENAIRE_PRIMARY_COLOR|default:MUTUALITE_PRIMARY_COLOR|default:APP_PRIMARY_COLOR|default:'#062c1a' }};
+            --accent: {{ PARTENAIRE_ACCENT_COLOR|default:MUTUALITE_ACCENT_COLOR|default:APP_ACCENT_COLOR|default:'#c9a84c' }};
+            --accent-light: {{ PARTENAIRE_ACCENT_COLOR|default:MUTUALITE_ACCENT_COLOR|default:APP_ACCENT_COLOR|default:'#e8c97a' }};
+            --bg: {{ PARTENAIRE_BACKGROUND_COLOR|default:MUTUALITE_BACKGROUND_COLOR|default:APP_BACKGROUND_COLOR|default:'#f0f4f8' }};
+            --text-color: {{ PARTENAIRE_TEXT_COLOR|default:MUTUALITE_TEXT_COLOR|default:APP_TEXT_COLOR|default:'#1e293b' }};
+            --card-shadow: 0 2px 12px rgba(10,92,54,0.06);
+            --radius: 12px;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg){% if PARTENAIRE_BACKGROUND_IMAGE_URL|default:MUTUALITE_BACKGROUND_IMAGE_URL|default:APP_BACKGROUND_IMAGE_URL %}, url('{{ PARTENAIRE_BACKGROUND_IMAGE_URL|default:MUTUALITE_BACKGROUND_IMAGE_URL|default:APP_BACKGROUND_IMAGE_URL }}') center/cover fixed{% endif %};
+            color: var(--text-color);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        a { color: var(--primary); text-decoration: none; }
+        a:hover { color: var(--primary-light); }
+
+        .topbar {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+        }
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .topbar-brand-logo {
+            width: 38px; height: 38px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        .topbar-brand-sub {
+            font-size: 0.7rem;
+            font-weight: 400;
+            opacity: 0.7;
+            display: block;
+        }
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .topbar-user {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        .topbar-user-avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .topbar-btn {
+            color: #fff;
+            opacity: 1;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            transition: all 0.15s;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        .topbar-btn:hover { background: rgba(255,255,255,0.15); }
+        .topbar-btn:focus { outline: none; box-shadow: none; }
+
+        .nav-bar {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 24px;
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            position: sticky;
+            top: 64px;
+            z-index: 999;
+        }
+        .nav-item {
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #64748b;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .nav-item:hover {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .nav-item.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            font-weight: 600;
+        }
+        .nav-item i { margin-right: 6px; }
+
+        .main-content {
+            flex: 1;
+            padding: 24px 0;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            margin-bottom: 24px;
+        }
+        .page-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 4px;
+        }
+        .page-header p {
+            color: #64748b;
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: var(--card-shadow);
+            border: 1px solid #eef2f6;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 16px 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #eef2f6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .card-body { padding: 20px; }
+        .card-body:empty { display: none; }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 20px;
+            border: 1px solid #eef2f6;
+            border-left: 4px solid var(--primary);
+            box-shadow: var(--card-shadow);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(10,92,54,0.1);
+        }
+        .stat-icon {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+        .stat-icon.green { background: #e8f5ee; color: var(--primary); }
+        .stat-icon.gold  { background: #fef8ec; color: #a16b0e; }
+        .stat-icon.blue  { background: #eff6ff; color: #1d4ed8; }
+        .stat-icon.red   { background: #fef2f2; color: #dc2626; }
+        .stat-label { font-size: 0.75rem; color: #64748b; font-weight: 500; }
+        .stat-value { font-size: 1.4rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 18px;
+            border-radius: 9px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+        }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-light); color: #fff; }
+        .btn-gold { background: var(--accent); color: #fff; }
+        .btn-gold:hover { background: var(--accent-light); color: #fff; }
+        .btn-outline {
+            border: 1.5px solid #dde3ea;
+            color: #475569;
+            background: transparent;
+        }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-outline-primary {
+            border: 1.5px solid var(--primary);
+            color: var(--primary);
+            background: transparent;
+        }
+        .btn-outline-primary:hover { background: var(--primary); color: #fff; }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+        .btn-danger { background: #ef4444; color: #fff; }
+        .btn-danger:hover { background: #dc2626; color: #fff; }
+        .btn-success { background: #10b981; color: #fff; }
+        .btn-success:hover { background: #059669; color: #fff; }
+        .btn-warning { background: #f59e0b; color: #fff; }
+        .btn-warning:hover { background: #d97706; color: #fff; }
+        .btn-info { background: #3b82f6; color: #fff; }
+        .btn-info:hover { background: #2563eb; color: #fff; }
+
+        .form-control, .form-select {
+            border: 1.5px solid #dde3ea;
+            border-radius: 9px;
+            padding: 9px 13px;
+            font-size: 0.875rem;
+            width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-control-lg {
+            padding: 12px 16px;
+            font-size: 1rem;
+        }
+        .form-select-lg {
+            padding: 12px 16px;
+            font-size: 1rem;
+        }
+        .ligne-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 80px 1fr 100px 60px;
+            gap: 12px;
+        }
+        @media (max-width: 992px) {
+            .ligne-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(10,92,54,0.12);
+            outline: none;
+        }
+        .form-label { font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #374151; }
+        .form-text { font-size: 0.75rem; color: #94a3b8; }
+
+        table { width: 100%; border-collapse: collapse; }
+        table thead th {
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        table tbody td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.85rem;
+            vertical-align: middle;
+        }
+        table tbody tr:hover { background: #f8fafc; }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-warning { background: #fef9c3; color: #854d0e; }
+        .badge-danger  { background: #fee2e2; color: #991b1b; }
+        .badge-info    { background: #dbeafe; color: #1e40af; }
+        .badge-secondary { background: #f1f5f9; color: #475569; }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            border-left: 4px solid;
+        }
+        .alert-success { background: #e8f8f0; color: #166534; border-left-color: #10b981; }
+        .alert-danger  { background: #fef2f2; color: #991b1b; border-left-color: #ef4444; }
+        .alert-warning { background: #fffbeb; color: #92400e; border-left-color: #f59e0b; }
+        .alert-info    { background: #eff6ff; color: #1e40af; border-left-color: #3b82f6; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: #94a3b8;
+        }
+        .empty-state i { font-size: 3rem; margin-bottom: 12px; display: block; }
+        .empty-state p { font-size: 0.9rem; margin: 0; }
+
+        .member-photo {
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #f1f5f9;
+        }
+        .member-photo-sm {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #f1f5f9;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .page-link {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--primary);
+            border: 1px solid #e2e8f0;
+        }
+        .page-link.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+        .page-link:hover:not(.active) { background: #f1f5f9; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .info-item label { font-size: 0.72rem; color: #94a3b8; display: block; margin-bottom: 2px; }
+        .info-item span { font-size: 0.9rem; font-weight: 500; color: #0f172a; }
+
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 8px; }
+        .gap-3 { gap: 12px; }
+        .gap-4 { gap: 16px; }
+        .mt-2 { margin-top: 8px; }
+        .mt-3 { margin-top: 12px; }
+        .mt-4 { margin-top: 16px; }
+        .mb-2 { margin-bottom: 8px; }
+        .mb-3 { margin-bottom: 12px; }
+        .mb-4 { margin-bottom: 16px; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-muted { color: #94a3b8; }
+        .text-sm { font-size: 0.8rem; }
+        .fw-bold { font-weight: 700; }
+        .w-full { width: 100%; }
+
+        .toast-container {
+            position: fixed; top: 80px; right: 20px; z-index: 9999;
+        }
+        .toast-msg {
+            background: #fff;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--accent);
+            min-width: 300px;
+            animation: slideIn 0.3s ease;
+            font-size: 0.85rem;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-msg.success { border-left-color: #10b981; }
+        .toast-msg.error { border-left-color: #ef4444; }
+        .toast-msg.warning { border-left-color: #f59e0b; }
+
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-scroll table { min-width: 640px; }
+        @media (max-width: 768px) {
+            .stat-grid { grid-template-columns: repeat(2, 1fr); }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .info-grid { grid-template-columns: 1fr; }
+            .main-content { padding: 16px; }
+            .topbar { padding: 0 12px; }
+            .nav-bar { padding: 0 12px; }
+            .topbar-right { gap: 8px; }
+            .topbar-user span { display: none; }
+            .topbar-brand-sub { display: none; }
+            .topbar-brand { font-size: 0.9rem; }
+            #notifDropdown { width: 300px !important; right: -60px !important; }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if user %}
+<div class="topbar">
+    <div class="topbar-brand">
+        {% if partenaire.logo %}
+        <img src="{{ partenaire.logo.url }}" alt="Logo" style="height:38px;width:38px;border-radius:10px;object-fit:cover;background:rgba(255,255,255,0.12);">
+        {% else %}
+        <div class="topbar-brand-logo">
+            <i class="bi bi-hospital"></i>
+        </div>
+        {% endif %}
+        <div>
+            {{ partenaire.nom_etablissement }}
+            <span class="topbar-brand-sub">{{ partenaire.code_partenaire }}</span>
+        </div>
+    </div>
+    <div class="topbar-right">
+        {% if mutualites and mutualites|length > 0 %}
+        <div class="topbar-mutualite" style="position:relative;">
+            <button class="topbar-btn" onclick="toggleMutualite()" title="Changer de mutualité" style="display:flex;align-items:center;gap:6px;font-size:0.8rem;gap:4px;">
+                <i class="bi bi-building"></i>
+                {% with active_pk=request.session.mutualite_active_pk %}
+                {% if active_pk %}
+                    {% for m in mutualites %}
+                        {% if m.pk|stringformat:"s" == active_pk %}
+                            <span style="font-weight:600;">{{ m.sigle|default:m.nom }}</span>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <span style="font-weight:600;">Toutes</span>
+                {% endif %}
+                {% endwith %}
+                <i class="bi bi-chevron-down" style="font-size:0.6rem;opacity:0.6;"></i>
+            </button>
+            <div id="mutualiteDropdown" class="mutualite-dropdown" style="display:none;position:absolute;top:100%;right:0;background:#fff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.15);margin-top:6px;z-index:9999;min-width:200px;padding:6px;">
+                <a href="{% url 'portail_partenaire:changer_mutualite' %}" class="mutualite-option" style="display:block;padding:8px 12px;text-decoration:none;color:#1e293b;font-size:0.82rem;border-radius:6px;{% if not request.session.mutualite_active_pk %}background:#f0fdf4;color:var(--primary);font-weight:600;{% endif %}" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background=''">
+                    <i class="bi bi-grid-3x3-gap" style="margin-right:8px;"></i>Toutes les mutualités
+                </a>
+                {% for m in mutualites %}
+                <a href="{% url 'portail_partenaire:changer_mutualite' %}?pk={{ m.pk }}" class="mutualite-option" style="display:block;padding:8px 12px;text-decoration:none;color:#1e293b;font-size:0.82rem;border-radius:6px;{% if request.session.mutualite_active_pk|stringformat:'s' == m.pk|stringformat:'s' %}background:#f0fdf4;color:var(--primary);font-weight:600;{% endif %}" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background=''">
+                        <i class="bi bi-building" style="margin-right:8px;"></i>{{ m.sigle|default:m.nom }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        <div class="topbar-notif" style="position:relative;">
+            <button class="topbar-btn" onclick="toggleNotif()" title="Notifications" style="position:relative;">
+                <i class="bi bi-bell"></i>
+                {% if nb_notifications > 0 %}
+                <span style="position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:0.6rem;display:flex;align-items:center;justify-content:center;font-weight:700;">{{ nb_notifications }}</span>
+                {% endif %}
+            </button>
+            <div id="notifDropdown" class="notif-dropdown" style="display:none;position:absolute;top:100%;right:0;width:360px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.15);margin-top:8px;z-index:9999;max-height:400px;overflow-y:auto;">
+                <div style="padding:12px 16px;border-bottom:1px solid #eef2f6;font-weight:600;color:#0f172a;font-size:0.85rem;">
+                    <i class="bi bi-bell" style="color:var(--primary);margin-right:6px;"></i>Notifications
+                </div>
+                {% if notifications %}
+                {% for n in notifications %}
+                <div class="notif-item" data-key="{{ n.key }}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;text-decoration:none;color:#1e293b;font-size:0.82rem;border-bottom:1px solid #f1f5f9;transition:background 0.15s;cursor:pointer;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''" onclick="dismissNotification('{{ n.key }}', '{{ n.url }}')">
+                    <span style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:{{ n.couleur }};color:#fff;flex-shrink:0;">
+                        <i class="bi {{ n.icone }}"></i>
+                    </span>
+                    <div style="flex:1;">
+                        <div>{{ n.message }}</div>
+                        <div style="font-size:0.7rem;color:#94a3b8;margin-top:2px;">{{ n.date|timesince }}</div>
+                    </div>
+                    <span onclick="event.stopPropagation();dismissNotification('{{ n.key }}', null)" style="color:#94a3b8;font-size:1rem;cursor:pointer;padding:0 4px;">&times;</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div style="padding:24px 16px;text-align:center;color:#94a3b8;font-size:0.85rem;">
+                    <i class="bi bi-check-circle" style="display:block;font-size:1.5rem;margin-bottom:8px;"></i>
+                    Aucune nouvelle notification
+                </div>
+                {% endif %}
+                <a href="{% url 'portail_partenaire:recherche_membre' %}" style="display:block;padding:10px 16px;text-align:center;color:var(--primary);font-size:0.8rem;font-weight:600;text-decoration:none;border-top:1px solid #eef2f6;">
+                    Voir tous les membres
+                </a>
+            </div>
+        </div>
+        <div class="topbar-user">
+            {% if user.photo %}
+            <img src="{{ user.photo.url }}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,0.2);">
+            {% else %}
+            <div class="topbar-user-avatar">
+                <i class="bi bi-person"></i>
+            </div>
+            {% endif %}
+            <span>{{ user.username }}</span>
+        </div>
+        <a href="{% url 'portail_partenaire:profil' %}" class="topbar-btn" title="Profil">
+            <i class="bi bi-gear"></i>
+        </a>
+        <a href="{% url 'portail_partenaire:deconnexion' %}" class="topbar-btn" title="Déconnexion">
+            <i class="bi bi-box-arrow-right"></i>
+        </a>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    var c = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return c ? c.pop() : '';
+}
+
+function dismissNotification(key, url) {
+    var el = document.querySelector('[data-key="' + key + '"]');
+    if (el) { el.style.display = 'none'; }
+    new Image().src = '/portail/notifications/dismiss/?key=' + encodeURIComponent(key) + '&r=' + Math.random();
+    if (url) {
+        setTimeout(function() { window.location.href = url; }, 150);
+    }
+}
+
+function toggleNotif() {
+    var d = document.getElementById('notifDropdown');
+    d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+function toggleMutualite() {
+    var d = document.getElementById('mutualiteDropdown');
+    if (d) d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', function(e) {
+    var d = document.getElementById('notifDropdown');
+    var btn = e.target.closest('.topbar-notif');
+    if (!btn && d && d.style.display === 'block') {
+        d.style.display = 'none';
+    }
+    var md = document.getElementById('mutualiteDropdown');
+    var mbtn = e.target.closest('.topbar-mutualite');
+    if (!mbtn && md && md.style.display === 'block') {
+        md.style.display = 'none';
+    }
+});
+</script>
+
+<div class="nav-bar">
+    <a href="{% url 'portail_partenaire:dashboard' %}"
+       class="nav-item {% if request.path == '/portail/' %}active{% endif %}">
+        <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+    <a href="{% url 'portail_partenaire:recherche_membre' %}"
+       class="nav-item {% if 'membres' in request.path %}active{% endif %}">
+        <i class="bi bi-people"></i> Membres
+    </a>
+    <a href="{% url 'portail_partenaire:liste_factures' %}"
+       class="nav-item {% if 'factures' in request.path and 'ajouter' not in request.path %}active{% endif %}">
+        <i class="bi bi-receipt"></i> Factures
+    </a>
+    <a href="{% url 'portail_partenaire:liste_medicaments' %}"
+       class="nav-item {% if 'medicaments' in request.path %}active{% endif %}">
+        <i class="bi bi-capsule-pill"></i> Médicaments
+    </a>
+</div>
+{% endif %}
+
+<div class="main-content">
+    {% if messages %}
+    <div class="toast-container" id="toastContainer">
+        {% for msg in messages %}
+        <div class="toast-msg {{ msg.tags }}">
+            <div class="flex items-center justify-between">
+                <span>{{ msg }}</span>
+                <button onclick="this.parentElement.parentElement.remove()" style="border:none;background:none;color:#94a3b8;cursor:pointer;font-size:1.1rem;">&times;</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+</div>
+
+<script src="{% static 'vendor/adminlte/js/adminlte.min.js' %}"></script>
+<script>
+    setTimeout(function() {
+        var container = document.getElementById('toastContainer');
+        if (container) {
+            setTimeout(function() { container.remove(); }, 5000);
+        }
+    }, 100);
+
+    document.querySelectorAll('.toast-msg .btn-close').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            this.closest('.toast-msg').remove();
+        });
+    });
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

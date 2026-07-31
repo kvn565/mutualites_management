@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Importer des affiliés — Mutualité de Santé{% endblock %}
+{% block page_title %}Importer des affiliés{% endblock %}
+{% block page_icon %}bi bi-upload{% endblock %}
+{% block nav_affilies %}active{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-file-earmark-excel me-2"></i> Importation depuis Excel
+            </div>
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data" class="row g-3">
+                    {% csrf_token %}
+
+                    <div class="col-12">
+                        <label class="form-label">Origine <span class="text-danger">*</span></label>
+                        <select name="origine" class="form-select" required>
+                            <option value="">Sélectionner une origine...</option>
+                            {% for o in origines %}
+                            <option value="{{ o.pk }}">{{ o.nom }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Les affiliés importés seront rattachés à cette origine.</div>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Fichier Excel <span class="text-danger">*</span></label>
+                        <input type="file" name="fichier" class="form-control" accept=".xlsx,.xls" required>
+                        <div class="form-text">
+                            Format .xlsx ou .xls —
+                            <a href="{% url 'affilies:modele_import' %}" class="text-vert fw-medium">
+                                <i class="bi bi-download me-1"></i>Télécharger le modèle
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-4">
+                        <h6 class="text-muted border-bottom pb-2">Colonnes attendues</h6>
+                        <div class="row small text-muted">
+                            <div class="col-md-6">
+                                <strong>Obligatoires :</strong>
+                                <ul class="mb-2">
+                                    <li>Nom</li>
+                                    <li>Prénom</li>
+                                    <li>Sexe (M/F)</li>
+                                    <li>Date naissance</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Optionnelles :</strong>
+                                <ul class="mb-0">
+                                    <li>Postnom, Etat civil, N° carte identité</li>
+                                    <li>Province, Commune, Zone, Colline, Adresse</li>
+                                    <li>Téléphone, Email, Profession</li>
+                                    <li>Groupe sanguin, Contact urgence</li>
+                                    <li>Centre santé réf., Hôpital réf.</li>
+                                    <li>Date adhésion, Type adhésion, Section</li>
+                                    <li>Statut, Notes</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-4 text-end">
+                        <a href="{% url 'affilies:liste' %}" class="btn btn-outline-secondary me-2">Annuler</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload me-1"></i> Importer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if result %}
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-check-circle me-2"></i> Résultat de l'importation
+            </div>
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <span class="badge bg-success fs-6 me-2">{{ result.succes }} importé(s)</span>
+                    <span class="badge bg-danger fs-6">{{ result.erreurs|length }} erreur(s)</span>
+                </div>
+                {% if result.erreurs %}
+                <div class="mt-3">
+                    <h6 class="text-danger">Détail des erreurs :</h6>
+                    <ul class="small text-danger">
+                        {% for err in result.erreurs %}
+                        <li>{{ err }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                <div class="mt-3">
+                    <a href="{% url 'affilies:liste' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left me-1"></i> Retour à la liste
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

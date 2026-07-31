@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Nouvelle prévision{% endblock %}
+{% block page_title %}Nouvelle prévision de trésorerie{% endblock %}
+{% block page_icon %}bi bi-cash-stack{% endblock %}
+{% block nav_compta %}active{% endblock %}
+
+{% block content %}
+<form method="post">{% csrf_token %}
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-pencil me-2"></i> Prévision</div>
+        <div class="card-body p-4 row g-3">
+          <div class="col-md-6">
+            <label class="form-label">{{ form.date_prevision.label }} <span class="text-danger">*</span></label>
+            {{ form.date_prevision }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.type.label }} <span class="text-danger">*</span></label>
+            {{ form.type }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">{{ form.libelle.label }} <span class="text-danger">*</span></label>
+            {{ form.libelle }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.montant.label }} <span class="text-danger">*</span></label>
+            {{ form.montant }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.compte.label }}</label>
+            {{ form.compte }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.centre.label }}</label>
+            {{ form.centre }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">{{ form.notes.label }}</label>
+            {{ form.notes }}
+          </div>
+        </div>
+      </div>
+
+      <div class="d-grid mt-4 gap-2">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-circle me-2"></i> Enregistrer</button>
+        <a href="{% url 'comptabilite:prevision_list' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

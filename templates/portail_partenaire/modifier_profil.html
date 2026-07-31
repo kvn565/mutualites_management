@@ -1,0 +1,137 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% block title %}Modifier profil — {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-pencil" style="color:var(--primary)"></i> Modifier mes informations</h1>
+    <p>Mettez à jour les coordonnées de votre établissement</p>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="grid-2">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-telephone"></i> Contact</div>
+            <div class="card-body">
+                <div class="info-grid" style="grid-template-columns:1fr;">
+                    <div class="info-item" style="text-align:center;">
+                        <label class="form-label">Logo de l'établissement</label>
+                        {% if form.instance.logo %}
+                        <div style="margin-bottom:8px;">
+                            <img src="{{ form.instance.logo.url }}" alt="Logo" style="max-height:100px;border-radius:8px;border:1px solid #e2e8f0;">
+                        </div>
+                        {% endif %}
+                        {{ form.logo }}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.nif.label }}</label>
+                        {{ form.nif }}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+                            {{ form.assujetti_tva }} {{ form.assujetti_tva.label }}
+                        </label>
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.telephone.label }}</label>
+                        {{ form.telephone }}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.telephone_secondaire.label }}</label>
+                        {{ form.telephone_secondaire }}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.email.label }}</label>
+                        {{ form.email }}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.site_web.label }}</label>
+                        {{ form.site_web }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="bi bi-geo-alt"></i> Localisation</div>
+            <div class="card-body">
+                <div class="info-grid" style="grid-template-columns:1fr;">
+                    <div class="info-item">
+                        <label class="form-label">{{ form.province.label }}</label>
+                        {{ form.province }}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.commune.label }}</label>
+                        {{ form.commune }}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.zone.label }}</label>
+                        {{ form.zone }}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.quartier.label }}</label>
+                        {{ form.quartier }}
+                    </div>
+                    <div class="grid-2">
+                        <div class="info-item">
+                            <label class="form-label">{{ form.avenue.label }}</label>
+                            {{ form.avenue }}
+                        </div>
+                        <div class="info-item">
+                            <label class="form-label">{{ form.numero.label }}</label>
+                            {{ form.numero }}
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.adresse_complete.label }}</label>
+                        {{ form.adresse_complete }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="bi bi-person-badge"></i> Responsable</div>
+            <div class="card-body">
+                <div class="info-grid" style="grid-template-columns:1fr;">
+                    <div class="info-item">
+                        <label class="form-label">{{ form.nom_responsable.label }}</label>
+                        {{ form.nom_responsable }}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.fonction_responsable.label }}</label>
+                        {{ form.fonction_responsable }}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.telephone_responsable.label }}</label>
+                        {{ form.telephone_responsable }}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.email_responsable.label }}</label>
+                        {{ form.email_responsable }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="bi bi-journal-text"></i> Observations</div>
+            <div class="card-body">
+                <div class="info-grid" style="grid-template-columns:1fr;">
+                    <div class="info-item">
+                        <label class="form-label">{{ form.observations.label }}</label>
+                        {{ form.observations }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex gap-2 mt-4" style="justify-content:flex-end;">
+        <a href="{% url 'portail_partenaire:profil' %}" class="btn btn-outline">Annuler</a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i> Enregistrer
+        </button>
+    </div>
+</form>
+{% endblock %}

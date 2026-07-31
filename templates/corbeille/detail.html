@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}Détail corbeille - {{ item.objet_repr }} - {{ APP_NOM }}{% endblock %}
+
+{% block page_icon %}bi-trash3-fill{% endblock %}
+{% block page_title %}Détail corbeille{% endblock %}
+{% block page_subtitle %}{{ item.get_type_objet_display }} — {{ item.objet_repr }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'corbeille:index' %}{% if request.GET.app %}?app={{ request.GET.app }}{% endif %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle-fill me-2"></i>Informations générales</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Type</dt>
+                    <dd class="col-sm-9"><span class="badge bg-secondary fs-6">{{ item.get_type_objet_display }}</span></dd>
+
+                    <dt class="col-sm-3">Représentation</dt>
+                    <dd class="col-sm-9"><strong>{{ item.objet_repr }}</strong></dd>
+
+                    <dt class="col-sm-3">Supprimé le</dt>
+                    <dd class="col-sm-9">{{ item.deleted_at|date:"d/m/Y H:i:s" }}</dd>
+
+                    <dt class="col-sm-3">Supprimé par</dt>
+                    <dd class="col-sm-9">{{ item.deleted_by.nom_complet|default:"Système" }}</dd>
+
+                    <dt class="col-sm-3">Expiration</dt>
+                    <dd class="col-sm-9 {% if item.est_expire %}text-danger fw-bold{% endif %}">
+                        {% if item.expire_at %}
+                        {{ item.expire_at|date:"d/m/Y H:i" }}
+                        {% if item.est_expire %} <i class="bi bi-exclamation-triangle-fill"></i> Expiré{% endif %}
+                        {% else %}—{% endif %}
+                    </dd>
+
+                    <dt class="col-sm-3">Statut</dt>
+                    <dd class="col-sm-9">
+                        {% if item.restored_at %}
+                        <span class="badge bg-success">Restauré le {{ item.restored_at|date:"d/m/Y H:i" }} par {{ item.restored_by.nom_complet|default:"—" }}</span>
+                        {% elif item.purged_at %}
+                        <span class="badge bg-danger">Purgé le {{ item.purged_at|date:"d/m/Y H:i" }} par {{ item.purged_by.nom_complet|default:"—" }}</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">Dans la corbeille</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        {% if item.objet_data %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-database-fill me-2"></i>Données sauvegardées (JSON)</h5>
+            </div>
+            <div class="card-body">
+                <pre class="mb-0 small bg-light p-3 rounded">{{ item.objet_data|pprint }}</pre>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not item.restored_at and not item.purged_at %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-tools me-2"></i>Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-success" onclick="restaurer({{ item.pk }})">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Restaurer
+                    </button>
+                    {% if user.est_admin or user.est_super_admin %}
+                    <button type="button" class="btn btn-danger" onclick="confirmerPurger({{ item.pk }})">
+                        <i class="bi bi-trash3-fill me-1"></i>Purger définitivement
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Statistiques globales</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'corbeille:index' %}" class="btn btn-outline-primary text-start">
+                        <i class="bi bi-list-ul me-2"></i>Voir toute la corbeille
+                    </a>
+                    {% if item.mutualite %}
+                    <a href="{% url 'corbeille:index' %}?type={{ item.type_objet }}" class="btn btn-outline-secondary text-start">
+                        <i class="bi bi-filter me-2"></i>Filtrer par type : {{ item.get_type_objet_display }}
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function restaurer(pk) {
+    if (!confirm('Confirmer la restauration de cet élément ?')) return;
+    
+    fetch('{% url "corbeille:restaurer" 0 %}'.replace('/0/', '/' + pk + '/'), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('Élément restauré avec succès');
+            location.reload();
+        } else {
+            alert('Erreur : ' + data.error);
+        }
+    })
+    .catch(() => alert('Erreur réseau'));
+}
+
+function confirmerPurger(pk) {
+    if (!confirm('⚠️ ATTENTION : Cette action est IRREVERSIBLE.\nL\'élément sera supprimé DÉFINITIVEMENT.\n\nConfirmer ?')) return;
+    if (!confirm('Dernière confirmation : êtes-vous ABSOLUMENT sûr ?')) return;
+    
+    fetch('{% url "corbeille:purger" 0 %}'.replace('/0/', '/' + pk + '/'), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('Élément purgé définitivement');
+            location.reload();
+        } else {
+            alert('Erreur : ' + data.error);
+        }
+    })
+    .catch(() => alert('Erreur réseau'));
+}
+</script>
+{% endblock %}

@@ -15,6 +15,10 @@ def liste(request):
     if request.user.est_super_admin:
         messages.warning(request, "⛔ Les Super Admins ne peuvent pas gérer les données d'une mutualité spécifique.")
         return redirect('superadmin:dashboard')
+
+    from .models import radier_majeurs
+    radier_majeurs()
+
     qs = AyantDroit.objects.filter(mutualite=request.user.mutualite, supprime=False).select_related('affilie')
 
     q = request.GET.get('q', '')
@@ -61,7 +65,7 @@ def ajouter(request):
     if affilie_id:
         initial['affilie'] = affilie_id
 
-    form = AyantDroitForm(request.POST or None, initial=initial)
+    form = AyantDroitForm(request.POST or None, user=request.user, initial=initial)
     if request.method == 'POST' and form.is_valid():
         obj = form.save()
         enregistrer_audit(request, 'CREATION', 'ayants_droit',
@@ -82,7 +86,7 @@ def modifier(request, pk):
         return redirect('ayants_droit:liste')
 
     obj = get_object_or_404(AyantDroit, pk=pk, supprime=False, mutualite=request.user.mutualite)
-    form = AyantDroitForm(request.POST or None, instance=obj)
+    form = AyantDroitForm(request.POST or None, instance=obj, user=request.user)
     if request.method == 'POST' and form.is_valid():
         form.save()
         enregistrer_audit(request, 'MODIFICATION', 'ayants_droit',
@@ -102,10 +106,10 @@ def supprimer(request, pk):
         messages.error(request, "⛔ Permission insuffisante.")
         return redirect('ayants_droit:liste')
 
-    obj = get_object_or_404(AyantDroit, pk=pk, supprime=False, mutualite=request.user.mutualite)
+    obj = get_object_or_404(AyantDroit, pk=pk, is_deleted=False, mutualite=request.user.mutualite)
     if request.method == 'POST':
         nom = obj.nom_complet
-        obj.soft_delete()
+        obj.delete(user=request.user)
         enregistrer_audit(request, 'SUPPRESSION', 'ayants_droit',
                           f"Suppression ayant droit : {nom}", 'AyantDroit', pk)
         messages.success(request, f"🗑️ {nom} déplacé vers la corbeille.")

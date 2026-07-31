@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Historique des ventilations{% endblock %}
+{% block page_title %}Historique des ventilations{% endblock %}
+{% block page_icon %}bi bi-clock-history{% endblock %}
+{% block nav_ventilations %}active{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small">
+      <thead class="table-light">
+        <tr><th>Date</th><th>Action</th><th>Ventilation</th><th>Ancien %</th><th>Nouveau %</th><th>Ancien centre</th><th>Nouveau centre</th><th>Utilisateur</th></tr>
+      </thead>
+      <tbody>
+        {% for h in historiques %}
+        <tr>
+          <td class="text-nowrap">{{ h.date_action|date:'d/m/Y H:i' }}</td>
+          <td><span class="badge bg-info text-dark">{{ h.get_action_display }}</span></td>
+          <td>{{ h.ventilation.ecriture.piece_reference }}</td>
+          <td class="text-center">{{ h.ancien_pourcentage|default:'—' }}%</td>
+          <td class="text-center">{{ h.nouveau_pourcentage|default:'—' }}%</td>
+          <td>{{ h.ancien_centre.libelle|default:'—' }}</td>
+          <td>{{ h.nouveau_centre.libelle|default:'—' }}</td>
+          <td>{{ h.utilisateur|default:'—' }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center py-4 text-muted">Aucun historique.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% if is_paginated %}<nav class="mt-3">{% include 'pagination.html' %}</nav>{% endif %}
+{% endblock %}

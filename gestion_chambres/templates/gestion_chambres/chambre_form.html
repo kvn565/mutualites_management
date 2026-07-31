@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titre }} — {{ block.super }}{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-door-open{% endblock %}
+{% block page_subtitle %}{% if chambre %}Modifier {{ chambre }}{% else %}Nouvelle chambre{% endif %}{% endblock %}
+{% block nav_chambres %}active{% endblock %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-info-circle me-2" style="color:var(--or);"></i> Informations de la chambre</div>
+        <div class="card-body p-4 row g-3">
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.etablissement.id_for_label }}">{{ form.etablissement.label }} <span style="color:#e74c3c;">*</span></label>
+                {{ form.etablissement }}
+                {% if form.etablissement.errors %}<div class="text-danger small">{{ form.etablissement.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.service.id_for_label }}">{{ form.service.label }} <span style="color:#e74c3c;">*</span></label>
+                {{ form.service }}
+                {% if form.service.errors %}<div class="text-danger small">{{ form.service.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.type_chambre.id_for_label }}">{{ form.type_chambre.label }} <span style="color:#e74c3c;">*</span></label>
+                {{ form.type_chambre }}
+                {% if form.type_chambre.errors %}<div class="text-danger small">{{ form.type_chambre.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.numero.id_for_label }}">{{ form.numero.label }} <span style="color:#e74c3c;">*</span></label>
+                {{ form.numero }}
+                {% if form.numero.errors %}<div class="text-danger small">{{ form.numero.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="{{ form.etage.id_for_label }}">{{ form.etage.label }}</label>
+                {{ form.etage }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.aile.id_for_label }}">{{ form.aile.label }}</label>
+                {{ form.aile }}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="{{ form.lit_principal.id_for_label }}">{{ form.lit_principal.label }}</label>
+                {{ form.lit_principal }}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="{{ form.lits_supplementaires.id_for_label }}">{{ form.lits_supplementaires.label }}</label>
+                {{ form.lits_supplementaires }}
+                {% if form.lits_supplementaires.errors %}<div class="text-danger small">{{ form.lits_supplementaires.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="{{ form.statut.id_for_label }}">{{ form.statut.label }} <span style="color:#e74c3c;">*</span></label>
+                {{ form.statut }}
+                {% if form.statut.errors %}<div class="text-danger small">{{ form.statut.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="{{ form.equipements.id_for_label }}">{{ form.equipements.label }}</label>
+                {{ form.equipements }}
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="{{ form.observations.id_for_label }}">{{ form.observations.label }}</label>
+                {{ form.observations }}
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 text-end">
+        <a href="{% url 'gestion_chambres:chambre_liste' %}" class="btn btn-outline-secondary me-2"><i class="bi bi-arrow-left me-1"></i> Annuler</a>
+        <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i> Enregistrer</button>
+    </div>
+</form>
+{% endblock %}

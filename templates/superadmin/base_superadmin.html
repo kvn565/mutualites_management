@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Super Admin — Mutualité de Santé{% endblock %}
+{% block title %}Super Admin — {{ APP_NOM }}{% endblock %}
 
 {% block sidebar_nav %}
     <li class="nav-header">Général</li>
@@ -40,6 +40,20 @@
         </a>
     </li>
 
+    <li class="nav-header">Validations</li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:validations_mutualites' %}" class="nav-link {% block nav_validations_mutualites %}{% endblock %}">
+            <i class="nav-icon bi bi-building-check"></i>
+            <p>Demandes mutualités</p>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:validations_partenaires' %}" class="nav-link {% block nav_validations_partenaires %}{% endblock %}">
+            <i class="nav-icon bi bi-hospital"></i>
+            <p>Demandes partenaires</p>
+        </a>
+    </li>
+
     <li class="nav-header">Utilisateurs</li>
     <li class="nav-item">
         <a href="{% url 'superadmin:utilisateurs_liste' %}" class="nav-link {% block nav_utilisateurs %}{% endblock %}">
@@ -51,6 +65,20 @@
         <a href="{% url 'superadmin:utilisateur_creer' %}" class="nav-link {% block nav_utilisateur_creer %}{% endblock %}">
             <i class="nav-icon bi bi-person-plus-fill"></i>
             <p>Ajouter un utilisateur</p>
+        </a>
+    </li>
+
+    <li class="nav-header">Partenaires</li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:partenaires_liste' %}" class="nav-link {% block nav_hopitaux %}{% endblock %}">
+            <i class="nav-icon bi bi-hospital"></i>
+            <p>Liste des partenaires</p>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:partenaire_creer' %}" class="nav-link {% block nav_hopital_creer %}{% endblock %}">
+            <i class="nav-icon bi bi-plus-square-fill"></i>
+            <p>Ajouter un partenaire</p>
         </a>
     </li>
 
@@ -67,12 +95,52 @@
             <p>Membres</p>
         </a>
     </li>
-
     <li class="nav-header">Sécurité</li>
     <li class="nav-item">
         <a href="{% url 'superadmin:audit_connexions' %}" class="nav-link {% block nav_audit %}{% endblock %}">
             <i class="nav-icon bi bi-shield-lock-fill"></i>
             <p>Audit des connexions</p>
+        </a>
+    </li>
+
+    <li class="nav-header">Maintenance</li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:reinitialiser_selection' %}" class="nav-link {% block nav_reinitialiser %}{% endblock %}">
+            <i class="nav-icon bi bi-arrow-clockwise"></i>
+            <p>Réinit. &amp; Backup</p>
+        </a>
+    </li>
+
+    <li class="nav-header">Support & Aide</li>
+    <li class="nav-item">
+        <a href="{% url 'aide:superadmin_message_list' %}" class="nav-link {% block nav_superadmin_messages %}{% endblock %}">
+            <i class="nav-icon bi bi-chat-dots-fill"></i>
+            <p>
+                Messages mutualités
+                {% if superadmin_nb_messages_nouveaux > 0 %}
+                <span class="badge bg-warning ms-1">{{ superadmin_nb_messages_nouveaux }}</span>
+                {% endif %}
+            </p>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'aide:superadmin_document_list' %}" class="nav-link {% block nav_superadmin_documents %}{% endblock %}">
+            <i class="nav-icon bi bi-file-earmark-richtext-fill"></i>
+            <p>Gérer documents</p>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="{% url 'aide:superadmin_doc_list' %}" class="nav-link {% block nav_superadmin_doc_view %}{% endblock %}">
+            <i class="nav-icon bi bi-file-earmark-text-fill"></i>
+            <p>Doc. publiés (Doc/Guide/FAQ)</p>
+        </a>
+    </li>
+
+    <li class="nav-header">Système</li>
+    <li class="nav-item">
+        <a href="{% url 'superadmin:configuration_app' %}" class="nav-link {% block nav_configuration %}{% endblock %}">
+            <i class="nav-icon bi bi-gear-fill"></i>
+            <p>Configuration</p>
         </a>
     </li>
 {% endblock %}

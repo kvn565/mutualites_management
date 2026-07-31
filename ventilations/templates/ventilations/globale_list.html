@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Ventilations globales{% endblock %}
+{% block page_title %}Ventilations globales{% endblock %}
+{% block page_icon %}bi bi-globe{% endblock %}
+{% block nav_ventilations %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <p class="text-muted mb-0">Répartition globale des montants sur une période.</p>
+  <a href="{% url 'ventilations:globale_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nouvelle ventilation globale</a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small">
+      <thead class="table-light"><tr><th>Libellé</th><th>Période</th><th class="text-end">Montant total</th><th class="text-end">Ventilé</th><th class="text-end">Solde</th><th>Statut</th><th class="text-center">Actions</th></tr></thead>
+      <tbody>
+        {% for g in globales %}
+        <tr>
+          <td>{{ g.libelle }}</td>
+          <td class="text-nowrap">{{ g.date_debut|date:'d/m/Y' }} → {{ g.date_fin|date:'d/m/Y' }}</td>
+          <td class="text-end">{{ g.montant_total|floatformat:0|intcomma }}</td>
+          <td class="text-end">{{ g.total_ventile|floatformat:0|intcomma }}</td>
+          <td class="text-end {% if g.solde_a_ventiler != 0 %}text-danger fw-bold{% endif %}">{{ g.solde_a_ventiler|floatformat:0|intcomma }}</td>
+          <td>{% if g.statut == 'VALIDEE' %}<span class="badge bg-success">Validée</span>{% else %}<span class="badge bg-warning text-dark">Brouillon</span>{% endif %}</td>
+          <td class="text-center"><a href="{% url 'ventilations:globale_detail' g.pk %}" class="btn btn-sm btn-outline-info">👁️</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center py-4 text-muted">Aucune ventilation globale.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,144 +1,272 @@
-{% extends 'superadmin/base_superadmin.html' %}
-{% block title %}{{ mutualite.nom }} — Détail mutualité{% endblock %}
+{% extends "superadmin/base_superadmin.html" %}
+{% load humanize %}
+{% block title %}{{ mutualite.nom }} — Administration{% endblock %}
 {% block page_title %}{{ mutualite.nom }}{% endblock %}
 {% block page_subtitle %}
-    NIF : {{ mutualite.nif|default:"Non défini" }} —
-    Code : {{ mutualite.code_mutualite|default:"—" }} —
-    <span class="badge {% if mutualite.statut == 'ACTIF' %}bg-success{% elif mutualite.statut == 'ESSAI' %}bg-info{% elif mutualite.statut == 'SUSPENDU' %}bg-warning text-dark{% elif mutualite.statut == 'EXPIRE' %}bg-danger{% elif mutualite.statut == 'BLOQUE' %}bg-dark{% else %}bg-secondary{% endif %}">
-        {{ mutualite.get_statut_display }}
-    </span>
+<p style="color:#8a9aaa;font-size:0.82rem;margin:2px 0 0;">NIF : {{ mutualite.nif }} | Statut : <span class="badge bg-{% if mutualite.statut == 'ACTIF' %}success{% elif mutualite.statut == 'ESSAI' %}info{% elif mutualite.statut == 'EN_ATTENTE' %}warning text-dark{% elif mutualite.statut == 'SUSPENDU' %}secondary{% elif mutualite.statut == 'EXPIRE' %}danger{% elif mutualite.statut == 'BLOQUE' %}dark{% else %}light text-dark{% endif %}">{{ mutualite.get_statut_display }}</span></p>
+{% endblock %}
+{% block breadcrumb %}
+<span class="sep">›</span> <a href="{% url 'superadmin:mutualites_liste' %}">Mutualités</a>
+<span class="sep">›</span> {{ mutualite.nom|truncatechars:20 }}
 {% endblock %}
 {% block nav_mutualites %}active{% endblock %}
 
-{% block page_actions %}
-<a href="{% url 'superadmin:mutualite_modifier' mutualite.pk %}" class="btn btn-outline-vert">
-    <i class="bi bi-pencil me-1"></i>Modifier
-</a>
-{% endblock %}
-
 {% block content %}
-<div class="row g-4">
+<div class="container-fluid">
+    <div class="row g-4">
 
-    {% if not chef %}
-    <div class="col-12">
-        <div class="alert alert-warning d-flex align-items-center gap-3" style="border-left:4px solid #f59e0b;">
-            <i class="bi bi-hourglass-split fs-5"></i>
-            <div>
-                <strong>Administrateur non encore inscrit.</strong>
-                L'administrateur doit se connecter avec le NIF <strong>{{ mutualite.nif }}</strong>
-                pour créer son compte et activer la mutualité.
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header"><i class="bi bi-building"></i> Informations</div>
-            <div class="card-body">
-                <table class="table">
-                    <tr><td class="fw-semibold" style="width:100px;">Nom</td><td>{{ mutualite.nom }}</td></tr>
-                    <tr><td class="fw-semibold">Sigle</td><td>{{ mutualite.sigle|default:"—" }}</td></tr>
-                    <tr><td class="fw-semibold">NIF</td><td>{{ mutualite.nif|default:"—" }}</td></tr>
-                    <tr><td class="fw-semibold">Téléphone</td><td>{{ mutualite.telephone|default:"—" }}</td></tr>
-                    <tr><td class="fw-semibold">Email</td><td>{{ mutualite.email|default:"—" }}</td></tr>
-                    <tr><td class="fw-semibold">Adresse</td><td>{{ mutualite.adresse|default:"—" }}</td></tr>
-                    <tr><td class="fw-semibold">Province</td><td>{{ mutualite.province|default:"—" }}</td></tr>
-                    <tr><td class="fw-semibold">Commune</td><td>{{ mutualite.commune|default:"—" }}</td></tr>
-                    <tr><td class="fw-semibold">Responsable</td><td>{{ mutualite.nom_responsable|default:"—" }}</td></tr>
-                    <tr><td class="fw-semibold">Créée le</td><td>{{ mutualite.date_creation|date:"d/m/Y H:i" }}</td></tr>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-8">
-        <div class="card mb-4">
-            <div class="card-header"><i class="bi bi-key"></i> Licence</div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <small class="text-muted">Clé d'activation</small>
-                        <div><code>{{ mutualite.cle_activation|default:"—" }}</code></div>
-                    </div>
-                    <div class="col-md-6">
-                        <small class="text-muted">Type d'abonnement</small>
-                        <div class="fw-bold">{{ mutualite.type_abonnement|default:"—" }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <small class="text-muted">Date d'activation</small>
-                        <div>{{ mutualite.date_activation|date:"d/m/Y H:i"|default:"—" }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <small class="text-muted">Date d'expiration</small>
-                        <div>{{ mutualite.date_expiration|date:"d/m/Y H:i"|default:"—" }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <small class="text-muted">Essai gratuit</small>
-                        <div>{% if mutualite.essai_gratuit %}Oui{% else %}Non{% endif %}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <small class="text-muted">Max utilisateurs</small>
-                        <div>{{ mutualite.max_utilisateurs|default:"Illimité" }}</div>
+        <!-- Infos principales -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-building me-2" style="color:var(--or);"></i>
+                    Informations de la mutualité
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="form-label text-muted small me-3" style="min-width: 160px;">Code mutualité</span>
+                                <code class="fw-bold fs-6">{{ mutualite.code_mutualite }}</code>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="form-label text-muted small me-3" style="min-width: 160px;">Sigle</span>
+                                <span class="fw-bold">{{ mutualite.sigle|default:"—" }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="form-label text-muted small me-3" style="min-width: 160px;">Type de mutualité</span>
+                                <span class="badge bg-primary">{{ mutualite.get_type_mutualite_display }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="form-label text-muted small me-3" style="min-width: 160px;">NIF</span>
+                                <span class="fw-bold text-success">{{ mutualite.nif|default:"—" }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="form-label text-muted small me-3" style="min-width: 160px;">Max utilisateurs</span>
+                                <span class="badge bg-info">{{ mutualite.max_utilisateurs }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="form-label text-muted small me-3" style="min-width: 160px;">Date de création</span>
+                                <span>{{ mutualite.date_creation|date:"d/m/Y H:i" }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="form-label text-muted small me-3" style="min-width: 160px;">Responsable</span>
+                                <span class="fw-bold">{{ mutualite.nom_responsable|default:"—" }}</span>
+                                <span class="text-muted ms-2">({{ mutualite.fonction_responsable|default:"—" }})</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="form-label text-muted small me-3" style="min-width: 160px;">Téléphone</span>
+                                <span>{{ mutualite.telephone|default:"—" }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="form-label text-muted small me-3" style="min-width: 160px;">Email</span>
+                                <span>{{ mutualite.email|default:"—" }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-start mb-3">
+                                <span class="form-label text-muted small me-3" style="min-width: 160px; margin-top: 2px;">Adresse</span>
+                                <span>{{ mutualite.adresse|default:"—" }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="form-label text-muted small me-3" style="min-width: 160px;">Province</span>
+                                <span>{{ mutualite.province|default:"—" }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="form-label text-muted small me-3" style="min-width: 160px;">Commune</span>
+                                <span>{{ mutualite.commune|default:"—" }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="form-label text-muted small me-3" style="min-width: 160px;">Quartier</span>
+                                <span>{{ mutualite.quartier|default:"—" }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="card mb-4">
-            <div class="card-header"><i class="bi bi-people"></i> Utilisateurs</div>
-            <div class="table-responsive">
-                <table class="table mb-0">
-                    <thead>
-                        <tr><th>Nom</th><th>Rôle</th><th>Email</th><th>Actif</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for u in utilisateurs %}
-                        <tr>
-                            <td>{{ u.nom_complet }}</td>
-                            <td>{{ u.get_role_display }}</td>
-                            <td>{{ u.email|default:"—" }}</td>
-                            <td>{% if u.actif %}<span class="badge-actif">Actif</span>{% else %}<span class="badge-inactif">Inactif</span>{% endif %}</td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="4" class="text-center py-3 text-muted">Aucun utilisateur</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <!-- Licence -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-shield-check me-2" style="color:var(--or);"></i>
+                    Licence & Abonnement
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Type d'abonnement</label>
+                            <p class="mb-0">{{ mutualite.type_abonnement|default:"—" }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Date activation</label>
+                            <p class="mb-0">{{ mutualite.date_activation|date:"d/m/Y"|default:"—" }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Date expiration</label>
+                            <p class="mb-0">
+                                {% if mutualite.date_expiration %}
+                                    {{ mutualite.date_expiration|date:"d/m/Y" }}
+                                    <span class="badge bg-{% if mutualite.jours_restants <= 3 %}danger{% elif mutualite.jours_restants <= 7 %}warning text-dark{% else %}success{% endif %} ms-2">
+                                        {{ mutualite.jours_restants }} jour{{ mutualite.jours_restants|pluralize }}
+                                    </span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Clé d'activation</label>
+                            <p class="mb-0"><code>{{ mutualite.cle_activation|default:"—" }}</code></p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Essai gratuit</label>
+                            <p class="mb-0">
+                                {% if mutualite.essai_gratuit %}
+                                    <span class="badge bg-info">Oui</span>
+                                    {% if mutualite.date_fin_essai %}
+                                        (jusqu'au {{ mutualite.date_fin_essai|date:"d/m/Y" }})
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-secondary">Non</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-                            <td><code>{{ cle.cle_visible }}</code></td>
-                            <td>{{ cle.label_plan }}</td>
-                            <td>
-                                {% if cle.statut == 'ACTIVE' %}<span class="badge-actif">Active</span>
-                                {% elif cle.statut == 'EXPIREE' %}<span class="badge-inactif">Expirée</span>
-                                {% elif cle.statut == 'REVOQUEE' %}<span class="badge-inactif">Révoquée</span>
-                                {% else %}<span class="badge-warning">{{ cle.statut }}</span>{% endif %}
-    </div>
 
-    {% if audits %}
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header"><i class="bi bi-journal-text"></i> Dernières actions</div>
-            <div class="table-responsive">
-                <table class="table mb-0">
-                    <thead>
-                        <tr><th>Date</th><th>Action</th><th>Message</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for a in audits %}
-                        <tr>
-                            <td>{{ a.date_action|date:"d/m/Y H:i" }}</td>
-                            <td><span class="badge bg-secondary">{{ a.action }}</span></td>
-                            <td style="font-size:0.85rem;">{{ a.message }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <!-- Partenaires liés -->
+            {% if partenaires %}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-hospital me-2" style="color:var(--or);"></i>Partenaires liés ({{ partenaires|length }})</span>
+                    <a href="{% url 'superadmin:mutualite_factures' mutualite.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-receipt-cutoff me-1"></i> Factures
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Établissement</th>
+                                    <th>Type</th>
+                                    <th>Statut</th>
+                                    <th>Convention</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in partenaires %}
+                                <tr>
+                                    <td><code>{{ p.code_partenaire }}</code></td>
+                                    <td>{{ p.nom_etablissement }}</td>
+                                    <td>{{ p.get_type_partenaire_display }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if p.statut == 'ACTIF' %}success{% elif p.statut == 'EN_ATTENTE' %}warning text-dark{% elif p.statut == 'SUSPENDU' %}secondary{% elif p.statut == 'BLOQUE' %}dark{% else %}light text-dark{% endif %}">
+                                            {{ p.get_statut_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if p.convention_active %}
+                                            {{ p.convention_active.numero_convention }} ({{ p.convention_active.taux_prise_en_charge }}%)
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{% url 'superadmin:partenaire_detail' p.pk %}" class="btn btn-sm btn-outline-info" title="Détails"><i class="bi bi-eye"></i></a>
+                                        <a href="{% url 'superadmin:partenaire_modifier' p.pk %}" class="btn btn-sm btn-outline-secondary ms-1" title="Modifier"><i class="bi bi-pencil"></i></a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-    {% endif %}
+            {% else %}
+            <div class="alert alert-info mb-4">
+                <i class="bi bi-info-circle me-2"></i>
+                Aucun partenaire n'est encore lié à cette mutualité.
+                <a href="{% url 'superadmin:partenaire_creer' %}?mutualite={{ mutualite.pk }}" class="alert-link ms-2">Créer un partenaire</a>
+            </div>
+            {% endif %}
 
+        </div>
+
+        <!-- Sidebar actions -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-gear me-2" style="color:var(--or);"></i>
+                    Actions rapides
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'superadmin:mutualite_modifier' mutualite.pk %}" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil me-1"></i> Modifier
+                        </a>
+                        {% if mutualite.statut == 'EN_ATTENTE' %}
+                        <a href="{% url 'superadmin:valider_mutualite' mutualite.pk %}" class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i> Valider / Activer
+                        </a>
+                        {% elif mutualite.statut == 'SUSPENDU' %}
+                        <a href="{% url 'superadmin:mutualite_reactiver' mutualite.pk %}" class="btn btn-warning text-dark">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Réactiver
+                        </a>
+                        {% elif mutualite.statut == 'EXPIRE' %}
+                        <a href="{% url 'superadmin:mutualite_renouveler_licence' mutualite.pk %}" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-repeat me-1"></i> Renouveler licence
+                        </a>
+                        {% elif mutualite.statut in 'ESSAI,ACTIF' %}
+                        <a href="{% url 'superadmin:mutualite_suspendre' mutualite.pk %}" class="btn btn-outline-warning text-dark" onclick="return confirm('Suspendre cette mutualité ?');">
+                            <i class="bi bi-pause-circle me-1"></i> Suspendre
+                        </a>
+                        <a href="{% url 'superadmin:mutualite_renouveler_licence' mutualite.pk %}" class="btn btn-outline-success">
+                            <i class="bi bi-arrow-repeat me-1"></i> Renouveler / Prolonger
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'superadmin:mutualite_factures' mutualite.pk %}" class="btn btn-outline-info">
+                            <i class="bi bi-receipt-cutoff me-1"></i> Voir factures
+                        </a>
+                        <a href="{% url 'superadmin:mutualite_membres' mutualite.pk %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-people me-1"></i> Voir membres
+                        </a>
+                        <a href="{% url 'superadmin:mutualite_reinitialiser' mutualite.pk %}" class="btn btn-outline-danger" onclick="return confirm('ATTENTION : Supprimer toutes les données opérationnelles ?');">
+                            <i class="bi bi-trash me-1"></i> Réinitialiser
+                        </a>
+                        <a href="{% url 'superadmin:export_mutualite_excel' mutualite.pk %}" class="btn btn-outline-success">
+                            <i class="bi bi-file-earmark-excel me-1"></i> Exporter Excel
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            </div>
+    </div>
 </div>
 {% endblock %}

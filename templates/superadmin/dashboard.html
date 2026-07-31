@@ -1,5 +1,5 @@
 {% extends "superadmin/base_superadmin.html" %}
-{% load static %}
+{% load static humanize %}
 {% block title %}Dashboard — Super Admin{% endblock %}
 {% block page_title %}Tableau de bord{% endblock %}
 {% block page_subtitle %}Vue d'ensemble du système de gestion des mutualités{% endblock %}
@@ -101,6 +101,8 @@
 
 </div>
 
+
+
 <!-- Graphiques -->
 <div class="row mt-5">
     <div class="col-12 mb-3">
@@ -129,6 +131,26 @@
             <div class="card-header"><i class="bi bi-receipt-cutoff me-2"></i>Factures par mutualité</div>
             <div class="card-body">
                 <canvas id="chartFactures" height="280"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Graphique cotisations -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-cash-coin me-2"></i>Cotisations des membres par mois ({{ cotisation_annee }})</span>
+            </div>
+            <div class="card-body">
+                {% if cotisation_total.total %}
+                <div class="d-flex gap-4 mb-3">
+                    <div><small class="text-muted">Total</small><div class="fw-bold">{{ cotisation_total.total|floatformat:0|intcomma }} BIF</div></div>
+                    <div><small class="text-muted">Paiements</small><div class="fw-bold">{{ cotisation_total.nombre }}</div></div>
+                </div>
+                {% endif %}
+                <canvas id="cotisationChart" height="280"></canvas>
             </div>
         </div>
     </div>
@@ -313,5 +335,56 @@ function filterCharts() {
 document.addEventListener('DOMContentLoaded', function() {
     initCharts(chartData);
 });
+
+// Graphique des cotisations
+const cotisationLabels = {{ cotisation_chart_labels|default:"[]"|safe }};
+const cotisationData = {{ cotisation_chart_data|default:"[]"|safe }};
+
+const cotisationCtx = document.getElementById('cotisationChart');
+if (cotisationCtx) {
+    new Chart(cotisationCtx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: cotisationLabels,
+            datasets: [{
+                label: 'Cotisations (BIF)',
+                data: cotisationData,
+                backgroundColor: 'rgba(10, 92, 54, 0.75)',
+                borderColor: '#0a5c36',
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            if (context.parsed.y !== null) {
+                                return new Intl.NumberFormat('fr-FR').format(context.parsed.y) + ' BIF';
+                            }
+                            return '';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            if (value >= 1000000) return (value / 1000000) + 'M';
+                            if (value >= 1000) return (value / 1000) + 'K';
+                            return value;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
 </script>
 {% endblock %}

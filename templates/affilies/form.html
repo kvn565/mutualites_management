@@ -5,7 +5,7 @@
 {% block nav_affilies %}active{% endblock %}
 
 {% block content %}
-<form method="post" enctype="multipart/form-data">
+<form method="post" enctype="multipart/form-data" id="affilieForm">
     {% csrf_token %}
     <div class="row g-4">
         <!-- Colonne gauche -->
@@ -141,7 +141,12 @@
                     </div>
                     <div class="col-12">
                         <label class="form-label">{{ form.origine.label }}</label>
-                        {{ form.origine }}
+                        <div class="input-group">
+                            {{ form.origine }}
+                            <button type="button" class="btn btn-outline-primary" data-inline-create="{{ form.origine.id_for_label }}" data-url="{% url 'origines:ajax_creer' %}">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="col-12">
                         <label class="form-label">{{ form.statut.label }}</label>
@@ -150,15 +155,106 @@
                 </div>
             </div>
 
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-shield-check me-2"></i> Cotisation</div>
+                <div class="card-body p-4 row g-3">
+                    <div class="col-12">
+                        <label class="form-label">{{ form.cotisation_mensuelle.label }}</label>
+                        {{ form.cotisation_mensuelle }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-heart-pulse me-2"></i> Garanties / Plafonds</div>
+                <div class="card-body p-4 row g-3">
+                    <div class="col-6">
+                        <label class="form-label">{{ form.limite_laboratoire.label }}</label>
+                        {{ form.limite_laboratoire }}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.limite_kinesitherapie.label }}</label>
+                        {{ form.limite_kinesitherapie }}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.limite_reanimation.label }}</label>
+                        {{ form.limite_reanimation }}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.limite_imagerie_medicale.label }}</label>
+                        {{ form.limite_imagerie_medicale }}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.soins_ambulatoires.label }}</label>
+                        {{ form.soins_ambulatoires }}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.hopital_plafond_chambre.label }}</label>
+                        {{ form.hopital_plafond_chambre }}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.hpc_nuit.label }}</label>
+                        {{ form.hpc_nuit }}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.limite_hospitalisation_generale.label }}</label>
+                        {{ form.limite_hospitalisation_generale }}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.maternite_forfait.label }}</label>
+                        {{ form.maternite_forfait }}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.pourcentage_maternite.label }}</label>
+                        {{ form.pourcentage_maternite }}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.pharmacie_forfait.label }}</label>
+                        {{ form.pharmacie_forfait }}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.limites_medicaments.label }}</label>
+                        {{ form.limites_medicaments }}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.limites_lunettes.label }}</label>
+                        {{ form.limites_lunettes }}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.limites_dents.label }}</label>
+                        {{ form.limites_dents }}
+                    </div>
+                </div>
+            </div>
+
             <div class="card">
-                <div class="card-header"><i class="bi bi-journal-text me-2"></i> Suppléments</div>
+                <div class="card-header"><i class="bi bi-camera me-2"></i> Photo</div>
                 <div class="card-body p-4 row g-3">
                     <div class="col-12">
                         <label class="form-label">{{ form.photo.label }}</label>
+                        <div class="d-flex gap-2 mb-2">
+                            <button type="button" id="btnStartCam" class="btn btn-outline-primary btn-sm" onclick="startCamera()">
+                                <i class="bi bi-camera me-1"></i>Activer webcam
+                            </button>
+                            <button type="button" id="btnCapture" class="btn btn-success btn-sm" onclick="capturePhoto()" style="display:none;">
+                                <i class="bi bi-camera-fill me-1"></i>Capturer
+                            </button>
+                            <button type="button" id="btnRetake" class="btn btn-outline-secondary btn-sm" onclick="retakePhoto()" style="display:none;">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Recommencer
+                            </button>
+                        </div>
+                        <div id="webcamContainer" style="display:none;" class="mb-2">
+                            <video id="webcam" autoplay playsinline class="img-thumbnail w-100" style="max-height:240px;object-fit:cover;"></video>
+                        </div>
+                        <div id="photoPreview" style="display:none;" class="mb-2 text-center">
+                            <img id="capturedImage" class="img-thumbnail" style="max-height:200px;">
+                        </div>
                         {{ form.photo }}
+                        <canvas id="canvasCapture" style="display:none;"></canvas>
+                        <div class="form-text">Importez un fichier OU utilisez la webcam pour prendre une photo.</div>
                         {% if obj and obj.photo %}
                         <div class="mt-2 text-center">
-                            <img src="{{ obj.photo.url }}" class="img-thumbnail" style="max-height: 100px;">
+                            <img src="{{ obj.photo.url }}" class="img-thumbnail" style="max-height:100px;">
                         </div>
                         {% endif %}
                     </div>
@@ -176,4 +272,125 @@
         </div>
     </div>
 </form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let stream = null;
+
+function startCamera() {
+    const video = document.getElementById('webcam');
+    const container = document.getElementById('webcamContainer');
+    const btnStart = document.getElementById('btnStartCam');
+    const btnCapture = document.getElementById('btnCapture');
+    const photoInput = document.getElementById('{{ form.photo.id_for_label }}');
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' } })
+            .then(function(s) {
+                stream = s;
+                video.srcObject = s;
+                container.style.display = 'block';
+                btnStart.style.display = 'none';
+                btnCapture.style.display = 'inline-flex';
+                photoInput.style.display = 'none';
+            })
+            .catch(function(err) {
+                alert('Erreur d\'accès à la webcam : ' + err.message);
+            });
+    } else {
+        alert('Votre navigateur ne supporte pas l\'accès à la webcam.');
+    }
+}
+
+function capturePhoto() {
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('canvasCapture');
+    const preview = document.getElementById('photoPreview');
+    const img = document.getElementById('capturedImage');
+    const btnCapture = document.getElementById('btnCapture');
+    const btnRetake = document.getElementById('btnRetake');
+    const photoInput = document.getElementById('{{ form.photo.id_for_label }}');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    img.src = dataUrl;
+    preview.style.display = 'block';
+
+    // Arrêter la webcam
+    if (stream) {
+        stream.getTracks().forEach(function(track) { track.stop(); });
+        stream = null;
+    }
+    document.getElementById('webcamContainer').style.display = 'none';
+    btnCapture.style.display = 'none';
+    btnRetake.style.display = 'inline-flex';
+
+    // Convertir dataUrl en fichier et l'assigner au input file
+    fetch(dataUrl)
+        .then(function(res) { return res.blob(); })
+        .then(function(blob) {
+            const file = new File([blob], 'photo_membre.jpg', { type: 'image/jpeg' });
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            photoInput.files = dt.files;
+            photoInput.style.display = 'block';
+        });
+}
+
+function retakePhoto() {
+    const preview = document.getElementById('photoPreview');
+    const btnRetake = document.getElementById('btnRetake');
+    const photoInput = document.getElementById('{{ form.photo.id_for_label }}');
+
+    preview.style.display = 'none';
+    btnRetake.style.display = 'none';
+    photoInput.value = '';
+    startCamera();
+}
+
+// Nettoyer la webcam si l'utilisateur quitte la page
+window.addEventListener('beforeunload', function() {
+    if (stream) {
+        stream.getTracks().forEach(function(track) { track.stop(); });
+    }
+});
+
+// Pré-remplir les plafonds selon l'origine sélectionnée
+var originPlafonds = {{ origin_plafonds_json|safe }};
+(function() {
+    var origineField = document.getElementById('id_origine');
+    if (!origineField) return;
+
+    var plafondFields = [
+        'cotisation_mensuelle', 'soins_ambulatoires',
+        'limite_laboratoire', 'limite_kinesitherapie', 'limite_reanimation', 'limite_imagerie_medicale',
+        'hopital_plafond_chambre', 'hpc_nuit', 'limite_hospitalisation_generale',
+        'maternite_forfait', 'pourcentage_maternite',
+        'pharmacie_forfait', 'limites_medicaments', 'limites_lunettes', 'limites_dents',
+    ];
+
+    function loadOriginPlafonds(originId) {
+        var plafonds = originPlafonds[originId];
+        if (!plafonds) return;
+        plafondFields.forEach(function(field) {
+            var el = document.getElementById('id_' + field);
+            if (el && plafonds[field] !== undefined) {
+                el.value = plafonds[field];
+            }
+        });
+    }
+
+    origineField.addEventListener('change', function() {
+        loadOriginPlafonds(this.value);
+    });
+
+    if (origineField.value) {
+        loadOriginPlafonds(origineField.value);
+    }
+})();
+</script>
 {% endblock %}

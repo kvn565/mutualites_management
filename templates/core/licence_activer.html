@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Activation de la licence — {{ APP_NOM }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card text-center" style="border:1.5px solid #fdecea;{% if mutualite and mutualite.licence_valide %}border-color:#a5d6a7;{% endif %}">
+            <div class="card-body p-5">
+                <div style="width:72px;height:72px;{% if mutualite and mutualite.licence_valide %}background:#e8f5e9;{% else %}background:#fdecea;{% endif %}border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+                    {% if mutualite and mutualite.licence_valide %}
+                    <i class="bi bi-check-circle-fill" style="font-size:2rem;color:#10b981;"></i>
+                    {% else %}
+                    <i class="bi bi-x-octagon-fill" style="font-size:2rem;color:#e74c3c;"></i>
+                    {% endif %}
+                </div>
+
+                <h4 style="margin-bottom:8px;">
+                    {% if mutualite and mutualite.licence_valide %}
+                    Licence active
+                    {% else %}
+                    Licence expirée ou inactive
+                    {% endif %}
+                </h4>
+
+                {% if mutualite %}
+                <p style="color:#8a9aaa;font-size:0.88rem;margin-bottom:8px;">
+                    {{ mutualite.nom }}
+                    {% if mutualite.licence_valide %}
+                    — <strong>{{ mutualite.jours_restants }} jour{{ mutualite.jours_restants|pluralize }} restant{{ mutualite.jours_restants|pluralize }}</strong>
+                    {% endif %}
+                </p>
+                {% if mutualite.date_expiration %}
+                <p style="font-size:0.82rem;color:#6b7280;margin-bottom:24px;">
+                    Expire le {{ mutualite.date_expiration|date:"d/m/Y" }}
+                </p>
+                {% endif %}
+                {% endif %}
+
+                <div style="background:#fafbfc;border-radius:12px;padding:20px;margin-bottom:24px;text-align:left;">
+                    <p style="font-size:0.85rem;color:#5a6a7a;margin:0 0 12px;">
+                        <i class="bi bi-1-circle me-2" style="color:var(--or);"></i>
+                        Contactez l'<strong>administrateur</strong> pour obtenir une clé d'activation.
+                    </p>
+                    <p style="font-size:0.85rem;color:#5a6a7a;margin:0;">
+                        <i class="bi bi-2-circle me-2" style="color:var(--or);"></i>
+                        Saisissez la clé reçue ci-dessous pour réactiver votre licence.
+                    </p>
+                </div>
+
+                {% if not mutualite or not mutualite.licence_valide %}
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="input-group mb-3">
+                        <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
+                        <input type="text" name="cle_activation" class="form-control text-uppercase text-center fw-bold"
+                               placeholder="XX-XXXX-XX-XXXXXX" style="font-family:monospace;letter-spacing:2px;"
+                               autocomplete="off" autofocus>
+                    </div>
+                    <button type="submit" class="btn btn-gold w-100 mb-3" style="padding:13px;">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Activer ma licence
+                    </button>
+                </form>
+                {% else %}
+                <a href="{% url 'dashboard:index' %}" class="btn btn-gold w-100 mb-3" style="padding:13px;">
+                    <i class="bi bi-house-fill me-2"></i>Accéder au tableau de bord
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

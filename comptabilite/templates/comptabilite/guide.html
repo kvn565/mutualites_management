@@ -1,0 +1,535 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}Guide — Comptabilité & Ventilation{% endblock %}
+{% block page_title %}📘 Guide d'utilisation — Comptabilité & Ventilation{% endblock %}
+{% block page_icon %}bi bi-book{% endblock %}
+{% block nav_compta %}active{% endblock %}
+
+{% block content %}
+<style>
+.guide-section { margin-bottom: 2.5rem; }
+.guide-section h4 { border-left: 4px solid var(--bs-primary); padding-left: 1rem; margin-bottom: 1rem; color: var(--bs-primary); }
+.guide-step { display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: flex-start; }
+.guide-step-num { width: 36px; height: 36px; background: var(--bs-primary); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
+.guide-step-content { flex: 1; }
+.guide-step-content p { margin-bottom: .25rem; }
+.guide-step-content .text-muted { font-size: .9rem; }
+.guide-note { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 1rem 1.25rem; margin: 1rem 0; }
+.guide-note strong { color: #856404; }
+.guide-tip { background: #d1e7dd; border: 1px solid #198754; border-radius: 8px; padding: 1rem 1.25rem; margin: 1rem 0; }
+.guide-tip strong { color: #0f5132; }
+</style>
+
+<div class="row g-4">
+  <div class="col-lg-3">
+    <div class="card border-0 shadow-sm position-sticky" style="top:1rem;">
+      <div class="card-header bg-white fw-bold">📑 Sommaire</div>
+      <div class="card-body p-0">
+        <nav class="nav flex-column small" id="guideToc">
+          <a class="nav-link px-3 py-2" href="#intro">1. Introduction</a>
+          <a class="nav-link px-3 py-2" href="#prerequis">2. Prérequis</a>
+          <a class="nav-link px-3 py-2" href="#plan">3. Plan comptable</a>
+          <a class="nav-link px-3 py-2" href="#ecritures">4. Saisie des écritures</a>
+          <a class="nav-link px-3 py-2" href="#validation">5. Validation workflow</a>
+          <a class="nav-link px-3 py-2" href="#branches">6. Branches d'activité</a>
+          <a class="nav-link px-3 py-2" href="#regles">7. Règles de ventilation</a>
+          <a class="nav-link px-3 py-2" href="#ventilation">8. Ventiler les écritures</a>
+          <a class="nav-link px-3 py-2" href="#budgets">9. Budgets & suivi</a>
+          <a class="nav-link px-3 py-2" href="#tresorerie">10. Trésorerie</a>
+          <a class="nav-link px-3 py-2" href="#rapprochement">11. Rapprochement bancaire</a>
+          <a class="nav-link px-3 py-2" href="#rapports">12. Rapports & clôture</a>
+          <a class="nav-link px-3 py-2" href="#bestpractices">13. Bonnes pratiques</a>
+        </nav>
+      </div>
+      <div class="card-footer bg-white border-top-0 text-center">
+        <a href="{% url 'comptabilite:guide_pdf' %}" class="btn btn-danger btn-sm w-100" target="_blank">
+          <i class="bi bi-filetype-pdf me-1"></i>Télécharger le guide (PDF)
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-9">
+
+    <div class="guide-section" id="intro">
+      <h4>1. Introduction</h4>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <p>Le module <strong>Comptabilité & Ventilation</strong> permet de gérer l'intégralité de la comptabilité d'une mutuelle de santé :</p>
+          <ul>
+            <li><strong>Comptabilité</strong> : plan comptable SYSCOHADA, saisie des écritures, validation, rapports (bilan, CPC, balance, grand livre)</li>
+            <li><strong>Ventilation</strong> : répartition analytique des écritures par centre de coût et branche d'activité</li>
+          </ul>
+          <p>Ces deux modules fonctionnent ensemble : on saisit d'abord les écritures comptables, puis on les ventile (automatiquement ou manuellement) pour analyser la performance par branche (Maladie, Maternité, etc.) et par antenne/région.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section" id="prerequis">
+      <h4>2. Prérequis</h4>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <p>Avant de commencer, assurez-vous que :</p>
+          <div class="guide-step">
+            <div class="guide-step-num">1</div>
+            <div class="guide-step-content">
+              <strong>Le plan comptable est initialisé</strong>
+              <p class="text-muted">Un administrateur doit exécuter <code>python manage.py init_plan_comptable</code> pour créer les comptes SYSCOHADA de base (40 comptes).</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">2</div>
+            <div class="guide-step-content">
+              <strong>Votre compte a le rôle approprié</strong>
+              <p class="text-muted">Vous devez avoir le rôle <strong>Comptable</strong> ou <strong>Administrateur Mutualité</strong> pour accéder aux menus Comptabilité et Ventilation.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">3</div>
+            <div class="guide-step-content">
+              <strong>Les centres analytiques sont créés</strong>
+              <p class="text-muted">Allez dans <span class="badge bg-light text-dark">Comptabilité → Centres analytiques</span> et créez vos antennes, régions, etc.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section" id="plan">
+      <h4>3. Configurer le plan comptable</h4>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="guide-step">
+            <div class="guide-step-num">1</div>
+            <div class="guide-step-content">
+              <strong>Accédez au plan comptable</strong>
+              <p class="text-muted">Menu <span class="badge bg-light text-dark">Finance & Comptabilité → Comptabilité</span> → onglet <strong>Plan comptable</strong>.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">2</div>
+            <div class="guide-step-content">
+              <strong>Vérifiez les comptes existants</strong>
+              <p class="text-muted">Le plan SYSCOHADA de base est préchargé (classe 1 à 8). Vérifiez qu'il contient au moins :</p>
+              <ul class="text-muted small">
+                <li><code>50/521/522/571</code> — Comptes de trésorerie (Banque, Caisse, Mobile Money)</li>
+                <li><code>401</code> — Fournisseurs</li>
+                <li><code>421</code> — Adhérents / cotisations à recevoir</li>
+                <li><code>601</code> — Prestations médicales</li>
+                <li><code>701</code> — Cotisations des adhérents</li>
+              </ul>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">3</div>
+            <div class="guide-step-content">
+              <strong>Ajoutez des comptes si nécessaire</strong>
+              <p class="text-muted">Vous pouvez créer de nouveaux comptes avec le bouton <span class="btn btn-sm btn-primary">+ Nouveau compte</span>.</p>
+            </div>
+          </div>
+          <div class="guide-tip">
+            <strong>💡 Conseil :</strong> Utilisez les numéros de compte SYSCOHADA (3 chiffres pour les comptes principaux). Par exemple, 601 pour Prestations médicales, 602 pour Frais pharmaceutiques.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section" id="ecritures">
+      <h4>4. Saisir des écritures comptables</h4>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <p>Une écriture comptable enregistre un mouvement financier sur un compte. Le principe est la <strong>partie double</strong> : chaque opération génère un débit et un crédit de montant égal.</p>
+
+          <div class="guide-step">
+            <div class="guide-step-num">1</div>
+            <div class="guide-step-content">
+              <strong>Allez dans "Écritures"</strong>
+              <p class="text-muted">Menu <span class="badge bg-light text-dark">Finance & Comptabilité → Comptabilité</span> → sous-menu <strong>Écritures</strong>.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">2</div>
+            <div class="guide-step-content">
+              <strong>Cliquez sur "+ Nouvelle écriture"</strong>
+              <p class="text-muted">Remplissez les champs :</p>
+              <ul class="text-muted small">
+                <li><strong>Date</strong> — date de l'opération</li>
+                <li><strong>Pièce comptable</strong> — référence (générée automatiquement si vide)</li>
+                <li><strong>Compte</strong> — sélectionnez le compte à mouvementer</li>
+                <li><strong>Débit/Crédit</strong> — choisissez le sens</li>
+                <li><strong>Montant</strong> — en BIF</li>
+                <li><strong>Libellé</strong> — description claire de l'opération</li>
+                <li><strong>Statut</strong> — laissez "Brouillon" ou passez directement à "Soumis"</li>
+              </ul>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">3</div>
+            <div class="guide-step-content">
+              <strong>Exemple : encaissement d'une cotisation</strong>
+              <p class="text-muted">Créez deux écritures avec la <strong>même pièce comptable</strong> :</p>
+              <table class="table table-sm small mb-0" style="max-width:500px;">
+                <thead class="table-light"><tr><th>Compte</th><th>Débit</th><th>Crédit</th><th>Libellé</th></tr></thead>
+                <tbody>
+                  <tr><td>571 Caisse</td><td>10 000</td><td></td><td>Encaissement cotisation</td></tr>
+                  <tr><td>701 Cotisations</td><td></td><td>10 000</td><td>Encaissement cotisation</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">4</div>
+            <div class="guide-step-content">
+              <strong>Exemple : paiement d'une prestation médicale</strong>
+              <table class="table table-sm small mb-0" style="max-width:500px;">
+                <thead class="table-light"><tr><th>Compte</th><th>Débit</th><th>Crédit</th><th>Libellé</th></tr></thead>
+                <tbody>
+                  <tr><td>601 Prestations médicales</td><td>25 000</td><td></td><td>Prestation MUT-2024-001</td></tr>
+                  <tr><td>571 Caisse</td><td></td><td>25 000</td><td>Prestation MUT-2024-001</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="guide-note">
+            <strong>⚠️ Important :</strong> Pour qu'une écriture soit prise en compte dans les rapports (bilan, CPC), elle doit être au statut <strong>"Validé"</strong>. Le workflow complet est : <em>Brouillon → Soumis → Validé/Rejeté</em>.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section" id="validation">
+      <h4>5. Workflow de validation</h4>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="guide-step">
+            <div class="guide-step-num">1</div>
+            <div class="guide-step-content">
+              <strong>Soumettre l'écriture</strong>
+              <p class="text-muted">Depuis le détail de l'écriture, cliquez sur <span class="btn btn-sm btn-warning">📤 Soumettre pour validation</span>. Le statut passe à "Soumis".</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">2</div>
+            <div class="guide-step-content">
+              <strong>Valider ou rejeter</strong>
+              <p class="text-muted">Un comptable superviseur peut <span class="btn btn-sm btn-success">✅ Valider</span> ou <span class="btn btn-sm btn-danger">❌ Rejeter</span> l'écriture (avec motif en cas de rejet).</p>
+            </div>
+          </div>
+          <div class="guide-tip">
+            <strong>💡 Conseil :</strong> Pour une petite structure, vous pouvez directement créer les écritures avec le statut "Validé" si le circuit de validation n'est pas nécessaire.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section" id="branches">
+      <h4>6. Créer les branches d'activité</h4>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <p>Avant de pouvoir ventiler, vous devez définir les <strong>branches d'activité</strong> de votre mutuelle.</p>
+          <div class="guide-step">
+            <div class="guide-step-num">1</div>
+            <div class="guide-step-content">
+              <strong>Accédez aux branches</strong>
+              <p class="text-muted">Menu <span class="badge bg-light text-dark">Finance & Comptabilité → Ventilations</span> → <strong>Branches</strong>.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">2</div>
+            <div class="guide-step-content">
+              <strong>Créez vos branches</strong>
+              <p class="text-muted">Exemples typiques :</p>
+              <table class="table table-sm small mb-0" style="max-width:400px;">
+                <thead class="table-light"><tr><th>Code</th><th>Libellé</th></tr></thead>
+                <tbody>
+                  <tr><td>MAL</td><td>Prise en charge maladie</td></tr>
+                  <tr><td>MAT</td><td>Maternité</td></tr>
+                  <tr><td>PHARMA</td><td>Pharmacie</td></tr>
+                  <tr><td>HOSP</td><td>Hospitalisation</td></tr>
+                  <tr><td>AMBUL</td><td>Soins ambulatoires</td></tr>
+                  <tr><td>ADMIN</td><td>Frais d'administration</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section" id="regles">
+      <h4>7. Configurer les règles de ventilation automatique</h4>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <p>Les règles permettent de <strong>ventiler automatiquement</strong> les écritures dès qu'elles sont créées.</p>
+          <div class="guide-step">
+            <div class="guide-step-num">1</div>
+            <div class="guide-step-content">
+              <strong>Accédez aux règles</strong>
+              <p class="text-muted">Menu <span class="badge bg-light text-dark">Ventilations → Règles de ventilation</span>.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">2</div>
+            <div class="guide-step-content">
+              <strong>Créez une règle</strong>
+              <p class="text-muted">Exemple de règle typique :</p>
+              <ul class="text-muted small">
+                <li><strong>Libellé :</strong> "Cotisations — 70% Maladie, 30% Administration"</li>
+                <li><strong>Type d'écriture :</strong> Cotisation</li>
+                <li><strong>Centre :</strong> (laisser vide = tous les centres)</li>
+                <li><strong>Branche :</strong> MAL (Maladie)</li>
+                <li><strong>Pourcentage :</strong> 70</li>
+                <li><strong>Priorité :</strong> 1</li>
+              </ul>
+              <p class="text-muted small">Créez une seconde règle avec branche ADMIN, pourcentage 30, priorité 2.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">3</div>
+            <div class="guide-step-content">
+              <strong>Option "Solde restant"</strong>
+              <p class="text-muted">Si vous cochez cette option, la règle s'applique sur le montant restant après application des autres règles. Utile pour une règle "fourre-tout".</p>
+            </div>
+          </div>
+          <div class="guide-note">
+            <strong>⚠️ Important :</strong> Les règles sont appliquées par ordre de priorité. Le total des pourcentages ne doit pas dépasser 100%.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section" id="ventilation">
+      <h4>8. Ventiler les écritures</h4>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <h6 class="fw-bold">Méthode A — Ventilation automatique</h6>
+          <div class="guide-step">
+            <div class="guide-step-num">1</div>
+            <div class="guide-step-content">
+              <strong>Depuis le dashboard Ventilation</strong>
+              <p class="text-muted">Allez dans <span class="badge bg-light text-dark">Ventilations</span> → tableau de bord.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">2</div>
+            <div class="guide-step-content">
+              <strong>Cliquez sur "Auto"</strong>
+              <p class="text-muted">Le bouton <span class="btn btn-sm btn-outline-primary"><i class="bi bi-lightning"></i> Auto</span> applique les règles actives à toutes les écritures validées non encore ventilées.</p>
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <h6 class="fw-bold">Méthode B — Ventilation manuelle</h6>
+          <div class="guide-step">
+            <div class="guide-step-num">1</div>
+            <div class="guide-step-content">
+              <strong>Créez une ventilation</strong>
+              <p class="text-muted"><span class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Nouvelle ventilation</span> et sélectionnez l'écriture, le centre, la branche, le % et le montant.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">2</div>
+            <div class="guide-step-content">
+              <strong>Contrôle de cohérence</strong>
+              <p class="text-muted">Le système vérifie que le total des ventilations d'une même écriture ne dépasse pas 100%. Vous pouvez ventiler une écriture sur plusieurs axes (ex: 60% Maladie + 40% Pharmacie).</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">3</div>
+            <div class="guide-step-content">
+              <strong>Validez la ventilation</strong>
+              <p class="text-muted">Depuis le détail, cliquez sur <span class="btn btn-sm btn-success"><i class="bi bi-check-circle"></i> Valider</span> pour rendre la ventilation définitive.</p>
+            </div>
+          </div>
+
+          <div class="guide-tip">
+            <strong>💡 Astuce :</strong> Utilisez la ventilation automatique en routine (quotidien/hebdomadaire), et la ventilation manuelle pour les cas particuliers ou les corrections.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section" id="budgets">
+      <h4>9. Budgets et suivi budgétaire</h4>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="guide-step">
+            <div class="guide-step-num">1</div>
+            <div class="guide-step-content">
+              <strong>Créez un budget</strong>
+              <p class="text-muted">Menu <span class="badge bg-light text-dark">Comptabilité → Budgets</span> → <span class="btn btn-sm btn-primary">+ Nouveau budget</span>. Définissez l'année, le type (annuel/trimestriel/projet) et ajoutez les lignes budgétaires (compte + montant prévu).</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">2</div>
+            <div class="guide-step-content">
+              <strong>Suivez l'exécution</strong>
+              <p class="text-muted">Le tableau de bord comptable affiche le taux d'exécution de chaque budget avec une barre de progression colorée (vert ≥ 75%, orange ≥ 50%, rouge < 50%).</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">3</div>
+            <div class="guide-step-content">
+              <strong>Rapport budgétaire</strong>
+              <p class="text-muted">Menu <span class="badge bg-light text-dark">Comptabilité → Rapports</span> → type "Suivi budgétaire". Comparez le prévu vs réalisé avec les écarts.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section" id="tresorerie">
+      <h4>10. Gestion de la trésorerie</h4>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="guide-step">
+            <div class="guide-step-num">1</div>
+            <div class="guide-step-content">
+              <strong>Prévisions de trésorerie</strong>
+              <p class="text-muted">Menu <span class="badge bg-light text-dark">Comptabilité → Trésorerie</span>. Créez des prévisions d'encaissements et décaissements pour anticiper les besoins de liquidités.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">2</div>
+            <div class="guide-step-content">
+              <strong>Consultez le solde</strong>
+              <p class="text-muted">Le dashboard comptable affiche la trésorerie disponible (somme des soldes des comptes de classe 5).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section" id="rapprochement">
+      <h4>11. Rapprochement bancaire</h4>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="guide-step">
+            <div class="guide-step-num">1</div>
+            <div class="guide-step-content">
+              <strong>Créez un rapprochement</strong>
+              <p class="text-muted">Menu <span class="badge bg-light text-dark">Comptabilité → Rapprochements</span>. Sélectionnez le compte bancaire, la période, et saisissez le solde comptable et le solde bancaire.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">2</div>
+            <div class="guide-step-content">
+              <strong>Pointage des lignes</strong>
+              <p class="text-muted">L'admin vous permet de pointer les écritures une par une pour identifier les écarts. Le rapprochement est équilibré quand solde ajusté = solde bancaire.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section" id="rapports">
+      <h4>12. Rapports et clôture d'exercice</h4>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <h6 class="fw-bold">Rapports disponibles</h6>
+          <div class="guide-step">
+            <div class="guide-step-num">1</div>
+            <div class="guide-step-content">
+              <strong>Bilan comptable</strong>
+              <p class="text-muted">Actif vs Passif à une date donnée. Le bilan présente l'ensemble des comptes de situation.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">2</div>
+            <div class="guide-step-content">
+              <strong>Compte de résultat (CPC)</strong>
+              <p class="text-muted">Charges vs Produits sur une période. Le résultat (bénéfice ou déficit) est calculé automatiquement.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">3</div>
+            <div class="guide-step-content">
+              <strong>Balance des comptes</strong>
+              <p class="text-muted">Tous les comptes avec leurs totaux débit/crédit et solde sur une période.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">4</div>
+            <div class="guide-step-content">
+              <strong>Grand livre & Journal</strong>
+              <p class="text-muted">Détail chronologique de toutes les écritures.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">5</div>
+            <div class="guide-step-content">
+              <strong>Rapport analytique</strong>
+              <p class="text-muted">Menu <span class="badge bg-light text-dark">Ventilations → Rapport</span>. Analyse croisée Centre × Branche des montants ventilés.</p>
+            </div>
+          </div>
+
+          <h6 class="fw-bold mt-4">Export des données</h6>
+          <div class="guide-step">
+            <div class="guide-step-num">6</div>
+            <div class="guide-step-content">
+              <strong>CSV</strong>
+              <p class="text-muted">Tous les rapports et listes peuvent être exportés en CSV (compatible Excel). Utilisez le bouton <span class="btn btn-sm btn-outline-success"><i class="bi bi-download"></i> CSV</span> disponible dans les ventilations.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section" id="bestpractices">
+      <h4>13. Bonnes pratiques</h4>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="guide-tip">
+            <strong>✅ À faire :</strong>
+            <ul class="mb-0 mt-2">
+              <li>Saisir les écritures <strong>régulièrement</strong> (quotidiennement si possible)</li>
+              <li>Utiliser des <strong>libellés clairs</strong> (ex: "Cotisation MUT-2024-0123 — Jean KAMILI")</li>
+              <li>Ventiler <strong>automatiquement</strong> via les règles pour gagner du temps</li>
+              <li>Faire un <strong>rapprochement bancaire mensuel</strong></li>
+              <li>Consulter le <strong>dashboard comptable</strong> chaque semaine</li>
+              <li>Générer le <strong>bilan et le CPC</strong> en fin de mois</li>
+            </ul>
+          </div>
+
+          <div class="guide-note mt-3">
+            <strong>❌ À éviter :</strong>
+            <ul class="mb-0 mt-2">
+              <li>Modifier une écriture <strong>validée</strong> — annulez-la et créez-en une nouvelle</li>
+              <li>Supprimer un <strong>compte</strong> qui a des écritures — désactivez-le plutôt</li>
+              <li>Ventiler avec un total <strong>différent de 100%</strong> (le système vous alertera)</li>
+              <li>Négliger l'<strong>historique</strong> — il trace toutes les modifications</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center py-5">
+      <a href="{% url 'comptabilite:guide_pdf' %}" class="btn btn-danger btn-lg" target="_blank">
+        <i class="bi bi-filetype-pdf me-2"></i>Télécharger ce guide en PDF
+      </a>
+      <a href="javascript:window.print()" class="btn btn-outline-secondary btn-lg ms-2">
+        <i class="bi bi-printer me-2"></i>Imprimer
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Smooth scroll for TOC links
+  document.querySelectorAll('#guideToc a').forEach(function(a) {
+    a.addEventListener('click', function(e) {
+      e.preventDefault();
+      var target = document.querySelector(this.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+});
+</script>
+{% endblock %}

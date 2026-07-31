@@ -5,9 +5,11 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
 
-from .models import Partenaire, Convention
+from django.utils import timezone
+from .models import Partenaire, Convention, RelationPartenaireMutualite
 from .forms import PartenaireForm
 from core.mixins import enregistrer_audit
+from core.models import Mutualite
 
 logger = logging.getLogger('core.security')
 
@@ -16,8 +18,27 @@ def _get_mutualite_queryset(model, user):
     if user.est_super_admin:
         return model.objects.none()
     if user.mutualite_id:
-        return model.objects.filter(mutualite=user.mutualite)
+        ids_via_relation = list(RelationPartenaireMutualite.objects.filter(
+            mutualite=user.mutualite, statut='ACTIVE',
+        ).values_list('partenaire_id', flat=True))
+        owned_ids = list(model.objects.filter(mutualite=user.mutualite).values_list('pk', flat=True))
+        all_ids = list(set(owned_ids + ids_via_relation))
+        if not all_ids:
+            return model.objects.none()
+        return Partenaire.all_objects.filter(pk__in=all_ids, supprime=False)
     return model.objects.none()
+
+
+def _get_partenaires_en_attente(mutualite):
+    """Retourne les partenaires en attente qui n'ont pas encore de relation avec cette mutualité."""
+    already_linked = RelationPartenaireMutualite.objects.filter(
+        mutualite=mutualite,
+    ).values_list('partenaire_id', flat=True)
+    return Partenaire.all_objects.filter(
+        mutualite__isnull=True,
+        statut='EN_ATTENTE',
+        supprime=False,
+    ).exclude(pk__in=already_linked)
 
 
 def _check_super_admin(user):
@@ -31,6 +52,41 @@ def liste(request):
     if _check_super_admin(request.user):
         messages.warning(request, "Accès réservé aux utilisateurs de la mutualité.")
         return redirect('superadmin:dashboard')
+
+    filtre = request.GET.get('filtre', 'actifs')
+
+    if filtre == 'en_attente':
+        qs = _get_partenaires_en_attente(request.user.mutualite)
+        paginator = Paginator(qs, 10)
+        page = request.GET.get('page', 1)
+        partenaires = paginator.get_page(page)
+        return render(request, 'partenaires/liste.html', {
+            'partenaires': partenaires,
+            'filtre': filtre,
+            'total': qs.count(),
+            'type_choices': Partenaire.TYPE_CHOICES,
+            'statut_choices': Partenaire.STATUT_CHOICES,
+        })
+
+    if filtre == 'corbeille':
+        all_ids = list(Partenaire.all_objects.filter(
+            mutualite=request.user.mutualite, supprime=True
+        ).values_list('pk', flat=True))
+        ids_via_relation = list(RelationPartenaireMutualite.objects.filter(
+            mutualite=request.user.mutualite,
+        ).values_list('partenaire_id', flat=True))
+        corbeille_ids = list(set(all_ids + [i for i in ids_via_relation if Partenaire.all_objects.filter(pk=i, supprime=True).exists()]))
+        qs = Partenaire.all_objects.filter(pk__in=corbeille_ids, supprime=True)
+        paginator = Paginator(qs, 10)
+        page = request.GET.get('page', 1)
+        partenaires = paginator.get_page(page)
+        return render(request, 'partenaires/liste.html', {
+            'partenaires': partenaires,
+            'filtre': filtre,
+            'total': qs.count(),
+            'type_choices': Partenaire.TYPE_CHOICES,
+            'statut_choices': Partenaire.STATUT_CHOICES,
+        })
 
     qs = _get_mutualite_queryset(Partenaire, request.user)
 
@@ -59,6 +115,7 @@ def liste(request):
         'type': type_partenaire,
         'statut': statut,
         'total': qs.count(),
+        'filtre': filtre,
         'type_choices': Partenaire.TYPE_CHOICES,
         'statut_choices': Partenaire.STATUT_CHOICES,
     })
@@ -70,9 +127,13 @@ def detail(request, pk):
         messages.warning(request, "Accès réservé aux utilisateurs de la mutualité.")
         return redirect('superadmin:dashboard')
 
-    partenaire = get_object_or_404(
-        _get_mutualite_queryset(Partenaire, request.user), pk=pk
-    )
+    partenaire = _get_mutualite_queryset(Partenaire, request.user).filter(pk=pk).first()
+    if not partenaire:
+        partenaire = _get_partenaires_en_attente(request.user.mutualite).filter(pk=pk).first()
+    if not partenaire:
+        messages.error(request, "Partenaire non trouvé.")
+        return redirect('partenaires:liste')
+
     conventions = partenaire.conventions.all().order_by('-date_debut')
     factures = []
     try:
@@ -233,3 +294,174 @@ def reactiver(request, pk):
                       'Partenaire', pk)
     messages.success(request, f"Partenaire {obj.nom_etablissement} réactivé.")
     return redirect('partenaires:detail', pk=pk)
+
+
+@login_required
+def accepter_demande(request, pk):
+    if _check_super_admin(request.user):
+        messages.warning(request, "Accès réservé aux utilisateurs de la mutualité.")
+        return redirect('superadmin:dashboard')
+
+    if not request.user.peut_modifier or not request.user.mutualite_id:
+        messages.error(request, "Permission refusée.")
+        return redirect('partenaires:liste')
+
+    mutualite = request.user.mutualite
+    try:
+        partenaire = Partenaire.all_objects.get(pk=pk, statut='EN_ATTENTE', mutualite__isnull=True)
+    except Partenaire.DoesNotExist:
+        messages.error(request, "Partenaire non trouvé ou déjà accepté.")
+        return redirect('partenaires:liste')
+
+    if RelationPartenaireMutualite.objects.filter(partenaire=partenaire, mutualite=mutualite).exists():
+        messages.warning(request, "Une relation existe déjà avec ce partenaire.")
+        return redirect('partenaires:liste')
+
+    partenaire.mutualite = mutualite
+    partenaire.statut = 'ACTIF'
+    partenaire.save(update_fields=['mutualite', 'statut'])
+
+    relation = RelationPartenaireMutualite(
+        partenaire=partenaire,
+        mutualite=mutualite,
+        statut='ACTIVE',
+        date_action=timezone.now(),
+    )
+    relation.save()
+
+    convention = Convention(
+        partenaire=partenaire,
+        mutualite=mutualite,
+        numero_convention=Convention._generer_numero(Convention),
+        date_debut=timezone.now().date(),
+        date_fin=timezone.now().date() + timezone.timedelta(days=365),
+        statut='ACTIVE',
+        created_by=request.user,
+    )
+    convention.save()
+
+    enregistrer_audit(request, 'VALIDATION', 'partenaires',
+                      f"Acceptation partenaire : {partenaire.nom_etablissement} par {mutualite.nom}",
+                      'Partenaire', pk)
+    messages.success(request, f"Partenaire {partenaire.nom_etablissement} accepté. Une convention a été créée.")
+    return redirect('partenaires:detail', pk=pk)
+
+
+@login_required
+def bloquer_relation(request, pk):
+    if _check_super_admin(request.user):
+        messages.warning(request, "Accès réservé aux utilisateurs de la mutualité.")
+        return redirect('superadmin:dashboard')
+
+    if not request.user.peut_modifier or not request.user.mutualite_id:
+        messages.error(request, "Permission refusée.")
+        return redirect('partenaires:liste')
+
+    partenaire = get_object_or_404(
+        _get_mutualite_queryset(Partenaire, request.user), pk=pk
+    )
+    relation = RelationPartenaireMutualite.objects.filter(
+        partenaire=partenaire, mutualite=request.user.mutualite, statut='ACTIVE'
+    ).first()
+    if not relation:
+        messages.error(request, "Aucune relation active avec ce partenaire.")
+        return redirect('partenaires:detail', pk=pk)
+
+    relation.statut = 'BLOQUEE'
+    relation.date_action = timezone.now()
+    relation.save(update_fields=['statut', 'date_action'])
+
+    partenaire.statut = 'SUSPENDU'
+    partenaire.save(update_fields=['statut'])
+
+    enregistrer_audit(request, 'MODIFICATION', 'partenaires',
+                      f"Blocage relation avec {partenaire.nom_etablissement}",
+                      'RelationPartenaireMutualite', relation.pk)
+    messages.success(request, f"Relation avec {partenaire.nom_etablissement} bloquée.")
+    return redirect('partenaires:detail', pk=pk)
+
+
+@login_required
+def debloquer_relation(request, pk):
+    if _check_super_admin(request.user):
+        messages.warning(request, "Accès réservé aux utilisateurs de la mutualité.")
+        return redirect('superadmin:dashboard')
+
+    if not request.user.peut_modifier or not request.user.mutualite_id:
+        messages.error(request, "Permission refusée.")
+        return redirect('partenaires:liste')
+
+    partenaire = get_object_or_404(
+        _get_mutualite_queryset(Partenaire, request.user), pk=pk
+    )
+    relation = RelationPartenaireMutualite.objects.filter(
+        partenaire=partenaire, mutualite=request.user.mutualite, statut='BLOQUEE'
+    ).first()
+    if not relation:
+        messages.error(request, "Aucune relation bloquée avec ce partenaire.")
+        return redirect('partenaires:detail', pk=pk)
+
+    relation.statut = 'ACTIVE'
+    relation.date_action = timezone.now()
+    relation.save(update_fields=['statut', 'date_action'])
+
+    partenaire.statut = 'ACTIF'
+    partenaire.save(update_fields=['statut'])
+
+    enregistrer_audit(request, 'MODIFICATION', 'partenaires',
+                      f"Déblocage relation avec {partenaire.nom_etablissement}",
+                      'RelationPartenaireMutualite', relation.pk)
+    messages.success(request, f"Relation avec {partenaire.nom_etablissement} rétablie.")
+    return redirect('partenaires:detail', pk=pk)
+
+
+@login_required
+def supprimer(request, pk):
+    if _check_super_admin(request.user):
+        messages.warning(request, "Accès réservé aux utilisateurs de la mutualité.")
+        return redirect('superadmin:dashboard')
+
+    partenaire = get_object_or_404(
+        _get_partenaires_en_attente(request.user.mutualite), pk=pk
+    )
+    partenaire.soft_delete()
+    enregistrer_audit(request, 'SUPPRESSION', 'partenaires',
+                      f"Mise à la corbeille du partenaire {partenaire.nom_etablissement}",
+                      'Partenaire', partenaire.pk)
+    messages.success(request, f"{partenaire.nom_etablissement} a été mis à la corbeille.")
+    return redirect('partenaires:liste')
+
+
+@login_required
+def restaurer(request, pk):
+    if _check_super_admin(request.user):
+        messages.warning(request, "Accès réservé aux utilisateurs de la mutualité.")
+        return redirect('superadmin:dashboard')
+
+    partenaire = get_object_or_404(
+        Partenaire.all_objects.filter(supprime=True), pk=pk
+    )
+    partenaire.restore()
+    enregistrer_audit(request, 'MODIFICATION', 'partenaires',
+                      f"Restauration du partenaire {partenaire.nom_etablissement}",
+                      'Partenaire', partenaire.pk)
+    messages.success(request, f"{partenaire.nom_etablissement} a été restauré.")
+    return redirect('partenaires:liste')
+
+
+@login_required
+def purger(request, pk):
+    if _check_super_admin(request.user):
+        messages.warning(request, "Accès réservé aux utilisateurs de la mutualité.")
+        return redirect('superadmin:dashboard')
+
+    partenaire = get_object_or_404(
+        Partenaire.all_objects.filter(supprime=True), pk=pk
+    )
+    nom = partenaire.nom_etablissement
+    partenaire.delete()
+    enregistrer_audit(request, 'SUPPRESSION', 'partenaires',
+                      f"Suppression définitive du partenaire {nom}",
+                      'Partenaire', pk)
+    messages.success(request, f"{nom} a été supprimé définitivement.")
+    return redirect('partenaires:liste')

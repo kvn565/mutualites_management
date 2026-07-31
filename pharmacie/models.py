@@ -1,6 +1,7 @@
 # pharmacie/models.py
 from django.db import models
 from core.models import TenantManager
+from comptabilite.models import SoftDeleteMixin
 
 class CategorieMedicament(models.Model):
     mutualite = models.ForeignKey(
@@ -22,7 +23,7 @@ class CategorieMedicament(models.Model):
     def __str__(self):
         return self.nom
 
-class Medicament(models.Model):
+class Medicament(SoftDeleteMixin):
     FORME_CHOICES = [
         ('COMPRIME', 'Comprimé'),
         ('SIROP', 'Sirop'),
@@ -65,3 +66,24 @@ class Medicament(models.Model):
         
     def __str__(self):
         return f"{self.nom} {self.dosage} ({self.forme})"
+
+    @classmethod
+    def generer_code(cls):
+        prefix = "MED"
+        count = cls.objects.count() + 1
+        return f"{prefix}-{count:04d}"
+
+    def _serialiser_pour_corbeille(self):
+        return {
+            'code': self.code,
+            'nom': self.nom,
+            'dci': self.dci,
+            'categorie': self.categorie.nom if self.categorie else None,
+            'forme': self.forme,
+            'dosage': self.dosage,
+            'pris_en_charge': self.pris_en_charge,
+            'taux_remboursement': str(self.taux_remboursement),
+            'prix_reference': str(self.prix_reference),
+            'observations': self.observations,
+            'actif': self.actif,
+        }

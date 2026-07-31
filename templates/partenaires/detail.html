@@ -9,6 +9,11 @@
 <a href="{% url 'partenaires:modifier' partenaire.pk %}" class="btn btn-outline-vert">
     <i class="bi bi-pencil me-1"></i>Modifier
 </a>
+{% if partenaire.statut == 'EN_ATTENTE' and not partenaire.mutualite_id %}
+<a href="{% url 'partenaires:accepter_demande' partenaire.pk %}" class="btn btn-success" onclick="return confirm('Accepter {{ partenaire.nom_etablissement }} comme partenaire ?')">
+    <i class="bi bi-check-circle me-1"></i>Accepter
+</a>
+{% endif %}
 {% if partenaire.statut == 'ACTIF' or partenaire.statut == 'EN_ATTENTE' %}
 <a href="{% url 'partenaires:suspendre' partenaire.pk %}" class="btn btn-outline-warning" onclick="return confirm('Suspendre ce partenaire ?')">
     <i class="bi bi-pause-circle me-1"></i>Suspendre

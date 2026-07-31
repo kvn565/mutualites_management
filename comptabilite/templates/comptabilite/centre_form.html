@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre|default:'Nouveau centre' }}{% endblock %}
+{% block page_title %}{{ titre|default:'Nouveau centre' }}{% endblock %}
+{% block page_icon %}bi bi-building{% endblock %}
+{% block nav_compta %}active{% endblock %}
+
+{% block content %}
+<form method="post">{% csrf_token %}
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-pencil me-2"></i> Centre analytique</div>
+        <div class="card-body p-4 row g-3">
+          <div class="col-md-6">
+            <label class="form-label">{{ form.code.label }} <span class="text-danger">*</span></label>
+            {{ form.code }}
+            {% if form.code.errors %}<div class="text-danger small mt-1">{{ form.code.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.libelle.label }} <span class="text-danger">*</span></label>
+            {{ form.libelle }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.type_centre.label }}</label>
+            {{ form.type_centre }}
+          </div>
+          <div class="col-md-6">
+            <div class="form-check mt-4">
+              {{ form.actif }}
+              <label class="form-check-label">{{ form.actif.label }}</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-grid mt-4 gap-2">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-circle me-2"></i> Enregistrer</button>
+        <a href="{% url 'comptabilite:centre_list' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

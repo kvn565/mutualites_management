@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Soins — {{ hospitalisation.numero_dossier }} — {{ block.super }}{% endblock %}
+{% block page_title %}Soins pour {{ hospitalisation.patient_nom }} {{ hospitalisation.patient_prenom }}{% endblock %}
+{% block page_icon %}bi bi-heart-pulse{% endblock %}
+{% block page_subtitle %}N° dossier : {{ hospitalisation.numero_dossier }} — Chambre {{ hospitalisation.chambre.numero }}{% endblock %}
+{% block nav_hospitalisations %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{% url 'gestion_chambres:hospitalisation_detail' hospitalisation.pk %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+    <a href="{% url 'gestion_chambres:soin_creer' hospitalisation.pk %}" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Nouveau soin</a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        {% if soins %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Date / Heure</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Réalisé par</th>
+                        <th>Coût (BIF)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in soins %}
+                    <tr>
+                        <td class="small">{{ s.date_heure|date:"d/m/Y H:i" }}</td>
+                        <td><span class="badge bg-secondary">{{ s.get_type_soin_display }}</span></td>
+                        <td>{{ s.description|truncatechars:60 }}</td>
+                        <td class="small">{{ s.realise_par.nom_complet|default:s.realise_par.username|default:"—" }}</td>
+                        <td class="fw-bold text-vert">{{ s.cout|floatformat:0|intcomma }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'gestion_chambres:soin_modifier' s.pk %}" class="btn btn-outline-primary" title="Modifier"><i class="bi bi-pencil"></i></a>
+                                <a href="{% url 'gestion_chambres:soin_supprimer' s.pk %}" class="btn btn-outline-danger" title="Supprimer"><i class="bi bi-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-heart-pulse fs-1 d-block mb-2"></i>
+            Aucun soin enregistré pour cette hospitalisation
+            <a href="{% url 'gestion_chambres:soin_creer' hospitalisation.pk %}" class="btn btn-primary mt-3"><i class="bi bi-plus-circle me-1"></i> Ajouter le premier soin</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

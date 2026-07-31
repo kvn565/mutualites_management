@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Connexion — Mutualité de Santé{% endblock %}</title>
+    <title>{% block title %}Connexion — {{ APP_NOM }}{% endblock %}</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,19 +16,25 @@
 
     <style>
         :root {
-            --vert: #0a5c36;
-            --vert-clair: #0d7a48;
-            --vert-fonce: #062c1a;
-            --or: #c9a84c;
+            --vert: {{ APP_PRIMARY_COLOR|default:'#0a5c36' }};
+            --vert-clair: {{ APP_ACCENT_COLOR|default:'#c9a84c' }};
+            --vert-fonce: {{ APP_BACKGROUND_COLOR|default:'#062c1a' }};
+            --or: {{ APP_ACCENT_COLOR|default:'#c9a84c' }};
+            --text-color: {{ APP_TEXT_COLOR|default:'#1e293b' }};
         }
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             min-height: 100vh;
+            {% if APP_BACKGROUND_IMAGE_URL %}
+            background: url('{{ APP_BACKGROUND_IMAGE_URL }}') center/cover fixed;
+            {% else %}
             background: linear-gradient(135deg, #062c1a 0%, #0a5c36 50%, #0d7a48 100%);
+            {% endif %}
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            color: var(--text-color);
         }
         h1, h2, h3, .login-logo, .brand-text {
             font-family: 'Outfit', sans-serif;
@@ -38,7 +44,7 @@
             max-width: 500px;
         }
         .login-box-wide {
-            max-width: 600px;
+            max-width: 720px;
         }
         .login-logo {
             text-align: center;

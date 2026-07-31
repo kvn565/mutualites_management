@@ -32,7 +32,7 @@
                 </h5>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold small" for="{{ form.nom_mutualite.id_for_label }}">{{ form.nom_mutualite.label }}</label>
+                    <label class="form-label fw-bold" for="{{ form.nom_mutualite.id_for_label }}">{{ form.nom_mutualite.label }}</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-building"></i></span>
                         {{ form.nom_mutualite }}
@@ -40,32 +40,77 @@
                     {% if form.nom_mutualite.errors %}<div class="field-error">{{ form.nom_mutualite.errors.0 }}</div>{% endif %}
                 </div>
 
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold small" for="{{ form.sigle.id_for_label }}">{{ form.sigle.label }}</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-fonts"></i></span>
-                            {{ form.sigle }}
-                        </div>
-                        {% if form.sigle.errors %}<div class="field-error">{{ form.sigle.errors.0 }}</div>{% endif %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold" for="{{ form.nif.id_for_label }}">{{ form.nif.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+                        {{ form.nif }}
                     </div>
-                    <div class="col-md-8">
-                        <label class="form-label fw-semibold small" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                            {{ form.email }}
-                        </div>
-                        {% if form.email.errors %}<div class="field-error">{{ form.email.errors.0 }}</div>{% endif %}
-                    </div>
+                    <div class="small text-secondary mt-1">Le NIF permet à votre responsable de retrouver la mutualité lors de son inscription.</div>
+                    {% if form.nif.errors %}<div class="field-error">{{ form.nif.errors.0 }}</div>{% endif %}
                 </div>
 
-                <div class="mb-4">
-                    <label class="form-label fw-semibold small" for="{{ form.telephone.id_for_label }}">{{ form.telephone.label }}</label>
+                <div class="mb-3">
+                    <label class="form-label fw-bold" for="{{ form.sigle.id_for_label }}">{{ form.sigle.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-fonts"></i></span>
+                        {{ form.sigle }}
+                    </div>
+                    {% if form.sigle.errors %}<div class="field-error">{{ form.sigle.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold" for="{{ form.province.id_for_label }}">{{ form.province.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                        {{ form.province }}
+                    </div>
+                    {% if form.province.errors %}<div class="field-error">{{ form.province.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold" for="{{ form.commune.id_for_label }}">{{ form.commune.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-geo"></i></span>
+                        {{ form.commune }}
+                    </div>
+                    {% if form.commune.errors %}<div class="field-error">{{ form.commune.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold" for="{{ form.quartier.id_for_label }}">{{ form.quartier.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-geo-fill"></i></span>
+                        {{ form.quartier }}
+                    </div>
+                    {% if form.quartier.errors %}<div class="field-error">{{ form.quartier.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold" for="{{ form.adresse.id_for_label }}">{{ form.adresse.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-signpost-2"></i></span>
+                        {{ form.adresse }}
+                    </div>
+                    {% if form.adresse.errors %}<div class="field-error">{{ form.adresse.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold" for="{{ form.telephone.id_for_label }}">{{ form.telephone.label }}</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-telephone"></i></span>
                         {{ form.telephone }}
                     </div>
                     {% if form.telephone.errors %}<div class="field-error">{{ form.telephone.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                        {{ form.email }}
+                    </div>
+                    {% if form.email.errors %}<div class="field-error">{{ form.email.errors.0 }}</div>{% endif %}
                 </div>
 
                 <hr class="opacity-25 my-4">
@@ -74,27 +119,26 @@
                     <i class="bi bi-person-badge me-2" style="color:var(--or);"></i>Administrateur
                 </h5>
 
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold small" for="{{ form.prenom_admin.id_for_label }}">{{ form.prenom_admin.label }}</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-person"></i></span>
-                            {{ form.prenom_admin }}
-                        </div>
-                        {% if form.prenom_admin.errors %}<div class="field-error">{{ form.prenom_admin.errors.0 }}</div>{% endif %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold" for="{{ form.prenom_admin.id_for_label }}">{{ form.prenom_admin.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        {{ form.prenom_admin }}
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold small" for="{{ form.nom_admin.id_for_label }}">{{ form.nom_admin.label }}</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-person"></i></span>
-                            {{ form.nom_admin }}
-                        </div>
-                        {% if form.nom_admin.errors %}<div class="field-error">{{ form.nom_admin.errors.0 }}</div>{% endif %}
-                    </div>
+                    {% if form.prenom_admin.errors %}<div class="field-error">{{ form.prenom_admin.errors.0 }}</div>{% endif %}
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold small" for="{{ form.email_admin.id_for_label }}">{{ form.email_admin.label }}</label>
+                    <label class="form-label fw-bold" for="{{ form.nom_admin.id_for_label }}">{{ form.nom_admin.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        {{ form.nom_admin }}
+                    </div>
+                    {% if form.nom_admin.errors %}<div class="field-error">{{ form.nom_admin.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold" for="{{ form.email_admin.id_for_label }}">{{ form.email_admin.label }}</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-envelope-at"></i></span>
                         {{ form.email_admin }}
@@ -103,7 +147,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold small" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+                    <label class="form-label fw-bold" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-person-vcard"></i></span>
                         {{ form.username }}
@@ -112,23 +156,34 @@
                     {% if form.username.help_text %}<div class="small text-secondary mt-1">{{ form.username.help_text }}</div>{% endif %}
                 </div>
 
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold small" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                            {{ form.password }}
-                        </div>
-                        {% if form.password.errors %}<div class="field-error">{{ form.password.errors.0 }}</div>{% endif %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        {{ form.password }}
+                        <button type="button" class="btn btn-outline-secondary"
+                                onclick="togglePwd('{{ form.password.id_for_label }}', this)"
+                                style="border:2px solid #d1d5db;border-left:none;border-radius:0 11px 11px 0;"
+                                title="Afficher/masquer">
+                            <i class="bi bi-eye"></i>
+                        </button>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold small" for="{{ form.confirm_password.id_for_label }}">{{ form.confirm_password.label }}</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-                            {{ form.confirm_password }}
-                        </div>
-                        {% if form.confirm_password.errors %}<div class="field-error">{{ form.confirm_password.errors.0 }}</div>{% endif %}
+                    {% if form.password.errors %}<div class="field-error">{{ form.password.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold" for="{{ form.confirm_password.id_for_label }}">{{ form.confirm_password.label }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                        {{ form.confirm_password }}
+                        <button type="button" class="btn btn-outline-secondary"
+                                onclick="togglePwd('{{ form.confirm_password.id_for_label }}', this)"
+                                style="border:2px solid #d1d5db;border-left:none;border-radius:0 11px 11px 0;"
+                                title="Afficher/masquer">
+                            <i class="bi bi-eye"></i>
+                        </button>
                     </div>
+                    {% if form.confirm_password.errors %}<div class="field-error">{{ form.confirm_password.errors.0 }}</div>{% endif %}
                 </div>
 
                 <button type="submit" class="btn btn-login">
@@ -144,4 +199,74 @@
         </div>
     </div>
 </div>
+
+<script>
+function togglePwd(id, btn) {
+    const input = document.getElementById(id);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+(function() {
+    const nifInput = document.getElementById('{{ form.nif.id_for_label }}');
+    const nomInput = document.getElementById('{{ form.nom_mutualite.id_for_label }}');
+    const sigleInput = document.getElementById('{{ form.sigle.id_for_label }}');
+    const provinceInput = document.getElementById('{{ form.province.id_for_label }}');
+    const communeInput = document.getElementById('{{ form.commune.id_for_label }}');
+    const quartierInput = document.getElementById('{{ form.quartier.id_for_label }}');
+    const adresseInput = document.getElementById('{{ form.adresse.id_for_label }}');
+    const helpEl = nifInput?.closest('.mb-3')?.querySelector('.small.text-secondary');
+    let timer = null;
+
+    if (!nifInput || !nomInput) return;
+
+    function fillFields(data) {
+        if (nomInput) nomInput.value = data.nom || '';
+        if (sigleInput) sigleInput.value = data.sigle || '';
+        if (provinceInput) provinceInput.value = data.province || '';
+        if (communeInput) communeInput.value = data.commune || '';
+        if (quartierInput) quartierInput.value = data.quartier || '';
+        if (adresseInput) adresseInput.value = data.adresse || '';
+    }
+
+    nifInput.addEventListener('input', function() {
+        clearTimeout(timer);
+        const val = this.value.trim();
+        if (helpEl) helpEl.textContent = 'Le NIF permet à votre responsable de retrouver la mutualité lors de son inscription.';
+
+        if (val.length < 10) return;
+
+        timer = setTimeout(function() {
+            if (helpEl) helpEl.innerHTML = '<span class="spinner-border spinner-border-sm" style="color:#8a9aaa;"></span> Vérification...';
+
+            fetch('{% url "superadmin:ajax_verifier_nif" %}?nif=' + encodeURIComponent(val))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.ok) {
+                    if (helpEl) helpEl.innerHTML = '<span style="color:#e74c3c;"><i class="bi bi-x-circle-fill me-1"></i>' + (data.error || 'Erreur de vérification') + '</span>';
+                    return;
+                }
+                if (data.status === 'existe') {
+                    fillFields(data);
+                    if (helpEl) helpEl.innerHTML = '<span style="color:#e74c3c;"><i class="bi bi-x-circle-fill me-1"></i>Ce NIF est déjà utilisé par <strong>' + data.nom_local + '</strong>. Contactez l\'administrateur.</span>';
+                } else if (data.nom) {
+                    if (nomInput) nomInput.value = data.nom;
+                    if (helpEl) helpEl.innerHTML = '<span style="color:#10b981;"><i class="bi bi-check-circle-fill me-1"></i>Nom trouvé : <strong>' + data.nom + '</strong>';
+                } else {
+                    if (helpEl) helpEl.innerHTML = '<span style="color:#f59e0b;">NIF non trouvé. Remplissez les champs manuellement.</span>';
+                }
+            })
+            .catch(function() {
+                if (helpEl) helpEl.innerHTML = '<span style="color:#f59e0b;"><i class="bi bi-exclamation-triangle-fill me-1"></i>Erreur de vérification. Vérifiez votre connexion.</span>';
+            });
+        }, 500);
+    });
+})();
+</script>
 {% endblock %}

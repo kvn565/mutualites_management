@@ -56,11 +56,17 @@ class AffilieModelTest(TestCase):
         self.assertFalse(aff.actif)
         self.assertIsNotNone(aff.date_suppression)
 
-    def test_generer_numero(self):
-        self._create_affilie(numero_affiliation='AFF-2026-0001')
-        numero = Affilie.generer_numero()
-        self.assertTrue(numero.startswith('AFF-2026-'))
-        self.assertIn(numero, [f'AFF-2026-{i:04d}' for i in range(1, 100)])
+    def test_auto_affiliation_id(self):
+        """Vérifie que l'ID est auto-généré au format code_mutualite-PK."""
+        aff = Affilie.objects.create(
+            nom='Test',
+            prenom='Auto',
+            sexe='M',
+            date_naissance='1990-01-15',
+        )
+        self.assertIsNotNone(aff.numero_affiliation)
+        self.assertIn(str(aff.pk), aff.numero_affiliation)
+        self.assertRegex(aff.numero_affiliation, r'^MUT-\d+$')
 
 
 class AffilieViewsTest(TestCase):

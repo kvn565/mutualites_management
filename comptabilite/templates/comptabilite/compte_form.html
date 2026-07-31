@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre|default:'Nouveau compte' }}{% endblock %}
+{% block page_title %}{{ titre|default:'Nouveau compte' }}{% endblock %}
+{% block page_icon %}bi bi-journal-text{% endblock %}
+{% block nav_compta %}active{% endblock %}
+
+{% block content %}
+<form method="post">{% csrf_token %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-pencil me-2"></i> Identification</div>
+        <div class="card-body p-4 row g-3">
+          <div class="col-md-6">
+            <label class="form-label">{{ form.numero.label }} <span class="text-danger">*</span></label>
+            {{ form.numero }}
+            {% if form.numero.errors %}<div class="text-danger small mt-1">{{ form.numero.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.intitule.label }} <span class="text-danger">*</span></label>
+            {{ form.intitule }}
+            {% if form.intitule.errors %}<div class="text-danger small mt-1">{{ form.intitule.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.type_compte.label }} <span class="text-danger">*</span></label>
+            {{ form.type_compte }}
+            {% if form.type_compte.errors %}<div class="text-danger small mt-1">{{ form.type_compte.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.categorie_syscohada.label }}</label>
+            {{ form.categorie_syscohada }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.compte_parent.label }}</label>
+            {{ form.compte_parent }}
+            <div class="form-text">Compte de rattachement (optionnel).</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.solde_initial.label }}</label>
+            {{ form.solde_initial }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">{{ form.description.label }}</label>
+            {{ form.description }}
+          </div>
+          <div class="col-12">
+            <div class="form-check">
+              {{ form.actif }}
+              <label class="form-check-label">{{ form.actif.label }}</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-info-circle me-2"></i> Aide</div>
+        <div class="card-body p-4">
+          <p class="text-muted small mb-2">Le plan comptable suit la nomenclature <strong>SYSCOHADA</strong>.</p>
+          <ul class="text-muted small mb-0 ps-3">
+            <li>Classe 1 — Capitaux propres</li>
+            <li>Classe 2 — Immobilisations</li>
+            <li>Classe 3 — Stocks</li>
+            <li>Classe 4 — Tiers</li>
+            <li>Classe 5 — Trésorerie</li>
+            <li>Classe 6 — Charges</li>
+            <li>Classe 7 — Produits</li>
+            <li>Classe 8 — Engagements</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="d-grid mt-4 gap-2">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-circle me-2"></i> Enregistrer</button>
+        <a href="{% url 'comptabilite:compte_list' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

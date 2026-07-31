@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.http import JsonResponse
 
 from .models import ServiceSante
 from .forms import ServiceSanteForm
@@ -11,8 +12,8 @@ from core.mixins import enregistrer_audit
 
 @login_required
 def liste(request):
-    if request.user.est_super_admin:
-        messages.warning(request, "⛔ Les Super Admins ne peuvent pas gérer les données d'une mutualité spécifique.")
+    if not request.user.mutualite and request.user.est_super_admin:
+        messages.warning(request, "⛔ Aucune mutualité associée à votre compte.")
         return redirect('superadmin:dashboard')
     qs = ServiceSante.objects.filter(mutualite=request.user.mutualite)
     
@@ -24,7 +25,7 @@ def liste(request):
     if categorie:
         qs = qs.filter(categorie=categorie)
         
-    paginator = Paginator(qs, 10)
+    paginator = Paginator(qs, 5)
     page = request.GET.get('page', 1)
     services = paginator.get_page(page)
     
@@ -38,8 +39,8 @@ def liste(request):
 
 @login_required
 def detail(request, pk):
-    if request.user.est_super_admin:
-        messages.warning(request, "⛔ Les Super Admins ne peuvent pas gérer les données d'une mutualité spécifique.")
+    if not request.user.mutualite and request.user.est_super_admin:
+        messages.warning(request, "⛔ Aucune mutualité associée.")
         return redirect('superadmin:dashboard')
     service = get_object_or_404(ServiceSante, pk=pk, mutualite=request.user.mutualite)
     return render(request, 'services_sante/detail.html', {
@@ -48,8 +49,8 @@ def detail(request, pk):
 
 @login_required
 def ajouter(request):
-    if request.user.est_super_admin:
-        messages.warning(request, "⛔ Les Super Admins ne peuvent pas gérer les données d'une mutualité spécifique.")
+    if not request.user.mutualite and request.user.est_super_admin:
+        messages.warning(request, "⛔ Aucune mutualité associée.")
         return redirect('superadmin:dashboard')
     if not request.user.peut_modifier:
         messages.error(request, "⛔ Permission refusée.")
@@ -59,22 +60,23 @@ def ajouter(request):
         form = ServiceSanteForm(request.POST)
         if form.is_valid():
             obj = form.save(commit=False)
-            if not obj.code:
-                # Generate a code if none is provided
-                obj.code = ServiceSante.generer_code(obj.categorie)
+            obj.code = ServiceSante.generer_code(obj.categorie)
+            obj.mutualite = request.user.mutualite
             obj.save()
             enregistrer_audit(request, 'CREATION', 'services_sante', f"Création service : {obj.nom}", 'ServiceSante', obj.pk)
             messages.success(request, f"✅ Service {obj.nom} ajouté avec succès.")
             return redirect('services_sante:liste')
     else:
-        form = ServiceSanteForm()
+        form = ServiceSanteForm(initial={
+            'code': ServiceSante.generer_code('AUTRE'),
+        })
         
     return render(request, 'services_sante/form.html', {'form': form, 'titre': 'Ajouter un service de santé'})
 
 @login_required
 def modifier(request, pk):
-    if request.user.est_super_admin:
-        messages.warning(request, "⛔ Les Super Admins ne peuvent pas gérer les données d'une mutualité spécifique.")
+    if not request.user.mutualite and request.user.est_super_admin:
+        messages.warning(request, "⛔ Aucune mutualité associée.")
         return redirect('superadmin:dashboard')
     if not request.user.peut_modifier:
         messages.error(request, "⛔ Permission refusée.")
@@ -94,9 +96,27 @@ def modifier(request, pk):
     return render(request, 'services_sante/form.html', {'form': form, 'obj': obj, 'titre': 'Modifier le service'})
 
 @login_required
+def ajax_creer(request):
+    if (not request.user.mutualite and request.user.est_super_admin) or not request.user.peut_modifier:
+        return JsonResponse({'ok': False, 'error': 'Permission refusée.'})
+    nom = request.POST.get('nom', '').strip()
+    categorie = request.POST.get('categorie', 'AUTRE')
+    if not nom:
+        return JsonResponse({'ok': False, 'error': 'Le nom est requis.'})
+    obj = ServiceSante(
+        mutualite=request.user.mutualite,
+        nom=nom,
+        categorie=categorie,
+    )
+    obj.code = ServiceSante.generer_code(categorie)
+    obj.save()
+    return JsonResponse({'ok': True, 'id': obj.pk, 'text': str(obj)})
+
+
+@login_required
 def supprimer(request, pk):
-    if request.user.est_super_admin:
-        messages.warning(request, "⛔ Les Super Admins ne peuvent pas gérer les données d'une mutualité spécifique.")
+    if not request.user.mutualite and request.user.est_super_admin:
+        messages.warning(request, "⛔ Aucune mutualité associée.")
         return redirect('superadmin:dashboard')
     if not request.user.peut_supprimer:
         messages.error(request, "⛔ Permission refusée.")
@@ -106,7 +126,7 @@ def supprimer(request, pk):
     if request.method == 'POST':
         nom = obj.nom
         # In a real scenario, you'd check if it's used in bills
-        obj.delete()
+        obj.delete(user=request.user)
         enregistrer_audit(request, 'SUPPRESSION', 'services_sante', f"Suppression service : {nom}", 'ServiceSante', pk)
         messages.success(request, f"🗑️ Service {nom} supprimé.")
         return redirect('services_sante:liste')

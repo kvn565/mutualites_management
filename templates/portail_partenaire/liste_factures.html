@@ -1,0 +1,133 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% load humanize %}
+{% block title %}Mes factures — {{ partenaire.nom_etablissement }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1><i class="bi bi-receipt" style="color:var(--primary)"></i> Mes factures</h1>
+            <p>Historique complet des factures soumises</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'portail_partenaire:recherche_membre' %}" class="btn btn-primary">
+                <i class="bi bi-person"></i> Membre
+            </a>
+            <a href="{% url 'portail_partenaire:ajouter_facture_simple' %}" class="btn btn-gold">
+                <i class="bi bi-person-plus"></i> Client simple
+            </a>
+            <a href="{% url 'portail_partenaire:ajouter_facture_simple' %}?mode=mutualite" class="btn btn-outline-primary">
+                <i class="bi bi-building"></i> Mutualité
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-body">
+        <form method="get" class="flex items-center gap-3" style="flex-wrap:wrap;">
+            <select name="statut" class="form-select" style="width:auto;min-width:200px;" onchange="this.form.submit()">
+                <option value="">Tous les statuts</option>
+                {% for key, label in statut_choices %}
+                <option value="{{ key }}" {% if statut == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <select name="mois" class="form-select" style="width:auto;min-width:160px;" onchange="this.form.submit()">
+                <option value="">Tous les mois</option>
+                {% for val, label in mois_choices %}
+                <option value="{{ val }}" {% if mois == val|slugify %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <select name="annee" class="form-select" style="width:auto;min-width:120px;" onchange="this.form.submit()">
+                <option value="">Année</option>
+                {% for a in annees %}
+                <option value="{{ a }}" {% if annee == a %}selected{% endif %}>{{ a }}</option>
+                {% endfor %}
+            </select>
+            {% if statut or mois or annee %}
+            <a href="{% url 'portail_partenaire:liste_factures' %}" class="btn btn-sm btn-outline">Réinitialiser</a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding:0;">
+        {% if factures %}
+        <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>N° Facture</th>
+                    <th>Date</th>
+                    <th>Membre</th>
+                    <th>Mutualité</th>
+                    <th class="text-right">Montant</th>
+                    <th class="text-right">Part Mut.</th>
+                    <th>Statut</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in factures %}
+                <tr>
+                    <td><code>{{ f.numero }}</code></td>
+                    <td>{{ f.date|date:"d/m/Y" }}</td>
+                    <td class="fw-bold">{% if f.affilie %}{{ f.affilie.nom_complet }}{% else %}{{ f.client_nom }}{% endif %}</td>
+                    <td><span class="badge badge-info">{{ f.mutualite.sigle|default:f.mutualite.code_mutualite }}</span></td>
+                    <td class="text-right">{{ f.montant_total|floatformat:0|intcomma }}</td>
+                    <td class="text-right" style="color:var(--primary)">{{ f.montant_mutualite|floatformat:0|intcomma }}</td>
+                    <td>
+                        {% if f.statut == 'BROUILLON' %}<span class="badge badge-secondary">Brouillon</span>
+                        {% elif f.statut == 'SOUMIS' %}<span class="badge badge-warning">Soumise</span>
+                        {% elif f.statut == 'VALIDE' %}<span class="badge badge-success">Validée</span>
+                        {% elif f.statut == 'PAYE' %}<span class="badge badge-info">Payée</span>
+                        {% elif f.statut == 'REJETE' %}<span class="badge badge-danger">Rejetée</span>
+                        {% endif %}
+                    </td>
+                    <td style="white-space:nowrap;">
+                        <a href="{% url 'portail_partenaire:detail_facture' f.pk %}" class="btn btn-sm btn-outline-primary" title="Détail"><i class="bi bi-eye"></i></a>
+                        {% if partenaire.type_partenaire == 'PHARMACIE' %}
+                        <a href="{% url 'portail_partenaire:imprimer_recu' f.pk %}" class="btn btn-sm btn-success" target="_blank" title="Reçu POS"><i class="bi bi-receipt-cutoff"></i></a>
+                        {% else %}
+                        <a href="{% url 'portail_partenaire:export_pdf' f.pk %}" class="btn btn-sm btn-primary" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        {% if factures.has_other_pages %}
+        <div style="padding:16px;">
+            <div class="pagination">
+                {% if factures.has_previous %}
+                <a href="?page={{ factures.previous_page_number }}{% if statut %}&statut={{ statut }}{% endif %}" class="page-link">&laquo;</a>
+                {% endif %}
+                {% for i in factures.paginator.page_range %}
+                {% if factures.number == i %}
+                <span class="page-link active">{{ i }}</span>
+                {% else %}
+                <a href="?page={{ i }}{% if statut %}&statut={{ statut }}{% endif %}" class="page-link">{{ i }}</a>
+                {% endif %}
+                {% endfor %}
+                {% if factures.has_next %}
+                <a href="?page={{ factures.next_page_number }}{% if statut %}&statut={{ statut }}{% endif %}" class="page-link">&raquo;</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <p>Aucune facture trouvée</p>
+            <a href="{% url 'portail_partenaire:recherche_membre' %}" class="btn btn-primary mt-3">
+                <i class="bi bi-plus-circle"></i> Créer une facture
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

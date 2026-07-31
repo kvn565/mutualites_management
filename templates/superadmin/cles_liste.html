@@ -102,6 +102,10 @@
                                 <a href="{% url 'superadmin:cle_revoquer' c.pk %}" class="btn btn-sm btn-outline-danger" title="Révoquer">
                                     <i class="bi bi-x-lg"></i>
                                 </a>
+                                {% elif c.statut == 'REVOQUEE' %}
+                                <a href="{% url 'superadmin:cle_irrevoquer' c.pk %}" class="btn btn-sm btn-outline-warning" title="Irrévoquer">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </a>
                                 {% endif %}
                             </td>
                         </tr>

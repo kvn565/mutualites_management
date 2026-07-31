@@ -1,9 +1,16 @@
 from django.db import models
 from django.utils import timezone
-from core.models import TenantManager
+from django.contrib.auth.hashers import make_password, check_password
+from core.models import TenantManager, Mutualite, get_current_mutualite
+from comptabilite.models import SoftDeleteMixin
 
 
-class Partenaire(models.Model):
+class PartenaireManager(TenantManager):
+    def get_queryset(self):
+        return super().get_queryset().filter(supprime=False)
+
+
+class Partenaire(SoftDeleteMixin):
     TYPE_CHOICES = [
         ('HOPITAL', 'Hôpital'),
         ('CENTRE_SANTE', 'Centre de Santé'),
@@ -21,6 +28,7 @@ class Partenaire(models.Model):
     STATUT_CHOICES = [
         ('ACTIF', 'Actif'),
         ('SUSPENDU', 'Suspendu'),
+        ('BLOQUE', 'Bloqué'),
         ('EXPIRE', 'Expiré'),
         ('EN_ATTENTE', 'En attente'),
     ]
@@ -57,6 +65,47 @@ class Partenaire(models.Model):
         max_length=200, verbose_name="Nom de l'établissement",
     )
     nif = models.CharField(max_length=50, blank=True, verbose_name='NIF')
+    assujetti_tva = models.BooleanField(default=False, verbose_name='Assujetti à la TVA')
+    logo = models.ImageField(
+        upload_to='logos_partenaires/', blank=True, null=True,
+        verbose_name='Logo',
+    )
+    # ── Thème / Apparence ──────────────────────────────────────────
+    primary_color = models.CharField(
+        max_length=7, default='#0a5c36',
+        verbose_name='Couleur principale',
+        help_text='Format hexa (ex: #0a5c36)',
+    )
+    accent_color = models.CharField(
+        max_length=7, default='#c9a84c',
+        verbose_name='Couleur secondaire',
+        help_text='Format hexa (ex: #c9a84c)',
+    )
+    background_color = models.CharField(
+        max_length=7, default='#f0f4f8',
+        verbose_name='Couleur de fond',
+        help_text='Format hexa (ex: #f0f4f8)',
+    )
+    text_color = models.CharField(
+        max_length=7, default='#1e293b',
+        verbose_name='Couleur du texte',
+        help_text='Format hexa (ex: #1e293b)',
+    )
+    background_image = models.ImageField(
+        upload_to='themes_partenaires/', blank=True, null=True,
+        verbose_name='Image de fond',
+        help_text="Image d'arrière-plan pour le portail partenaire",
+    )
+    background_opacity = models.DecimalField(
+        max_digits=3, decimal_places=2, default=0.25,
+        verbose_name='Opacité',
+        help_text="Opacité de l'image (0.00 = invisible, 1.00 = opaque)",
+    )
+    background_brightness = models.DecimalField(
+        max_digits=4, decimal_places=2, default=0.40,
+        verbose_name='Luminosité',
+        help_text="Luminosité de l'image (0.00 = noir, 1.00 = normal, 2.00 = très lumineux)",
+    )
     numero_agrement = models.CharField(
         max_length=50, blank=True, verbose_name="Numéro d'agrément",
     )
@@ -64,6 +113,9 @@ class Partenaire(models.Model):
     province = models.CharField(max_length=100, blank=True, verbose_name='Province')
     commune = models.CharField(max_length=100, blank=True, verbose_name='Commune')
     zone = models.CharField(max_length=100, blank=True, verbose_name='Zone')
+    quartier = models.CharField(max_length=100, blank=True, verbose_name='Quartier')
+    avenue = models.CharField(max_length=100, blank=True, verbose_name='Avenue')
+    numero = models.CharField(max_length=50, blank=True, verbose_name='Numéro')
     colline = models.CharField(max_length=100, blank=True, verbose_name='Colline')
     adresse_complete = models.TextField(blank=True, verbose_name='Adresse complète')
 
@@ -111,10 +163,13 @@ class Partenaire(models.Model):
         'core.Utilisateur', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='partenaires_crees', verbose_name='Créé par',
     )
+    supprime = models.BooleanField(default=False, db_index=True, verbose_name='Supprimé')
+    date_suppression = models.DateTimeField(null=True, blank=True, verbose_name='Date de suppression')
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
 
-    objects = TenantManager()
+    objects = PartenaireManager()
+    all_objects = models.Manager()
 
     class Meta:
         verbose_name = 'Partenaire'
@@ -129,16 +184,29 @@ class Partenaire(models.Model):
             self.code_partenaire = self._generer_code()
         super().save(*args, **kwargs)
 
-    def _generer_code(self):
-        prefix = self.CODE_PREFIX_MAP.get(self.type_partenaire, 'AUT')
-        last = Partenaire.objects.filter(
-            code_partenaire__startswith=f'{prefix}-',
-        ).order_by('code_partenaire').last()
-        if last:
-            num = int(last.code_partenaire.split('-')[1]) + 1
-        else:
-            num = 1
-        return f"{prefix}-{num:04d}"
+    def soft_delete(self):
+        self.supprime = True
+        self.statut = 'EXPIRE'
+        self.date_suppression = timezone.now()
+        self.save(update_fields=['supprime', 'statut', 'date_suppression'])
+
+    def restore(self):
+        self.supprime = False
+        self.date_suppression = None
+        self.save(update_fields=['supprime', 'date_suppression'])
+
+    def _serialiser_pour_corbeille(self):
+        return {
+            'code_partenaire': self.code_partenaire,
+            'type_partenaire': self.type_partenaire,
+            'nom_etablissement': self.nom_etablissement,
+            'nif': self.nif,
+            'telephone': self.telephone,
+            'email': self.email,
+            'statut': self.statut,
+            'taux_prise_en_charge': str(self.taux_prise_en_charge) if self.taux_prise_en_charge else None,
+            'plafond_couverture': str(self.plafond_couverture) if self.plafond_couverture else None,
+        }
 
     @classmethod
     def generer_code(cls, type_partenaire):
@@ -164,6 +232,55 @@ class Partenaire(models.Model):
             return self.factures.count()
         except Exception:
             return 0
+
+    @property
+    def mutualites_liees(self):
+        ids = set()
+        if self.mutualite_id:
+            ids.add(self.mutualite_id)
+        active_rel = self.relations.filter(statut='ACTIVE').values_list('mutualite_id', flat=True)
+        ids.update(active_rel)
+        active_conv = self.conventions.filter(statut='ACTIVE').values_list('mutualite_id', flat=True)
+        ids.update(active_conv)
+        return Mutualite.objects.filter(pk__in=ids)
+
+    @property
+    def conventions_actives(self):
+        return self.conventions.filter(statut='ACTIVE')
+
+
+class RelationPartenaireMutualite(models.Model):
+    STATUT_CHOICES = [
+        ('EN_ATTENTE', 'En attente'),
+        ('ACTIVE', 'Active'),
+        ('BLOQUEE', 'Bloquée'),
+        ('REJETEE', 'Rejetée'),
+    ]
+
+    partenaire = models.ForeignKey(
+        Partenaire, on_delete=models.CASCADE,
+        related_name='relations', verbose_name='Partenaire',
+    )
+    mutualite = models.ForeignKey(
+        'core.Mutualite', on_delete=models.CASCADE,
+        related_name='relations_partenaires', verbose_name='Mutualité',
+    )
+    statut = models.CharField(
+        max_length=20, choices=STATUT_CHOICES, default='EN_ATTENTE', db_index=True,
+        verbose_name='Statut',
+    )
+    date_demande = models.DateTimeField(auto_now_add=True, verbose_name='Date de la demande')
+    date_action = models.DateTimeField(null=True, blank=True, verbose_name="Date d'action")
+    bloque_par_partenaire = models.BooleanField(default=False, verbose_name='Bloqué par le partenaire')
+
+    class Meta:
+        unique_together = ('partenaire', 'mutualite')
+        verbose_name = 'Relation partenaire-mutualité'
+        verbose_name_plural = 'Relations partenaires-mutualités'
+        ordering = ['-date_demande']
+
+    def __str__(self):
+        return f"{self.partenaire} ↔ {self.mutualite} [{self.get_statut_display()}]"
 
 
 class Convention(models.Model):
@@ -256,7 +373,7 @@ class UtilisateurPartenaire(models.Model):
         null=True, blank=True, related_name='utilisateurs_partenaires',
         verbose_name='Mutualité',
     )
-    username = models.CharField(max_length=100, unique=True, verbose_name='Nom d\'utilisateur')
+    username = models.CharField(max_length=100, unique=True, verbose_name="Nom d'utilisateur")
     email = models.EmailField(blank=True, verbose_name='Email')
     telephone = models.CharField(max_length=50, blank=True, verbose_name='Téléphone')
     password = models.CharField(max_length=255, verbose_name='Mot de passe')
@@ -265,6 +382,10 @@ class UtilisateurPartenaire(models.Model):
         verbose_name='Rôle',
     )
     actif = models.BooleanField(default=True, verbose_name='Actif')
+    photo = models.ImageField(
+        upload_to='utilisateurs_partenaires/', blank=True, null=True,
+        verbose_name='Photo du gestionnaire',
+    )
 
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
@@ -282,4 +403,71 @@ class UtilisateurPartenaire(models.Model):
     def save(self, *args, **kwargs):
         if not self.mutualite_id and self.partenaire_id:
             self.mutualite = self.partenaire.mutualite
+        if self.password and not self.password.startswith('pbkdf2_'):
+            self.password = make_password(self.password)
         super().save(*args, **kwargs)
+
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.password)
+
+    @property
+    def nom_affichage(self):
+        return f"{self.username} ({self.get_role_display()})"
+
+
+class DocumentMedical(models.Model):
+    TYPE_CHOICES = [
+        ('ORDONNANCE', 'Ordonnance'),
+        ('RESULTAT_ANALYSE', "Résultat d'analyse"),
+        ('COMPTE_RENDU', 'Compte rendu médical'),
+        ('IMAGERIE', "Imagerie médicale"),
+        ('CARTE_MEMBRE', 'Carte membre'),
+        ('AUTRE', 'Autre'),
+    ]
+
+    mutualite = models.ForeignKey(
+        'core.Mutualite', on_delete=models.CASCADE,
+        null=True, blank=True, related_name='documents_medicaux',
+        verbose_name='Mutualité',
+    )
+    partenaire = models.ForeignKey(
+        Partenaire, on_delete=models.CASCADE,
+        related_name='documents_medicaux', verbose_name='Hôpital',
+    )
+    affilie = models.ForeignKey(
+        'affilies.Affilie', on_delete=models.CASCADE,
+        related_name='documents_medicaux', verbose_name='Membre',
+    )
+    ayant_droit = models.ForeignKey(
+        'ayants_droit.AyantDroit', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='documents_medicaux',
+        verbose_name='Ayant droit',
+    )
+    facture = models.ForeignKey(
+        'factures.Facture', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='documents_medicaux',
+        verbose_name='Facture liée',
+    )
+    type_document = models.CharField(
+        max_length=30, choices=TYPE_CHOICES, default='AUTRE',
+        verbose_name='Type de document',
+    )
+    fichier = models.FileField(
+        upload_to='dossiers_medicaux/%Y/%m/', verbose_name='Fichier',
+    )
+    description = models.TextField(blank=True, verbose_name='Description')
+    cree_par_partenaire = models.ForeignKey(
+        'UtilisateurPartenaire', on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name='Créé par',
+    )
+    date_creation = models.DateTimeField(auto_now_add=True)
+
+    objects = TenantManager()
+
+    class Meta:
+        verbose_name = 'Document médical'
+        verbose_name_plural = 'Documents médicaux'
+        ordering = ['-date_creation']
+
+    def __str__(self):
+        return f"{self.get_type_document_display()} — {self.affilie.nom_complet}"

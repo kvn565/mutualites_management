@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Gestion des Chambres — {{ block.super }}{% endblock %}
+{% block page_title %}Dashboard Chambres{% endblock %}
+{% block page_icon %}bi bi-bed{% endblock %}
+{% block page_subtitle %}Vue d'ensemble de l'occupation des chambres{% endblock %}
+{% block nav_chambres %}active{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Stats -->
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted mb-1 small">Total Chambres</p>
+                        <h3 class="mb-0 fw-bold">{{ stats_chambres.total }}</h3>
+                    </div>
+                    <div class="bg-light-vert rounded-circle p-3">
+                        <i class="bi bi-grid text-vert fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted mb-1 small">Libres</p>
+                        <h3 class="mb-0 fw-bold text-success">{{ stats_chambres.libres }}</h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                        <i class="bi bi-check-circle text-success fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted mb-1 small">Occupées</p>
+                        <h3 class="mb-0 fw-bold text-primary">{{ stats_chambres.occupees }}</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                        <i class="bi bi-person text-primary fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted mb-1 small">Maintenance / Autre</p>
+                        <h3 class="mb-0 fw-bold text-warning">{{ stats_chambres.maintenance|add:stats_chambres.reservees|add:stats_chambres.hors_service }}</h3>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+                        <i class="bi bi-tools text-warning fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hospitalisations actives + Par type -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-bed me-2"></i> Hospitalisations en cours</h5>
+                <a href="{% url 'gestion_chambres:hospitalisation_liste' %}" class="btn btn-sm btn-outline-vert">Voir tout</a>
+            </div>
+            <div class="card-body p-0">
+                {% if hospitalisations_actives %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>N° Dossier</th>
+                                <th>Patient</th>
+                                <th>Chambre</th>
+                                <th>Entrée</th>
+                                <th>Durée</th>
+                                <th>Coût estimé</th>
+                                <th>Médecin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for h in hospitalisations_actives %}
+                            <tr>
+                                <td><code>{{ h.numero_dossier }}</code></td>
+                                <td class="fw-medium">{{ h.patient_nom }} {{ h.patient_prenom }}</td>
+                                <td>{{ h.chambre.numero }} ({{ h.chambre.type_chambre.nom }})</td>
+                                <td>{{ h.date_entree|date:"d/m/Y H:i" }}</td>
+                                <td>{{ h.duree_sejour }} j</td>
+                                <td class="fw-bold text-vert">{{ h.cout_estime|floatformat:0|intcomma }} BIF</td>
+                                <td>{{ h.medecin_referent|default:"-" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-bed fs-1 d-block mb-2"></i>
+                    Aucune hospitalisation en cours
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-calendar-plus me-2"></i> Admissions prévues (7j)</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if hospitalisations_prevues %}
+                <div class="list-group list-group-flush">
+                    {% for h in hospitalisations_prevues %}
+                    <a href="{% url 'gestion_chambres:hospitalisation_detail' h.pk %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ h.patient_nom }} {{ h.patient_prenom }}</h6>
+                            <small class="text-muted">{{ h.date_entree|date:"d/m" }}</small>
+                        </div>
+                        <p class="mb-1 small">{{ h.chambre.numero }} — {{ h.chambre.type_chambre.nom }}</p>
+                        <small class="text-muted">{{ h.motif_hospitalisation|truncatechars:60 }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-calendar-x fs-1 d-block mb-2"></i>
+                    Aucune admission prévue
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Par type -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i> Répartition par type</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if par_type %}
+                <div class="list-group list-group-flush">
+                    {% for t in par_type %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>{{ t.type_chambre__nom }}</span>
+                        <span class="badge bg-vert rounded-pill">{{ t.total }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-grid fs-1 d-block mb-2"></i>
+                    Aucun type configuré
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

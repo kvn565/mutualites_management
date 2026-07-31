@@ -1,31 +1,63 @@
 {% extends "admin/base_site.html" %}
-{% load static %}
+{% load static i18n %}
 
 {% block extrastyle %}
 {{ block.super }}
 <style>
-    body {
-        background: linear-gradient(135deg, #062c1a 0%, #0a5c36 50%, #0d7a48 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        padding: 20px;
+    /* ═══ Masquer tout le chrome Django admin ═══ */
+    #header,
+    #nav-sidebar,
+    #toggle-nav-sidebar,
+    .toggle-nav-sidebar,
+    #footer,
+    #breadcrumbs,
+    .breadcrumbs,
+    .messagelist       { display: none !important; }
+
+    /* ═══ Fond plein écran ═══ */
+    html, body {
+        height: 100%;
+        margin: 0 !important;
+        padding: 0 !important;
     }
-    #header { display: none; }
-    #content { padding: 0 !important; max-width: 500px !important; width: 100%; }
+    body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background: linear-gradient(135deg, #062c1a 0%, #0a5c36 50%, #0d7a48 100%) !important;
+        min-height: 100vh !important;
+    }
+
+    /* ═══ Neutraliser tous les wrappers Django admin ═══ */
+    #container, #main, #content, #content-container {
+        all: unset !important;
+        display: block !important;
+    }
+
+    /* ═══ Centrage absolu de la carte de connexion ═══ */
     #content-main {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 480px !important;
+        max-width: calc(100vw - 40px) !important;
+        z-index: 9999;
+        /* Carte */
         background: #fff;
         border-radius: 16px;
+        border-top: 4px solid #c9a84c;
         padding: 40px 38px;
         box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
     }
+
+    /* ═══ Logo ═══ */
     .login-logo {
         text-align: center;
         margin-bottom: 24px;
     }
     .login-logo .logo-icon {
-        width: 56px; height: 56px;
+        width: 58px; height: 58px;
         background: rgba(10,92,54,0.1);
         border: 2px solid rgba(201,168,76,0.3);
         border-radius: 14px;
@@ -41,11 +73,15 @@
         color: #0a5c36;
         font-size: 1.4rem;
         font-weight: 700;
+        margin: 0 0 4px;
     }
     .login-logo p {
         color: #94a3b8;
         font-size: 0.9rem;
+        margin: 0;
     }
+
+    /* ═══ Champs ═══ */
     .form-row {
         padding: 0 !important;
         margin-bottom: 16px;
@@ -64,11 +100,15 @@
         border-radius: 11px !important;
         padding: 10px 14px !important;
         font-size: 0.95rem !important;
+        box-sizing: border-box !important;
     }
     .form-row input:focus {
         border-color: #0a5c36 !important;
         box-shadow: 0 0 0 4px rgba(10,92,54,0.12) !important;
+        outline: none !important;
     }
+
+    /* ═══ Bouton ═══ */
     .submit-row {
         padding: 0 !important;
         margin: 0 !important;
@@ -92,6 +132,8 @@
         transform: translateY(-2px);
         box-shadow: 0 8px 20px rgba(10,92,54,0.3);
     }
+
+    /* ═══ Erreurs ═══ */
     .errornote {
         background: #fef2f2;
         border: 1px solid #fecaca;
@@ -101,6 +143,17 @@
         color: #991b1b;
         margin-bottom: 20px;
     }
+    .warning-msg {
+        background: #fef3cd;
+        border: 1px solid #ffc107;
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-size: 0.88rem;
+        color: #856404;
+        margin-bottom: 20px;
+    }
+
+    /* ═══ Lien mot de passe oublié ═══ */
     .password-reset-link {
         text-align: center;
         margin-top: 16px;
@@ -111,24 +164,36 @@
         font-weight: 500;
         font-size: 0.9rem;
     }
-    .password-reset-link a:hover {
-        text-decoration: underline;
+    .password-reset-link a:hover { text-decoration: underline; }
+
+    /* ═══ Pied ═══ */
+    .auth-footer {
+        text-align: center;
+        margin-top: 16px;
+        font-size: 0.8rem;
+        color: #9ca3af;
     }
-    #footer { display: none; }
-    #breadcrumbs { display: none; }
 </style>
 {% endblock %}
 
 {% block branding %}{% endblock %}
 {% block breadcrumbs %}{% endblock %}
+{% block messages %}{% endblock %}
 
 {% block content %}
 <div id="content-main">
     <div class="login-logo">
         <div class="logo-icon"><i class="bi bi-shield-lock-fill"></i></div>
-        <h2>WIBABI Admin</h2>
+        <h2>{{ site_header|default:"Mutualité de Santé" }}</h2>
         <p>Connectez-vous à l'interface d'administration</p>
     </div>
+
+    {% if user.is_authenticated and not user.is_staff %}
+    <div class="warning-msg">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        Votre compte n'a pas accès à l'administration. Utilisez un compte administrateur.
+    </div>
+    {% endif %}
 
     {% if form.errors and not form.non_field_errors %}
     <p class="errornote">
@@ -159,15 +224,22 @@
             {{ form.password.errors }}
         </div>
         <div class="submit-row">
-            <input type="submit" value="Se connecter">
+            <input type="submit" value="{% trans 'Se connecter' %}">
         </div>
         <input type="hidden" name="next" value="{{ next }}">
     </form>
 
+    {% if password_reset_url %}
     <div class="password-reset-link">
-        <a href="{% url 'admin:password_reset' %}">
+        <a href="{{ password_reset_url }}">
             <i class="bi bi-key me-1"></i> Mot de passe oublié ?
         </a>
+    </div>
+    {% endif %}
+
+    <div class="auth-footer">
+        <i class="bi bi-shield-check" style="color:#0a5c36;"></i>
+        Connexion sécurisée &copy; {% now "Y" %}
     </div>
 </div>
 {% endblock %}

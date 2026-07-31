@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Rapports comptables{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-bold mb-0">📄 Rapports comptables</h5>
+    <a href="{% url 'comptabilite:dashboard' %}" class="btn btn-outline-secondary btn-sm">← Retour</a>
+  </div>
+
+  <div class="row g-4">
+    <!-- Formulaire -->
+    <div class="col-lg-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <form method="get">
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Type de rapport</label>
+              {{ form.type_rapport }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Période</label>
+              {{ form.periode }}
+            </div>
+            <div class="mb-3" id="custom-dates" style="display:none;">
+              <label class="form-label small">Du</label>
+              {{ form.date_debut }}
+              <label class="form-label small mt-2">Au</label>
+              {{ form.date_fin }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Centre analytique</label>
+              {{ form.centre }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Format</label>
+              {{ form.format_export }}
+            </div>
+            <button type="submit" class="btn btn-primary w-100">🔍 Générer</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Résultats -->
+    <div class="col-lg-9">
+      {% if afficher %}
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="fw-bold mb-0">{{ titre_rapport }}</h5>
+          <small class="text-muted">{{ debut|date:'d/m/Y' }} → {{ fin|date:'d/m/Y' }}</small>
+        </div>
+        <div class="card-body p-0">
+          {% if template_rapport %}
+            {% include template_rapport %}
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5 text-muted">
+          <div class="display-6 mb-3">📊</div>
+          <p>Sélectionnez un type de rapport et une période, puis cliquez sur <strong>Générer</strong>.</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var selPeriode = document.querySelector('[name=periode]');
+  var customDiv = document.getElementById('custom-dates');
+  function toggleCustom() { customDiv.style.display = selPeriode.value === 'CUSTOM' ? 'block' : 'none'; }
+  selPeriode.addEventListener('change', toggleCustom);
+  toggleCustom();
+});
+</script>
+{% endblock %}

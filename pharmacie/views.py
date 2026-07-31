@@ -5,14 +5,15 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
 
-from .models import Medicament
+from django.http import JsonResponse
+from .models import Medicament, CategorieMedicament
 from .forms import MedicamentForm
 from core.mixins import enregistrer_audit
 
 @login_required
 def liste(request):
-    if request.user.est_super_admin:
-        messages.warning(request, "⛔ Les Super Admins ne peuvent pas gérer les données d'une mutualité spécifique.")
+    if not request.user.mutualite and request.user.est_super_admin:
+        messages.warning(request, "⛔ Aucune mutualité associée.")
         return redirect('superadmin:dashboard')
     qs = Medicament.objects.filter(mutualite=request.user.mutualite)
     
@@ -28,7 +29,7 @@ def liste(request):
     if forme:
         qs = qs.filter(forme=forme)
         
-    paginator = Paginator(qs, 10)
+    paginator = Paginator(qs, 5)
     page = request.GET.get('page', 1)
     medicaments = paginator.get_page(page)
     
@@ -42,8 +43,8 @@ def liste(request):
 
 @login_required
 def ajouter(request):
-    if request.user.est_super_admin:
-        messages.warning(request, "⛔ Les Super Admins ne peuvent pas gérer les données d'une mutualité spécifique.")
+    if not request.user.mutualite and request.user.est_super_admin:
+        messages.warning(request, "⛔ Aucune mutualité associée.")
         return redirect('superadmin:dashboard')
     if not request.user.peut_modifier:
         messages.error(request, "⛔ Permission refusée.")
@@ -52,19 +53,21 @@ def ajouter(request):
     if request.method == 'POST':
         form = MedicamentForm(request.POST)
         if form.is_valid():
-            obj = form.save()
+            obj = form.save(commit=False)
+            obj.mutualite = request.user.mutualite
+            obj.save()
             enregistrer_audit(request, 'CREATION', 'pharmacie', f"Création médicament : {obj.nom}", 'Medicament', obj.pk)
             messages.success(request, f"✅ Médicament {obj.nom} ajouté.")
             return redirect('pharmacie:liste')
     else:
-        form = MedicamentForm()
+        form = MedicamentForm(initial={'code': Medicament.generer_code()})
         
     return render(request, 'pharmacie/form.html', {'form': form, 'titre': 'Ajouter un médicament'})
 
 @login_required
 def modifier(request, pk):
-    if request.user.est_super_admin:
-        messages.warning(request, "⛔ Les Super Admins ne peuvent pas gérer les données d'une mutualité spécifique.")
+    if not request.user.mutualite and request.user.est_super_admin:
+        messages.warning(request, "⛔ Aucune mutualité associée.")
         return redirect('superadmin:dashboard')
     if not request.user.peut_modifier:
         messages.error(request, "⛔ Permission refusée.")
@@ -84,9 +87,23 @@ def modifier(request, pk):
     return render(request, 'pharmacie/form.html', {'form': form, 'obj': obj, 'titre': 'Modifier le médicament'})
 
 @login_required
+def ajax_creer_categorie(request):
+    if (not request.user.mutualite and request.user.est_super_admin) or not request.user.peut_modifier:
+        return JsonResponse({'ok': False, 'error': 'Permission refusée.'})
+    nom = request.POST.get('nom', '').strip()
+    if not nom:
+        return JsonResponse({'ok': False, 'error': 'Le nom est requis.'})
+    obj = CategorieMedicament.objects.create(
+        mutualite=request.user.mutualite,
+        nom=nom,
+    )
+    return JsonResponse({'ok': True, 'id': obj.pk, 'text': str(obj)})
+
+
+@login_required
 def supprimer(request, pk):
-    if request.user.est_super_admin:
-        messages.warning(request, "⛔ Les Super Admins ne peuvent pas gérer les données d'une mutualité spécifique.")
+    if not request.user.mutualite and request.user.est_super_admin:
+        messages.warning(request, "⛔ Aucune mutualité associée.")
         return redirect('superadmin:dashboard')
     if not request.user.peut_supprimer:
         messages.error(request, "⛔ Permission refusée.")
@@ -95,7 +112,7 @@ def supprimer(request, pk):
     obj = get_object_or_404(Medicament, pk=pk, mutualite=request.user.mutualite)
     if request.method == 'POST':
         nom = obj.nom
-        obj.delete()
+        obj.delete(user=request.user)
         enregistrer_audit(request, 'SUPPRESSION', 'pharmacie', f"Suppression médicament : {nom}", 'Medicament', pk)
         messages.success(request, f"🗑️ Médicament {nom} supprimé.")
         return redirect('pharmacie:liste')

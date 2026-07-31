@@ -3,8 +3,8 @@ from django.db import models
 from django.utils import timezone
 from affilies.models import Affilie
 from core.models import Utilisateur, TenantManager
-
-class Cotisation(models.Model):
+from comptabilite.models import SoftDeleteMixin
+class Cotisation(SoftDeleteMixin):
     PERIODE_CHOICES = [
         ('MENSUEL', 'Mensuel'),
         ('TRIMESTRIEL', 'Trimestriel'),
@@ -64,6 +64,56 @@ class Cotisation(models.Model):
         
     @classmethod
     def generer_reference(cls):
+        import time
+        from django.db import transaction
         date_str = timezone.now().strftime('%Y%m')
-        count = cls.objects.filter(date_creation__year=timezone.now().year, date_creation__month=timezone.now().month).count() + 1
-        return f"COT-{date_str}-{count:04d}"
+        
+        # Méthode robuste avec retry et verrouillage applicatif
+        max_attempts = 10
+        for attempt in range(max_attempts):
+            try:
+                with transaction.atomic():
+                    # Utiliser select_for_update pour verrouiller (si supporté par la DB)
+                    # Pour SQLite, on utilise une approche basée sur le dernier ID
+                    last = cls._base_manager.filter(
+                        date_creation__year=timezone.now().year,
+                        date_creation__month=timezone.now().month
+                    ).order_by('-date_creation').first()
+                    
+                    if last and last.reference.startswith(f"COT-{date_str}-"):
+                        try:
+                            last_num = int(last.reference.split('-')[-1])
+                        except (ValueError, IndexError):
+                            last_num = 0
+                    else:
+                        last_num = 0
+                    
+                    next_num = last_num + 1
+                    reference = f"COT-{date_str}-{next_num:04d}"
+                    
+                    # Vérifier que la référence n'existe pas déjà
+                    if not cls._base_manager.filter(reference=reference).exists():
+                        return reference
+                    
+                    # Si elle existe (très rare), attendre un peu et réessayer
+                    time.sleep(0.01 * (attempt + 1))
+                    
+            except Exception:
+                time.sleep(0.01 * (attempt + 1))
+                continue
+        
+        # Fallback ultime : utiliser timestamp microsecondes
+        micro = int(time.time() * 1000000) % 10000
+        return f"COT-{date_str}-{micro:04d}"
+
+    def _serialiser_pour_corbeille(self):
+        return {
+            'reference': self.reference,
+            'affilie': self.affilie.numero_affiliation if self.affilie else None,
+            'montant': str(self.montant),
+            'periode_type': self.periode_type,
+            'mois': self.mois,
+            'annee': self.annee,
+            'statut': self.statut,
+            'mode_paiement': self.mode_paiement,
+        }

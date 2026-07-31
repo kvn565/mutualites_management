@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Ventilations{% endblock %}
+{% block page_title %}Ventilations analytiques{% endblock %}
+{% block page_icon %}bi bi-list{% endblock %}
+{% block nav_ventilations %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <p class="text-muted mb-0">Total ventilé : <strong>{{ total_ventile|floatformat:0|intcomma }} BIF</strong></p>
+  <div class="d-flex gap-2">
+    <a href="{% url 'ventilations:ventilation_auto' %}" class="btn btn-sm btn-outline-primary" onclick="return confirm('Ventiler automatiquement toutes les écritures non ventilées ?')">
+      <i class="bi bi-lightning me-1"></i>Auto
+    </a>
+    <a href="{% url 'ventilations:ventilation_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Nouvelle ventilation</a>
+    <a href="{% url 'ventilations:export_csv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-success btn-sm"><i class="bi bi-download me-1"></i>CSV</a>
+  </div>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+  <div class="col-auto"><input type="text" name="q" class="form-control form-control-sm" placeholder="Rechercher..." value="{{ request.GET.q }}"></div>
+  <div class="col-auto"><select name="statut" class="form-select form-select-sm" onchange="this.form.submit()">
+    <option value="">Tous statuts</option>
+    {% for val, label in filtre_form.fields.statut.choices %}<option value="{{ val }}" {% if request.GET.statut == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select></div>
+  <div class="col-auto"><input type="date" name="date_debut" class="form-control form-control-sm" value="{{ request.GET.date_debut }}"></div>
+  <div class="col-auto"><input type="date" name="date_fin" class="form-control form-control-sm" value="{{ request.GET.date_fin }}"></div>
+  <div class="col-auto"><button class="btn btn-sm btn-outline-secondary" type="submit">Filtrer</button></div>
+</form>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small">
+      <thead class="table-light">
+        <tr><th>Date</th><th>Pièce</th><th>Centre</th><th>Branche</th><th class="text-center">%</th><th class="text-end">Montant</th><th>Type</th><th>Statut</th><th class="text-center">Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for v in ventilations %}
+        <tr>
+          <td class="text-nowrap">{{ v.ecriture.date|date:'d/m/Y' }}</td>
+          <td><code>{{ v.ecriture.piece_reference }}</code></td>
+          <td>{{ v.centre.libelle|default:'—' }}</td>
+          <td>{{ v.branche.libelle|default:'—' }}</td>
+          <td class="text-center">{{ v.pourcentage }}%</td>
+          <td class="text-end">{{ v.montant|floatformat:0|intcomma }}</td>
+          <td>{% if v.type_ventilation == 'AUTO' %}<span class="badge bg-info text-dark">Auto</span>{% else %}<span class="badge bg-secondary">Manuel</span>{% endif %}</td>
+          <td>
+            {% if v.statut == 'VALIDEE' %}<span class="badge bg-success">Validée</span>
+            {% elif v.statut == 'PROVISOIRE' %}<span class="badge bg-warning text-dark">Provisoire</span>
+            {% else %}<span class="badge bg-secondary">Annulée</span>{% endif %}
+          </td>
+          <td class="text-center">
+            <a href="{% url 'ventilations:ventilation_detail' v.pk %}" class="btn btn-sm btn-outline-info">👁️</a>
+            {% if v.statut == 'PROVISOIRE' %}
+            <a href="{% url 'ventilations:ventilation_update' v.pk %}" class="btn btn-sm btn-outline-primary">✏️</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="text-center py-4 text-muted">Aucune ventilation.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if is_paginated %}<nav class="mt-3">{% include 'pagination.html' %}</nav>{% endif %}
+{% endblock %}

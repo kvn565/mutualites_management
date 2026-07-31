@@ -1,0 +1,51 @@
+{% extends 'base_auth.html' %}
+{% block title %}Inscription en attente — {{ APP_NOM }}{% endblock %}
+
+{% block auth_body %}
+<div class="login-box">
+    <div class="login-logo">
+        <div class="logo-icon">
+            <div class="medical-cross"></div>
+            <span class="cross-badge">+</span>
+        </div>
+        <div>
+            <div class="logo-text">Inscription reçue</div>
+            <span class="logo-sub">Compte partenaire en attente</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body login-card-body text-center">
+
+            <div style="font-size: 4rem; color: var(--or); margin-bottom: 16px;">
+                <i class="bi bi-clock-history"></i>
+            </div>
+
+            <h4 class="fw-bold mb-2" style="color: var(--vert);">Merci pour votre inscription</h4>
+
+            <p class="text-secondary mb-3" style="font-size: 0.95rem;">
+                Votre demande d'inscription pour <strong>{{ partenaire.nom_etablissement }}</strong>
+                a bien été reçue et est en attente de validation.
+            </p>
+
+            <div class="alert alert-info text-start" style="border-radius: 11px; background: #f0f7ff; border-color: #b8d4fe;">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="bi bi-info-circle-fill mt-1" style="color: var(--vert); font-size: 1.2rem;"></i>
+                    <div>
+                        <strong>Prochaines étapes :</strong>
+                        <ol class="mb-0 mt-1 ps-3" style="line-height: 1.8;">
+                            <li>Un administrateur examinera votre demande</li>
+                            <li>Vous serez contacté dès validation</li>
+                            <li>Une fois activé, vous pourrez accéder au portail</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <a href="{% url 'portail_partenaire:connexion' %}" class="btn btn-login mt-2">
+                <i class="bi bi-box-arrow-in-right me-2"></i> Retour à la connexion
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

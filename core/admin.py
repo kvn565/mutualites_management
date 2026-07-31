@@ -1,7 +1,7 @@
 # core/admin.py
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Utilisateur, JournalAudit, HistoriqueConnexion, Mutualite
+from .models import Utilisateur, JournalAudit, HistoriqueConnexion, Mutualite, ConfigurationApp
 
 
 @admin.register(Utilisateur)
@@ -70,6 +70,9 @@ class MutualiteAdmin(admin.ModelAdmin):
         ('Responsable', {
             'fields': ['nom_responsable', 'fonction_responsable', 'telephone', 'email']
         }),
+        ('Image et signature', {
+            'fields': ['logo', 'signature']
+        }),
         ('Localisation', {
             'fields': ['province', 'commune', 'adresse']
         }),
@@ -77,7 +80,7 @@ class MutualiteAdmin(admin.ModelAdmin):
             'fields': ['essai_gratuit', 'date_debut_essai', 'date_fin_essai']
         }),
         ('Licence', {
-            'fields': ['cle_activation', 'date_activation', 'date_expiration', 'type_abonnement', 'max_utilisateurs']
+            'fields': ['cle_activation', 'date_activation', 'date_expiration', 'type_abonnement', 'max_utilisateurs', 'module_chambres_actif']
         }),
         ('Compte administrateur', {
             'fields': ['username_admin', 'email_admin']
@@ -85,4 +88,30 @@ class MutualiteAdmin(admin.ModelAdmin):
         ('Audit', {
             'fields': ['created_by', 'date_creation', 'date_modification']
         }),
+        ('Thème / Apparence', {
+            'fields': ['primary_color', 'accent_color', 'background_color', 'text_color', 'background_image', 'background_opacity', 'background_brightness']
+        }),
     ]
+
+
+@admin.register(ConfigurationApp)
+class ConfigurationAppAdmin(admin.ModelAdmin):
+    list_display = ['nom_app', 'primary_color', 'accent_color', 'background_color', 'text_color']
+    fieldsets = [
+        ('Informations générales', {
+            'fields': ['nom_app', 'logo_app', 'favicon']
+        }),
+        ('Couleurs', {
+            'fields': ['primary_color', 'accent_color', 'background_color', 'text_color']
+        }),
+        ('Image de fond', {
+            'fields': ['background_image', 'background_opacity', 'background_brightness']
+        }),
+    ]
+
+    def has_add_permission(self, request):
+        # Only allow one configuration
+        return not ConfigurationApp.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False

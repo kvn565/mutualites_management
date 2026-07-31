@@ -20,7 +20,17 @@
                     </div>
                     <div class="col-md-12">
                         <label class="form-label">{{ form.affilie.label }}</label>
-                        {{ form.affilie }}
+                        <div id="affilie-search-wrapper" style="position:relative;">
+                            <input type="text" id="affilie-search" class="form-control" placeholder="Rechercher par nom, prénom ou n° affiliation..." autocomplete="off">
+                            <div id="affilie-results" class="list-group" style="position:absolute;z-index:1000;max-height:200px;overflow-y:auto;width:100%;display:none;"></div>
+                            <div id="affilie-selected" class="mt-1 text-success small" style="display:none;"><i class="bi bi-check-circle-fill"></i> <span></span></div>
+                        </div>
+                        <select name="affilie" id="{{ form.affilie.id_for_label }}" class="form-select d-none" {% if form.affilie.field.required %}required{% endif %}>
+                            <option value="">--- Sélectionner ---</option>
+                            {% for val, label in form.affilie.field.choices %}
+                            <option value="{{ val }}" {% if form.affilie.value|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
                         {% if form.affilie.errors %}<div class="form-text text-danger">{{ form.affilie.errors.0 }}</div>{% endif %}
                     </div>
                     <div class="col-md-6">
@@ -62,7 +72,16 @@
                         {{ form.date_naissance }}
                         {% if form.date_naissance.errors %}<div class="form-text text-danger">{{ form.date_naissance.errors.0 }}</div>{% endif %}
                     </div>
-                    
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.numero_identite.label }}</label>
+                        {{ form.numero_identite }}
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">{{ form.age_limite.label }}</label>
+                        {{ form.age_limite }}
+                        <div class="form-text">Ans (défaut: 18)</div>
+                    </div>
+
                     <div class="col-12 mt-4 mb-2">
                         <h6 class="text-muted border-bottom pb-2">Contact & Notes</h6>
                     </div>
@@ -86,4 +105,64 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('affilie-search');
+    const resultsDiv = document.getElementById('affilie-results');
+    const selectedDiv = document.getElementById('affilie-selected');
+    const selectEl = document.getElementById('{{ form.affilie.id_for_label }}');
+
+    if (selectEl.value) {
+        const selectedText = selectEl.options[selectEl.selectedIndex].text;
+        selectedDiv.querySelector('span').textContent = selectedText;
+        selectedDiv.style.display = 'block';
+        searchInput.value = selectedText;
+    }
+
+    let timeout = null;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(timeout);
+        const q = this.value.trim();
+        if (!q) { resultsDiv.style.display = 'none'; return; }
+        timeout = setTimeout(function() {
+            fetch('{% url "affilies:recherche_ajax" %}?q=' + encodeURIComponent(q))
+                .then(r => r.json())
+                .then(data => {
+                    resultsDiv.innerHTML = '';
+                    if (data.length === 0) {
+                        resultsDiv.innerHTML = '<div class="list-group-item text-muted small">Aucun résultat</div>';
+                    } else {
+                        data.forEach(function(item) {
+                            const a = document.createElement('a');
+                            a.href = '#';
+                            a.className = 'list-group-item list-group-item-action py-2 small';
+                            a.textContent = item.text;
+                            a.dataset.id = item.id;
+                            a.dataset.text = item.text;
+                            a.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                selectEl.value = this.dataset.id;
+                                selectedDiv.querySelector('span').textContent = this.dataset.text;
+                                selectedDiv.style.display = 'block';
+                                resultsDiv.style.display = 'none';
+                                searchInput.value = this.dataset.text;
+                            });
+                            resultsDiv.appendChild(a);
+                        });
+                    }
+                    resultsDiv.style.display = 'block';
+                });
+        }, 300);
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!document.getElementById('affilie-search-wrapper').contains(e.target)) {
+            resultsDiv.style.display = 'none';
+        }
+    });
+});
+</script>
 {% endblock %}

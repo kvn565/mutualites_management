@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load static humanize menu_tags %}
+
+{% block title %}{{ document.titre }}{% endblock %}
+
+{% block page_icon %}bi-file-earmark-text{% endblock %}
+{% block page_title %}{{ document.titre }}{% endblock %}
+{% block page_subtitle %}{{ document.get_type_document_display }} {% if document.version %}v{{ document.version }}{% endif %}{% endblock %}
+
+{% block page_actions %}
+{% if document.fichier %}
+<a href="{{ document.fichier.url }}" target="_blank" class="btn btn-outline-secondary">
+    <i class="bi bi-download me-1"></i>Télécharger le fichier
+</a>
+{% endif %}
+<a href="{% url 'aide:doc_superadmin_list' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour à la liste
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-9">
+        <article class="card">
+            <div class="card-body p-4">
+                <!-- Métadonnées -->
+                <div class="row mb-4 pb-3 border-bottom">
+                    <div class="col-md-4">
+                        <span class="badge 
+                            {% if document.type_document == 'DOCUMENTATION' %}bg-primary
+                            {% elif document.type_document == 'GUIDE' %}bg-success
+                            {% else %}bg-warning text-dark{% endif %} fs-6">
+                            {{ document.get_type_document_display }}
+                        </span>
+                    </div>
+                    {% if document.version %}
+                    <div class="col-md-4 text-md-center">
+                        <small class="text-muted">Version</small><br>
+                        <strong>{{ document.version }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if document.date_publication %}
+                    <div class="col-md-4 text-md-end">
+                        <small class="text-muted">Publié le</small><br>
+                        <strong>{{ document.date_publication|date:"d/m/Y H:i" }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Résumé -->
+                {% if document.resume %}
+                <div class="alert alert-light border mb-4">
+                    {{ document.resume|linebreaks }}
+                </div>
+                {% endif %}
+
+                <!-- Contenu principal -->
+                <div class="doc-content" style="line-height: 1.8; font-size: 1.05rem;">
+                    {{ document.contenu|safe }}
+                </div>
+
+                <!-- Vidéo intégrée -->
+                {% if document.video_url %}
+                <hr class="my-4">
+                <div class="ratio ratio-16x9">
+                    <iframe src="{{ document.video_url|video_embed_url }}"
+                            title="Vidéo"
+                            allow="autoplay; fullscreen; picture-in-picture"
+                            allowfullscreen
+                            loading="lazy">
+                    </iframe>
+                </div>
+                <div class="text-center mt-2">
+                    <a href="{{ document.video_url }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-play-circle me-1"></i>Ouvrir la vidéo originale
+                    </a>
+                </div>
+                {% endif %}
+
+                <!-- Fichier joint -->
+                {% if document.fichier %}
+                <hr class="my-4">
+                <div class="d-flex align-items-center p-3 bg-light rounded">
+                    <i class="bi bi-file-earmark-text text-primary me-3" style="font-size: 2rem;"></i>
+                    <div class="flex-grow-1">
+                        <strong>{{ document.fichier.name|cut:'superadmin/documents/' }}</strong>
+                        <br><small class="text-muted">{{ document.fichier.size|filesizeformat }}</small>
+                    </div>
+                    <a href="{{ document.fichier.url }}" target="_blank" class="btn btn-primary">
+                        <i class="bi bi-download me-1"></i>Télécharger
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </article>
+
+        <!-- Auteur -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-person-badge me-1"></i>Auteur</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;font-size:1.2rem;">
+                        {{ document.cree_par.nom_complet|first|upper }}
+                    </div>
+                    <div>
+                        <strong>{{ document.cree_par.nom_complet }}</strong>
+                        <br><small class="text-muted">{{ document.cree_par.email }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="card sticky-top" style="top: 100px;">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-list-ul me-1"></i>Navigation</h6>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{% url 'aide:doc_superadmin_list' %}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-files me-2"></i>Tous les documents
+                </a>
+                {% for value, label in types %}
+                <a href="{% url 'aide:doc_superadmin_list' %}?type={{ value }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-file-earmark-text me-2"></i>{{ label }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if document.resume %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-card-text me-1"></i>Résumé</h6>
+            </div>
+            <div class="card-body">
+                {{ document.resume|linebreaks }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.doc-content h1, .doc-content h2, .doc-content h3, .doc-content h4 {
+    color: var(--vert);
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+.doc-content h1 { font-size: 2rem; border-bottom: 2px solid var(--or); padding-bottom: 0.5rem; }
+.doc-content h2 { font-size: 1.5rem; }
+.doc-content h3 { font-size: 1.25rem; }
+.doc-content p { margin-bottom: 1rem; }
+.doc-content ul, .doc-content ol { margin-bottom: 1rem; padding-left: 1.5rem; }
+.doc-content code { background: var(--bg); padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.9em; }
+.doc-content pre { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+.doc-content pre code { background: none; padding: 0; color: inherit; }
+.doc-content blockquote { border-left: 4px solid var(--or); padding-left: 1rem; margin: 1rem 0; color: #64748b; font-style: italic; }
+.doc-content table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+.doc-content th, .doc-content td { border: 1px solid #e2e8f0; padding: 0.5rem 0.75rem; text-align: left; }
+.doc-content th { background: var(--vert); color: white; }
+.doc-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 1rem 0; }
+</style>
+{% endblock %}

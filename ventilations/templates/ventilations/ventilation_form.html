@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block page_title %}Nouvelle ventilation{% endblock %}
+{% block page_icon %}bi bi-plus-circle{% endblock %}
+{% block nav_ventilations %}active{% endblock %}
+
+{% block content %}
+<form method="post">{% csrf_token %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white"><h6 class="fw-bold mb-0">Ventilation</h6></div>
+        <div class="card-body p-4 row g-3">
+          <div class="col-12"><label class="form-label">{{ form.ecriture.label }}</label>{{ form.ecriture }}</div>
+          <div class="col-md-6"><label class="form-label">{{ form.centre.label }}</label>{{ form.centre }}</div>
+          <div class="col-md-6"><label class="form-label">{{ form.branche.label }}</label>{{ form.branche }}</div>
+          <div class="col-md-4"><label class="form-label">{{ form.pourcentage.label }}</label>{{ form.pourcentage }}</div>
+          <div class="col-md-4"><label class="form-label">{{ form.montant.label }}</label>{{ form.montant }}</div>
+          <div class="col-md-4"><label class="form-label">{{ form.type_ventilation.label }}</label>{{ form.type_ventilation }}</div>
+          <div class="col-md-6"><label class="form-label">{{ form.statut.label }}</label>{{ form.statut }}</div>
+          <div class="col-12"><label class="form-label">{{ form.commentaire.label }}</label>{{ form.commentaire }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white"><h6 class="fw-bold mb-0">💡 Aide</h6></div>
+        <div class="card-body p-4 small text-muted">
+          <p>Ventilez une écriture comptable sur un centre analytique et/ou une branche.</p>
+          <p>Le pourcentage est la part de l'écriture allouée à cet axe.</p>
+          <p class="mb-0">Le total des ventilations d'une même écriture ne doit pas dépasser 100%.</p>
+        </div>
+      </div>
+      <div class="d-grid mt-4 gap-2">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-circle me-2"></i>Enregistrer</button>
+        <a href="{% url 'ventilations:ventilation_list' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

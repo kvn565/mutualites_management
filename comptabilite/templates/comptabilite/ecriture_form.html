@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre|default:'Nouvelle écriture' }}{% endblock %}
+{% block page_title %}{{ titre|default:'Nouvelle écriture' }}{% endblock %}
+{% block page_icon %}bi bi-journal-plus{% endblock %}
+{% block nav_compta %}active{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-pencil me-2"></i> Détails de l'écriture</div>
+        <div class="card-body p-4 row g-3">
+          <div class="col-md-4">
+            <label class="form-label">{{ form.date.label }} <span class="text-danger">*</span></label>
+            {{ form.date }}
+            {% if form.date.errors %}<div class="text-danger small mt-1">{{ form.date.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ form.piece_reference.label }}</label>
+            {{ form.piece_reference }}
+            <div class="form-text">Générée automatiquement si vide.</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ form.statut.label }}</label>
+            {{ form.statut }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">{{ form.libelle.label }} <span class="text-danger">*</span></label>
+            {{ form.libelle }}
+            {% if form.libelle.errors %}<div class="text-danger small mt-1">{{ form.libelle.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.compte.label }} <span class="text-danger">*</span></label>
+            {{ form.compte }}
+            {% if form.compte.errors %}<div class="text-danger small mt-1">{{ form.compte.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.centre.label }}</label>
+            {{ form.centre }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ form.type_mouvement.label }} <span class="text-danger">*</span></label>
+            {{ form.type_mouvement }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ form.montant.label }} <span class="text-danger">*</span></label>
+            {{ form.montant }}
+            {% if form.montant.errors %}<div class="text-danger small mt-1">{{ form.montant.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ form.date_echeance.label }}</label>
+            {{ form.date_echeance }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.piece_jointe.label }}</label>
+            {{ form.piece_jointe }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">{{ form.notes.label }}</label>
+            {{ form.notes }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-info-circle me-2"></i> Rappel</div>
+        <div class="card-body p-4">
+          <p class="text-muted small mb-0">Une écriture comptable enregistre un mouvement sur un compte. Pour une saisie complète, créez deux écritures (débit + crédit) avec la même pièce comptable.</p>
+        </div>
+      </div>
+
+      <div class="d-grid mt-4 gap-2">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-circle me-2"></i> Enregistrer</button>
+        <a href="{% url 'comptabilite:ecriture_list' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

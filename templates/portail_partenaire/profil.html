@@ -1,0 +1,143 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% block title %}Profil — {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="flex items-center justify-between w-full">
+        <div>
+            <h1><i class="bi bi-gear" style="color:var(--primary)"></i> Profil</h1>
+            <p>Informations de votre compte et de votre relation avec la mutualité</p>
+        </div>
+        <a href="{% url 'portail_partenaire:configuration_compte' %}" class="btn btn-outline-primary">
+            <i class="bi bi-gear-wide"></i> Configuration
+        </a>
+        <a href="{% url 'portail_partenaire:modifier_profil' %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Modifier mes informations
+        </a>
+    </div>
+</div>
+
+<div class="grid-3">
+    <div class="card">
+        <div class="card-header"><i class="bi bi-person-badge"></i> Utilisateur</div>
+        <div class="card-body">
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+                {% if user.photo %}
+                <img src="{{ user.photo.url }}" alt="Photo" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;">
+                {% else %}
+                <div style="width:64px;height:64px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:1.2rem;">{{ user.username|first|upper }}</div>
+                {% endif %}
+                <div>
+                    <div class="fw-bold" style="font-size:1.1rem;">{{ user.username }}</div>
+                    <div class="text-sm text-muted">{{ user.get_role_display }}</div>
+                </div>
+            </div>
+            <div class="info-grid">
+                <div class="info-item"><label>Nom d'utilisateur</label><span>{{ user.username }}</span></div>
+                <div class="info-item"><label>Rôle</label><span>{{ user.get_role_display }}</span></div>
+                <div class="info-item"><label>Email</label><span>{{ user.email|default:"—" }}</span></div>
+                <div class="info-item"><label>Téléphone</label><span>{{ user.telephone|default:"—" }}</span></div>
+                <div class="info-item"><label>Membre depuis</label><span>{{ user.date_creation|date:"d/m/Y" }}</span></div>
+                <div class="info-item"><label>Compte actif</label><span>{% if user.actif %}<span class="badge badge-success">Oui</span>{% else %}<span class="badge badge-danger">Non</span>{% endif %}</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><i class="bi bi-building"></i> Établissement</div>
+        <div class="card-body">
+            <div class="info-grid">
+                {% if partenaire.logo %}
+                <div class="info-item" style="grid-column:1/-1;text-align:center;margin-bottom:8px;">
+                    <img src="{{ partenaire.logo.url }}" alt="Logo {{ partenaire.nom_etablissement }}" style="max-height:80px;border-radius:8px;">
+                </div>
+                {% endif %}
+                <div class="info-item"><label>Nom</label><span class="fw-bold">{{ partenaire.nom_etablissement }}</span></div>
+                <div class="info-item"><label>Code</label><span><code>{{ partenaire.code_partenaire }}</code></span></div>
+                <div class="info-item"><label>Type</label><span>{{ partenaire.get_type_partenaire_display }}</span></div>
+                <div class="info-item"><label>Téléphone</label><span>{{ partenaire.telephone|default:"—" }}</span></div>
+                <div class="info-item"><label>Email</label><span>{{ partenaire.email|default:"—" }}</span></div>
+                <div class="info-item"><label>Province</label><span>{{ partenaire.province|default:"—" }}</span></div>
+                <div class="info-item"><label>Commune</label><span>{{ partenaire.commune|default:"—" }}</span></div>
+                <div class="info-item"><label>Zone</label><span>{{ partenaire.zone|default:"—" }}</span></div>
+                <div class="info-item"><label>Quartier</label><span>{{ partenaire.quartier|default:"—" }}</span></div>
+                <div class="info-item"><label>Avenue</label><span>{{ partenaire.avenue|default:"—" }}</span></div>
+                <div class="info-item"><label>Numéro</label><span>{{ partenaire.numero|default:"—" }}</span></div>
+                <div class="info-item"><label>NIF</label><span>{{ partenaire.nif|default:"—" }}</span></div>
+                <div class="info-item"><label>TVA</label><span>{% if partenaire.assujetti_tva %}<span class="badge badge-success">Assujetti</span>{% else %}<span class="badge badge-secondary">Non assujetti</span>{% endif %}</span></div>
+                <div class="info-item"><label>Statut</label><span>
+                    {% if partenaire.statut == 'ACTIF' %}<span class="badge badge-success">Actif</span>
+                    {% elif partenaire.statut == 'SUSPENDU' %}<span class="badge badge-warning">Suspendu</span>
+                    {% else %}<span class="badge badge-secondary">{{ partenaire.get_statut_display }}</span>
+                    {% endif %}
+                </span></div>
+                <div class="info-item"><label>Convention</label><span>{% if partenaire.convention_active %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-danger">Expirée</span>{% endif %}</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="border-left:4px solid var(--primary);">
+        <div class="card-header" style="color:var(--primary);">
+            <i class="bi bi-link-45deg" style="color:var(--primary)"></i> Mutualités partenaires ({{ mutualites|length }})
+        </div>
+        <div class="card-body">
+            {% for m in mutualites %}
+            {% with rel=relations|default:None %}
+            <div style="border-bottom:1px solid #f1f5f9;padding:8px 0;{% if forloop.last %}border-bottom:none;{% endif %}">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-weight:700;font-size:0.9rem;color:var(--primary);">{{ m.nom }}</div>
+                    {% for r in relations %}
+                        {% if r.mutualite_id == m.pk %}
+                            {% if r.statut == 'ACTIVE' %}
+                            <form method="post" action="{% url 'portail_partenaire:bloquer_relation' m.pk %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bloquer {{ m.nom }} ? Vous ne verrez plus leurs données.')">
+                                    <i class="bi bi-slash-circle"></i> Bloquer
+                                </button>
+                            </form>
+                            {% elif r.statut == 'BLOQUEE' and r.bloque_par_partenaire %}
+                            <form method="post" action="{% url 'portail_partenaire:debloquer_relation' m.pk %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-check-circle"></i> Réactiver
+                                </button>
+                            </form>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;font-size:0.82rem;">
+                    <div><span style="color:#94a3b8;">Code:</span> <code>{{ m.code_mutualite }}</code></div>
+                    <div><span style="color:#94a3b8;">Sigle:</span> {{ m.sigle|default:"—" }}</div>
+                    <div><span style="color:#94a3b8;">Tél:</span> {{ m.telephone|default:"—" }}</div>
+                    <div><span style="color:#94a3b8;">Email:</span> {{ m.email|default:"—" }}</div>
+                    <div><span style="color:#94a3b8;">Province:</span> {{ m.province|default:"—" }}</div>
+                    <div><span style="color:#94a3b8;">Responsable:</span> {{ m.nom_responsable|default:"—" }}</div>
+                    <div><span style="color:#94a3b8;">Statut:</span>
+                        {% for r in relations %}
+                            {% if r.mutualite_id == m.pk %}
+                                {% if r.statut == 'ACTIVE' %}
+                                <span class="badge badge-success">Active</span>
+                                {% elif r.statut == 'BLOQUEE' %}
+                                <span class="badge badge-danger">Bloquée</span>
+                                {% else %}
+                                <span class="badge badge-secondary">{{ r.get_statut_display }}</span>
+                                {% endif %}
+                            {% endif %}
+                        {% empty %}
+                            <span class="badge badge-secondary">—</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+            {% empty %}
+            <div class="text-center py-3 text-muted">
+                <i class="bi bi-link-45deg fs-1 d-block mb-2"></i>
+                Aucune mutualité partenaire pour le moment.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
