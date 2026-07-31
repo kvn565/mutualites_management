@@ -26,11 +26,6 @@
                         {% if form.nom.errors %}<div class="text-danger small">{{ form.nom.errors.0 }}</div>{% endif %}
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">{{ form.postnom.label }}</label>
-                        {{ form.postnom }}
-                        {% if form.postnom.errors %}<div class="text-danger small">{{ form.postnom.errors.0 }}</div>{% endif %}
-                    </div>
-                    <div class="col-md-4">
                         <label class="form-label">{{ form.prenom.label }} <span class="text-danger">*</span></label>
                         {{ form.prenom }}
                         {% if form.prenom.errors %}<div class="text-danger small">{{ form.prenom.errors.0 }}</div>{% endif %}

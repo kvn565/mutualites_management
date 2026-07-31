@@ -913,19 +913,19 @@ def _build_excel_mutualite(mutualite):
 
     # 4. Affiliés
     qs = Affilie.objects.filter(mutualite=mutualite).values_list(
-        'numero_affiliation', 'nom', 'postnom', 'prenom', 'sexe', 'telephone', 'email',
+        'numero_affiliation', 'nom', 'prenom', 'sexe', 'telephone', 'email',
         'profession', 'statut', 'date_adhesion')
-    rows = [[a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], _date(a[9])] for a in qs]
+    rows = [[a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], _date(a[8])] for a in qs]
     _add_sheet('Affiliés',
-        ['N° Affiliation', 'Nom', 'Postnom', 'Prénom', 'Sexe', 'Téléphone', 'Email',
+        ['N° Affiliation', 'Nom', 'Prénom', 'Sexe', 'Téléphone', 'Email',
          'Profession', 'Statut', 'Date adhésion'], rows)
 
     # 5. Ayants droit
     qs = AyantDroit.objects.filter(mutualite=mutualite).values_list(
-        'nom', 'postnom', 'prenom', 'sexe', 'date_naissance', 'lien_parente', 'affilie__numero_affiliation')
-    rows = [[a[0], a[1], a[2], a[3], _date(a[4]), a[5], a[6]] for a in qs]
+        'nom', 'prenom', 'sexe', 'date_naissance', 'lien_parente', 'affilie__numero_affiliation')
+    rows = [[a[0], a[1], a[2], _date(a[3]), a[4], a[5]] for a in qs]
     _add_sheet('Ayants droit',
-        ['Nom', 'Postnom', 'Prénom', 'Sexe', 'Date naissance', 'Lien parenté', 'Affilié'], rows)
+        ['Nom', 'Prénom', 'Sexe', 'Date naissance', 'Lien parenté', 'Affilié'], rows)
 
     # 6. Cotisations
     qs = Cotisation.objects.filter(mutualite=mutualite).values_list(
@@ -1027,7 +1027,60 @@ def export_toutes_mutualites_excel(request):
     return response
 
 def ajax_verifier_nif(request):
-    return JsonResponse({"status": "ok", "message": "En développement"})
+    """
+    Vérifie un NIF lors de l'inscription d'une mutualité.
+
+    1. Base locale d'abord : si le NIF correspond à une mutualité déjà créée,
+       on retourne toutes ses informations (pré-remplissage) + le statut 'existe'.
+    2. Sinon, on interroge l'API de l'OBR pour retrouver le nom légal.
+    """
+    nif = (request.GET.get('nif') or request.POST.get('nif') or '').strip()
+    if not nif:
+        return JsonResponse({"ok": False, "error": "NIF requis"})
+
+    from core.models import Mutualite
+    mutualite = Mutualite.objects.filter(nif=nif).first()
+    if mutualite:
+        return JsonResponse({
+            "ok": True,
+            "status": "existe",
+            "entite": "mutualite",
+            "nom_local": mutualite.nom,
+            "nom": mutualite.nom,
+            "sigle": mutualite.sigle,
+            "province": mutualite.province,
+            "commune": mutualite.commune,
+            "quartier": mutualite.quartier,
+            "adresse": mutualite.adresse,
+            "telephone": mutualite.telephone,
+            "email": mutualite.email,
+        })
+
+    from partenaires.models import Partenaire
+    partenaire = Partenaire.all_objects.filter(nif=nif, is_deleted=False).first()
+    if partenaire:
+        return JsonResponse({
+            "ok": True,
+            "status": "existe",
+            "entite": "partenaire",
+            "nom_local": partenaire.nom_etablissement,
+            "nom_etablissement": partenaire.nom_etablissement,
+            "email": partenaire.email,
+            "telephone": partenaire.telephone,
+            "province": partenaire.province,
+            "commune": partenaire.commune,
+            "zone": partenaire.zone,
+            "quartier": partenaire.quartier,
+            "avenue": partenaire.avenue,
+            "numero": partenaire.numero,
+            "nom_responsable": partenaire.nom_responsable,
+        })
+
+    from core.services import verifier_nif_obr
+    resultat = verifier_nif_obr(nif)
+    if resultat.get('ok'):
+        return JsonResponse({"ok": True, "status": "nouveau", "nom": resultat['nom']})
+    return JsonResponse({"ok": False, "error": resultat.get('error', 'NIF non trouvé sur OBR')})
 
 @superadmin_required
 def configuration_app(request):

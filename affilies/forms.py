@@ -6,7 +6,7 @@ class AffilieForm(forms.ModelForm):
     class Meta:
         model = Affilie
         fields = [
-            'numero_affiliation', 'nom', 'postnom', 'prenom', 'sexe',
+            'numero_affiliation', 'nom', 'prenom', 'sexe',
             'date_naissance', 'etat_civil', 'numero_carte_identite',
             'province', 'commune', 'zone', 'colline', 'adresse',
             'telephone', 'email', 'profession',
@@ -27,7 +27,6 @@ class AffilieForm(forms.ModelForm):
         widgets = {
             'numero_affiliation': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly', 'placeholder': 'Généré automatiquement'}),
             'nom': forms.TextInput(attrs={'class': 'form-control'}),
-            'postnom': forms.TextInput(attrs={'class': 'form-control'}),
             'prenom': forms.TextInput(attrs={'class': 'form-control'}),
             'sexe': forms.Select(attrs={'class': 'form-select'}),
             'date_naissance': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),

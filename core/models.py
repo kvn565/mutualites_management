@@ -417,12 +417,15 @@ class Utilisateur(AbstractUser):
 
     @property
     def nom_complet(self):
-        parts = [self.prenom, self.nom]
-        return ' '.join(p for p in parts if p) or self.username
+        nom = self.nom or self.last_name
+        prenom = self.prenom or self.first_name
+        return ' '.join(p for p in [nom, prenom] if p) or self.username
 
     @property
     def initiales(self):
-        parts = [self.prenom, self.nom]
+        nom = self.nom or self.last_name
+        prenom = self.prenom or self.first_name
+        parts = [prenom, nom]
         return ''.join(p[0].upper() for p in parts if p) or self.username[0].upper()
 
     @property

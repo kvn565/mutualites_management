@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Importer des ayants droit — Mutualité de Santé{% endblock %}
+{% block page_title %}Importer des ayants droit{% endblock %}
+{% block page_icon %}bi bi-upload{% endblock %}
+{% block nav_ayants_droit %}active{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-file-earmark-excel me-2"></i> Importation depuis Excel
+            </div>
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data" class="row g-3">
+                    {% csrf_token %}
+
+                    <div class="col-12">
+                        <label class="form-label">Affilié (optionnel)</label>
+                        <select name="affilie" class="form-select">
+                            <option value="">Tous — lire la colonne N_affiliation du fichier...</option>
+                            {% for a in affilies %}
+                            <option value="{{ a.pk }}">{{ a.numero_affiliation }} — {{ a.nom_complet }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            Si vous sélectionnez un affilié, tous les ayants droit seront rattachés à lui (la colonne N_affiliation devient optionnelle).
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Fichier Excel <span class="text-danger">*</span></label>
+                        <input type="file" name="fichier" class="form-control" accept=".xlsx,.xls" required>
+                        <div class="form-text">
+                            Format .xlsx ou .xls —
+                            <a href="{% url 'ayants_droit:modele_import' %}" class="fw-medium">
+                                <i class="bi bi-download me-1"></i>Télécharger le modèle
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-4">
+                        <h6 class="text-muted border-bottom pb-2">Colonnes attendues</h6>
+                        <div class="row small text-muted">
+                            <div class="col-md-6">
+                                <strong>Obligatoires :</strong>
+                                <ul class="mb-2">
+                                    <li>N_affiliation (sauf si affilié sélectionné)</li>
+                                    <li>Nom</li>
+                                    <li>Sexe (M/F)</li>
+                                    <li>Date_naissance</li>
+                                    <li>Lien_parente (CONJOINT, ENFANT, PARENT, FRERE_SOEUR, ...)</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Optionnelles :</strong>
+                                <ul class="mb-0">
+                                    <li>Prenom, Age_limite (défaut 18)</li>
+                                    <li>Telephone, Statut (défaut ACTIF)</li>
+                                    <li>Numero_identite, Notes</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-4 text-end">
+                        <a href="{% url 'ayants_droit:liste' %}" class="btn btn-outline-secondary me-2">Annuler</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload me-1"></i> Importer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if result %}
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-check-circle me-2"></i> Résultat de l'importation
+            </div>
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <span class="badge bg-success fs-6 me-2">{{ result.succes }} importé(s)</span>
+                    <span class="badge bg-danger fs-6">{{ result.erreurs|length }} erreur(s)</span>
+                </div>
+                {% if result.erreurs %}
+                <div class="mt-3">
+                    <h6 class="text-danger">Détail des erreurs :</h6>
+                    <ul class="small text-danger">
+                        {% for err in result.erreurs %}
+                        <li>{{ err }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                <div class="mt-3">
+                    <a href="{% url 'ayants_droit:liste' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left me-1"></i> Retour à la liste
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

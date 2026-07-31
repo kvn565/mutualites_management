@@ -7,9 +7,10 @@
 
 {% block page_actions %}
     {% if user.peut_exporter %}
-    <button class="btn btn-outline-success btn-sm"><i class="bi bi-file-earmark-excel"></i> Exporter</button>
+    <a href="{% url 'ayants_droit:export_excel' %}" class="btn btn-outline-success btn-sm"><i class="bi bi-file-earmark-excel"></i> Exporter</a>
     {% endif %}
     {% if user.peut_modifier %}
+    <a href="{% url 'ayants_droit:importer' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-upload"></i> Importer</a>
     <a href="{% url 'ayants_droit:ajouter' %}" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-circle"></i> Ajouter
     </a>

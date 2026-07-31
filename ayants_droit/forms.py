@@ -6,12 +6,11 @@ from .models import AyantDroit
 class AyantDroitForm(forms.ModelForm):
     class Meta:
         model = AyantDroit
-        fields = ['affilie', 'nom', 'postnom', 'prenom', 'sexe', 'date_naissance',
+        fields = ['affilie', 'nom', 'prenom', 'sexe', 'date_naissance',
                   'lien_parente', 'age_limite', 'statut', 'telephone', 'numero_identite', 'notes']
         widgets = {
             'affilie':       forms.Select(attrs={'class': 'form-select'}),
             'nom':           forms.TextInput(attrs={'class': 'form-control'}),
-            'postnom':       forms.TextInput(attrs={'class': 'form-control'}),
             'prenom':        forms.TextInput(attrs={'class': 'form-control'}),
             'sexe':          forms.Select(attrs={'class': 'form-select'}),
             'date_naissance':forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),

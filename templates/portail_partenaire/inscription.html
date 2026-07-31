@@ -410,12 +410,37 @@
             var statusEl = document.getElementById('nif-status');
             var msgEl = document.getElementById('nif-msg');
             var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            var submitBtn = document.querySelector('.btn-submit');
             var timer = null;
 
             if (!nifInput || !nomInput) return;
 
+            var nomManuel = false;
+            nomInput.addEventListener('input', function() { nomManuel = true; });
+
+            function fillFields(data) {
+                if (!nomManuel && document.getElementById('id_nom_etablissement')) document.getElementById('id_nom_etablissement').value = data.nom_etablissement || '';
+                if (document.getElementById('id_email')) document.getElementById('id_email').value = data.email || '';
+                if (document.getElementById('id_telephone')) document.getElementById('id_telephone').value = data.telephone || '';
+                if (document.getElementById('id_province')) document.getElementById('id_province').value = data.province || '';
+                if (document.getElementById('id_commune')) document.getElementById('id_commune').value = data.commune || '';
+                if (document.getElementById('id_zone')) document.getElementById('id_zone').value = data.zone || '';
+                if (document.getElementById('id_quartier')) document.getElementById('id_quartier').value = data.quartier || '';
+                if (document.getElementById('id_avenue')) document.getElementById('id_avenue').value = data.avenue || '';
+                if (document.getElementById('id_numero')) document.getElementById('id_numero').value = data.numero || '';
+                if (document.getElementById('id_nom_responsable')) document.getElementById('id_nom_responsable').value = data.nom_responsable || '';
+            }
+
+            function resetEtat() {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="bi bi-person-plus"></i> Créer mon compte';
+                }
+            }
+
             nifInput.addEventListener('input', function() {
                 clearTimeout(timer);
+                resetEtat();
                 var val = this.value.trim();
 
                 if (statusEl) statusEl.textContent = '';
@@ -436,12 +461,26 @@
                     })
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
-                        if (data.ok) {
-                            nomInput.value = data.nom || '';
+                        if (data.status === 'existe' && data.entite === 'partenaire') {
+                            fillFields(data);
+                            if (statusEl) statusEl.innerHTML = '<i class="bi bi-exclamation-circle-fill" style="color:#e74c3c;"></i>';
+                            if (submitBtn) {
+                                submitBtn.disabled = true;
+                                submitBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Déjà inscrit';
+                            }
+                            if (msgEl) msgEl.innerHTML =
+                                '<span style="color:#e74c3c;"><i class="bi bi-exclamation-circle-fill me-1"></i>' +
+                                'Cet établissement <strong>' + (data.nom_local || '') + '</strong> est déjà inscrit sur le portail.' +
+                                ' <a href="{% url "portail_partenaire:connexion" %}" style="color:#0a5c36;text-decoration:underline;font-weight:bold;">Connectez-vous</a>.</span>';
+                        } else if (data.ok && data.nom) {
+                            if (!nomManuel) nomInput.value = data.nom;
                             if (statusEl) statusEl.innerHTML = '<i class="bi bi-check-circle-fill" style="color:#10b981;"></i>';
-                            if (msgEl) msgEl.innerHTML = '<span style="color:#10b981;">Nom trouvé : <strong>' + (data.nom || '') + '</strong></span>';
+                            if (msgEl) msgEl.innerHTML = '<span style="color:#10b981;">Nom trouvé via l\'OBR : <strong>' + data.nom + '</strong></span>';
+                        } else if (data.status === 'existe') {
+                            if (statusEl) statusEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;"></i>';
+                            if (msgEl) msgEl.innerHTML = '<span style="color:#f59e0b;">Ce NIF est déjà enregistré dans le système. Remplissez les champs manuellement si besoin.</span>';
                         } else {
-                            nomInput.value = '';
+                            if (!nomManuel) nomInput.value = '';
                             if (statusEl) statusEl.innerHTML = '<i class="bi bi-x-circle-fill" style="color:#e74c3c;"></i>';
                             if (msgEl) msgEl.innerHTML = '<span style="color:#e74c3c;">' + (data.error || 'Erreur') + '</span>';
                         }

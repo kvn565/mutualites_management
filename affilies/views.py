@@ -3,7 +3,7 @@ from datetime import datetime as timezone
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, render, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
 from django.views.generic.edit import FormMixin
@@ -18,12 +18,59 @@ from io import BytesIO
 
 logger = logging.getLogger('core.security')
 
+FORMATS_NUMERO = {
+    '0-1': 1,
+    '00-01': 2,
+    '000-001': 3,
+    '0000-0001': 4,
+    '00000-00001': 5,
+}
+PREFIXE_AFFILIATION = 'AFF-'
+
+
+def prochain_numero_affiliation():
+    """Retourne le prochain numéro séquentiel global (toutes mutualités) pour le préfixe AFF-."""
+    dernier = 0
+    for num in Affilie._base_manager.exclude(supprime=True).filter(
+            numero_affiliation__startswith=PREFIXE_AFFILIATION
+    ).values_list('numero_affiliation', flat=True):
+        try:
+            dernier = max(dernier, int(num[len(PREFIXE_AFFILIATION):]))
+        except ValueError:
+            pass
+    return dernier + 1
+
+
+def formater_numero_affiliation(numero, largeur):
+    """Formate un numéro séquentiel avec padding de zéros et le préfixe AFF-."""
+    return f"{PREFIXE_AFFILIATION}{numero:0{largeur}d}"
+
+
+def largeur_affiliation_defaut():
+    """Largeur du format en vigueur (dernier AFF- créé), ou 1 (0-1) si aucun import n'existe."""
+    for num in Affilie._base_manager.exclude(supprime=True).filter(
+            numero_affiliation__startswith=PREFIXE_AFFILIATION
+    ).order_by('-id').values_list('numero_affiliation', flat=True)[:100]:
+        suffixe = num[len(PREFIXE_AFFILIATION):]
+        if suffixe.isdigit():
+            return max(1, min(len(suffixe), 5))
+    return 1
+
+
+def format_affiliation_defaut():
+    """Clé du format par défaut ('0-1', '00-01', ...)."""
+    largeur = largeur_affiliation_defaut()
+    for fmt, w in FORMATS_NUMERO.items():
+        if w == largeur:
+            return fmt
+    return '0-1'
+
 
 class AffilieListView(CrudListView):
     model = Affilie
     context_object_name = 'affilies'
     module_name = 'affilies'
-    search_fields = ['nom', 'postnom', 'prenom', 'numero_affiliation', 'telephone']
+    search_fields = ['nom', 'prenom', 'numero_affiliation', 'telephone']
     filter_fields = {'statut': 'statut', 'origine': 'origine_id'}
     default_order = '-date_creation'
     list_template = 'affilies/liste.html'
@@ -49,9 +96,9 @@ class AffilieCreateView(CrudCreateView):
         from django.utils import timezone
         initial = super().get_initial()
         initial['date_adhesion'] = timezone.localdate()
-        last_id = Affilie.objects.filter(mutualite=self.request.user.mutualite).order_by('-id').values_list('id', flat=True).first() or 0
-        code = self.request.user.mutualite.code_mutualite if self.request.user.mutualite else 'MUT'
-        initial['numero_affiliation'] = f"{code}-{last_id + 1}"
+        initial['numero_affiliation'] = formater_numero_affiliation(
+            prochain_numero_affiliation(), largeur_affiliation_defaut()
+        )
         return initial
 
     def get_context_data(self, **kwargs):
@@ -190,7 +237,7 @@ def telecharger_modele(request):
     ws = wb.active
     ws.title = "Modèle import"
     headers = [
-        'Nom', 'Postnom', 'Prenom', 'Sexe', 'Date_naissance',
+        'Nom', 'Prenom', 'Sexe', 'Date_naissance',
         'Etat_civil', 'Numero_carte_identite',
         'Province', 'Commune', 'Zone', 'Colline', 'Adresse',
         'Telephone', 'Email', 'Profession',
@@ -200,7 +247,7 @@ def telecharger_modele(request):
         'Statut', 'Notes',
     ]
     ws.append(headers)
-    ws.append(['Ex: NDIMUBANDI', 'Jean', 'M', '1990-05-15', 'MARIE',
+    ws.append(['Ex: NDIMUBANDI', 'M', '1990-05-15', 'MARIE',
                'BUJUMBURA', 'BUJUMBURA', 'CENTRE', '', '',
                '79123456', 'jean@mail.com', 'Enseignant',
                'B+', 'MARIE NDIMUBANDI', '79987654',
@@ -245,6 +292,7 @@ def importer(request):
     import datetime
 
     result = None
+    format_defaut = format_affiliation_defaut()
 
     if request.method == 'POST':
         origine_id = request.POST.get('origine')
@@ -264,7 +312,7 @@ def importer(request):
 
                 headers = [str(h).strip().lower() if h else '' for h in rows[0]]
                 mapping = {
-                    'nom': 'nom', 'postnom': 'postnom', 'prenom': 'prenom',
+                    'nom': 'nom', 'prenom': 'prenom',
                     'sexe': 'sexe', 'date naissance': 'date_naissance', 'date_naissance': 'date_naissance',
                     'etat civil': 'etat_civil', 'etat_civil': 'etat_civil',
                     'numero carte identite': 'numero_carte_identite', 'numero_carte_identite': 'numero_carte_identite',
@@ -294,6 +342,10 @@ def importer(request):
 
                 origine = Origine.objects.get(pk=origine_id, mutualite=request.user.mutualite)
                 succes, erreurs = 0, []
+
+                format_numero = request.POST.get('format_numero') or format_defaut
+                largeur = FORMATS_NUMERO.get(format_numero, 1)
+                prochain_numero = prochain_numero_affiliation()
 
                 for idx, row in enumerate(rows[1:], start=2):
                     try:
@@ -339,7 +391,6 @@ def importer(request):
                         aff.date_naissance = date_naiss
 
                         optional_fields = [
-                            ('postnom', str, lambda v: str(v).strip().upper()),
                             ('numero_carte_identite', str, lambda v: str(v).strip()),
                             ('etat_civil', str, lambda v: str(v).strip().upper() if str(v).strip().upper() in dict(Affilie.ETAT_CIVIL_CHOICES) else 'CELIBATAIRE'),
                             ('province', str, lambda v: str(v).strip()),
@@ -382,6 +433,8 @@ def importer(request):
                                         pass
 
                         aff.cotisation_mensuelle = 0
+                        aff.numero_affiliation = formater_numero_affiliation(prochain_numero, largeur)
+                        prochain_numero += 1
                         aff.save()
                         succes += 1
                     except Exception as e:
@@ -397,6 +450,7 @@ def importer(request):
     return render(request, 'affilies/importer.html', {
         'origines': origines,
         'result': result,
+        'format_defaut': format_defaut,
     })
 
 
@@ -675,7 +729,6 @@ def affilie_details_ajax(request, pk):
         affilie = get_object_or_404(Affilie, pk=pk, mutualite=request.user.mutualite)
         data = {
             'nom': affilie.nom,
-            'postnom': affilie.postnom,
             'prenom': affilie.prenom,
             'nom_complet': affilie.nom_complet,
             'sexe': affilie.sexe,

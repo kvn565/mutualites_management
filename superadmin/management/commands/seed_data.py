@@ -96,7 +96,6 @@ class Command(BaseCommand):
             {
                 'numero_affiliation': 'AFF-2026-0002',
                 'nom': 'Niyonzima',
-                'postnom': 'Pierre',
                 'prenom': 'Celestin',
                 'sexe': 'M',
                 'date_naissance': date(1985, 3, 15),
@@ -110,7 +109,6 @@ class Command(BaseCommand):
             {
                 'numero_affiliation': 'AFF-2026-0003',
                 'nom': 'Havyarimana',
-                'postnom': 'Jeanne',
                 'prenom': 'dArc',
                 'sexe': 'F',
                 'date_naissance': date(1990, 7, 22),
@@ -124,7 +122,6 @@ class Command(BaseCommand):
             {
                 'numero_affiliation': 'AFF-2026-0004',
                 'nom': 'Manirakiza',
-                'postnom': 'Alain',
                 'prenom': 'Gilbert',
                 'sexe': 'M',
                 'date_naissance': date(1978, 11, 5),
@@ -153,7 +150,6 @@ class Command(BaseCommand):
                     defaults={
                         'mutualite': mut,
                         'nom': data['nom'],
-                        'postnom': data['postnom'],
                         'prenom': data['prenom'],
                         'sexe': data['sexe'],
                         'date_naissance': data['date_naissance'],

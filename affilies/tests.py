@@ -4,6 +4,12 @@ from django.contrib.auth import get_user_model
 
 from affilies.models import Affilie
 from origines.models import Origine
+from affilies.views import (
+    prochain_numero_affiliation,
+    formater_numero_affiliation,
+    largeur_affiliation_defaut,
+    format_affiliation_defaut,
+)
 
 User = get_user_model()
 
@@ -40,7 +46,7 @@ class AffilieModelTest(TestCase):
 
     def test_create_affilie(self):
         aff = self._create_affilie()
-        self.assertEqual(aff.nom_complet, 'Dupont  Jean')
+        self.assertEqual(aff.nom_complet, 'Dupont Jean')
         self.assertEqual(str(aff), 'AFF-2026-0001 — Dupont Jean')
 
     def test_age_calculation(self):
@@ -51,7 +57,7 @@ class AffilieModelTest(TestCase):
 
     def test_soft_delete(self):
         aff = self._create_affilie()
-        aff.soft_delete()
+        aff.delete(user=self.user)
         self.assertTrue(aff.supprime)
         self.assertFalse(aff.actif)
         self.assertIsNotNone(aff.date_suppression)
@@ -120,3 +126,38 @@ class AffilieViewsTest(TestCase):
         response = self.client.get(reverse('affilies:liste'), {'statut': 'ACTIF'})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Dupont')
+
+
+class AffilieImportNumeroTest(TestCase):
+    def test_formater_numero_affiliation(self):
+        self.assertEqual(formater_numero_affiliation(1, 1), 'AFF-1')
+        self.assertEqual(formater_numero_affiliation(1, 2), 'AFF-01')
+        self.assertEqual(formater_numero_affiliation(1, 3), 'AFF-001')
+        self.assertEqual(formater_numero_affiliation(12, 4), 'AFF-0012')
+        self.assertEqual(formater_numero_affiliation(1, 5), 'AFF-00001')
+
+    def test_prochain_numero_affiliation(self):
+        Affilie.objects.create(
+            numero_affiliation='AFF-001',
+            nom='Dupont', prenom='Jean', sexe='M',
+            date_naissance='1990-01-15',
+        )
+        Affilie.objects.create(
+            numero_affiliation='AFF-005',
+            nom='Martin', prenom='Paul', sexe='M',
+            date_naissance='1985-03-20',
+        )
+        self.assertEqual(prochain_numero_affiliation(), 6)
+
+    def test_largeur_defaut_sans_import(self):
+        self.assertEqual(largeur_affiliation_defaut(), 1)
+        self.assertEqual(format_affiliation_defaut(), '0-1')
+
+    def test_largeur_defaut_apres_import(self):
+        Affilie.objects.create(
+            numero_affiliation='AFF-0001',
+            nom='Dupont', prenom='Jean', sexe='M',
+            date_naissance='1990-01-15',
+        )
+        self.assertEqual(largeur_affiliation_defaut(), 4)
+        self.assertEqual(format_affiliation_defaut(), '0000-0001')

@@ -171,6 +171,7 @@ class FactureWorkflowTest(TestCase):
             nom_responsable='Test', telephone='79123420',
             email='wf@test.com', province='Bujumbura', commune='Mairie',
         )
+        self.mutualite.activer_essai()
         self.admin = User.objects.create_user(
             username='admin_wf', password='test123',
             mutualite=self.mutualite, role='ADMIN_MUTUALITE',
@@ -204,7 +205,7 @@ class FactureWorkflowTest(TestCase):
     def _creer_facture(self, statut='BROUILLON'):
         f = Facture.objects.create(
             numero=Facture.generer_numero(), mutualite=self.mutualite,
-            date=date(2026, 6, 10), partenaire=self.partenaire,
+            date=timezone.now().date(), partenaire=self.partenaire,
             affilie=self.affilie, statut=statut, cree_par=self.agent,
         )
         LigneFacture.objects.create(
@@ -363,12 +364,15 @@ class FactureWorkflowTest(TestCase):
         self.assertContains(response, f.numero)
 
     def test_journal_affiche_valide_uniquement(self):
-        self._creer_facture('BROUILLON')
-        f2 = self._creer_facture('VALIDE')
+        f_brouillon = self._creer_facture('BROUILLON')
+        f_valide = self._creer_facture('VALIDE')
+        Facture.objects.filter(pk__in=[f_brouillon.pk, f_valide.pk]).update(montant_total=5000)
         self.client.login(username='agent_wf', password='test123')
         response = self.client.get('/factures/journal/')
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, f2.numero)
+        self.assertContains(response, self.affilie.numero_affiliation)
+        self.assertContains(response, '5\xa0000')
+        self.assertNotContains(response, '10\xa0000')
 
     # --- Ajouter ---
     def test_ajouter_view_get(self):

@@ -169,7 +169,9 @@ class InscriptionForm(forms.Form):
     def clean_nif(self):
         nif = self.cleaned_data.get('nif', '').strip()
         if nif and Mutualite.objects.filter(nif=nif).exists():
-            raise forms.ValidationError('Ce NIF est déjà utilisé par une autre mutualité.')
+            raise forms.ValidationError(
+                'Ce NIF est déjà utilisé : une mutualité existe déjà avec ce numéro. Connectez-vous avec son compte administrateur.'
+            )
         return nif
 
     def clean_username(self):

@@ -27,6 +27,20 @@
                     </div>
 
                     <div class="col-12">
+                        <label class="form-label">Format du numéro d'affiliation</label>
+                        <select name="format_numero" class="form-select">
+                            <option value="0-1" {% if format_defaut == '0-1' %}selected{% endif %}>AFF-1 (0-1)</option>
+                            <option value="00-01" {% if format_defaut == '00-01' %}selected{% endif %}>AFF-01 (00-01)</option>
+                            <option value="000-001" {% if format_defaut == '000-001' %}selected{% endif %}>AFF-001 (000-001)</option>
+                            <option value="0000-0001" {% if format_defaut == '0000-0001' %}selected{% endif %}>AFF-0001 (0000-0001)</option>
+                            <option value="00000-00001" {% if format_defaut == '00000-00001' %}selected{% endif %}>AFF-00001 (00000-00001)</option>
+                        </select>
+                        <div class="form-text">
+                            Le numéro d'affiliation sera généré avec le préfixe AFF- et continuera la numérotation existante.
+                        </div>
+                    </div>
+
+                    <div class="col-12">
                         <label class="form-label">Fichier Excel <span class="text-danger">*</span></label>
                         <input type="file" name="fichier" class="form-control" accept=".xlsx,.xls" required>
                         <div class="form-text">

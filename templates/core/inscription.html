@@ -221,22 +221,38 @@ function togglePwd(id, btn) {
     const communeInput = document.getElementById('{{ form.commune.id_for_label }}');
     const quartierInput = document.getElementById('{{ form.quartier.id_for_label }}');
     const adresseInput = document.getElementById('{{ form.adresse.id_for_label }}');
+    const telephoneInput = document.getElementById('{{ form.telephone.id_for_label }}');
+    const emailInput = document.getElementById('{{ form.email.id_for_label }}');
+    const submitBtn = document.querySelector('button[type="submit"]');
     const helpEl = nifInput?.closest('.mb-3')?.querySelector('.small.text-secondary');
     let timer = null;
 
     if (!nifInput || !nomInput) return;
 
+    let nomManuel = false;
+    nomInput.addEventListener('input', function() { nomManuel = true; });
+
     function fillFields(data) {
-        if (nomInput) nomInput.value = data.nom || '';
+        if (nomInput && !nomManuel) nomInput.value = data.nom || '';
         if (sigleInput) sigleInput.value = data.sigle || '';
         if (provinceInput) provinceInput.value = data.province || '';
         if (communeInput) communeInput.value = data.commune || '';
         if (quartierInput) quartierInput.value = data.quartier || '';
         if (adresseInput) adresseInput.value = data.adresse || '';
+        if (telephoneInput) telephoneInput.value = data.telephone || '';
+        if (emailInput) emailInput.value = data.email || '';
+    }
+
+    function resetEtat() {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-rocket-takeoff me-2"></i> Créer ma mutualité';
+        }
     }
 
     nifInput.addEventListener('input', function() {
         clearTimeout(timer);
+        resetEtat();
         const val = this.value.trim();
         if (helpEl) helpEl.textContent = 'Le NIF permet à votre responsable de retrouver la mutualité lors de son inscription.';
 
@@ -249,15 +265,24 @@ function togglePwd(id, btn) {
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (!data.ok) {
-                    if (helpEl) helpEl.innerHTML = '<span style="color:#e74c3c;"><i class="bi bi-x-circle-fill me-1"></i>' + (data.error || 'Erreur de vérification') + '</span>';
+                    if (helpEl) helpEl.innerHTML = '<span style="color:#f59e0b;"><i class="bi bi-exclamation-triangle-fill me-1"></i>' + (data.error || 'NIF non trouvé sur OBR') + '. Remplissez les champs manuellement.</span>';
                     return;
                 }
-                if (data.status === 'existe') {
+                if (data.status === 'existe' && data.entite === 'mutualite') {
                     fillFields(data);
-                    if (helpEl) helpEl.innerHTML = '<span style="color:#e74c3c;"><i class="bi bi-x-circle-fill me-1"></i>Ce NIF est déjà utilisé par <strong>' + data.nom_local + '</strong>. Contactez l\'administrateur.</span>';
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> Déjà inscrit';
+                    }
+                    if (helpEl) helpEl.innerHTML =
+                        '<span style="color:#e74c3c;"><i class="bi bi-exclamation-circle-fill me-1"></i>' +
+                        'Cette mutualité <strong>' + data.nom_local + '</strong> est déjà créée.' +
+                        ' <a href="{% url "core:login" %}" style="color:#0a5c36;text-decoration:underline;font-weight:bold;">Connectez-vous</a>.</span>';
+                } else if (data.status === 'existe') {
+                    if (helpEl) helpEl.innerHTML = '<span style="color:#f59e0b;"><i class="bi bi-exclamation-triangle-fill me-1"></i>Ce NIF est déjà enregistré dans le système. Remplissez les champs manuellement si besoin.</span>';
                 } else if (data.nom) {
-                    if (nomInput) nomInput.value = data.nom;
-                    if (helpEl) helpEl.innerHTML = '<span style="color:#10b981;"><i class="bi bi-check-circle-fill me-1"></i>Nom trouvé : <strong>' + data.nom + '</strong>';
+                    if (nomInput && !nomManuel) nomInput.value = data.nom;
+                    if (helpEl) helpEl.innerHTML = '<span style="color:#10b981;"><i class="bi bi-check-circle-fill me-1"></i>Nom trouvé via l\'OBR : <strong>' + data.nom + '</strong>';
                 } else {
                     if (helpEl) helpEl.innerHTML = '<span style="color:#f59e0b;">NIF non trouvé. Remplissez les champs manuellement.</span>';
                 }

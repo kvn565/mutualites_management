@@ -123,7 +123,7 @@ class InscriptionViewTest(TestCase):
             'confirm_password': 'Test1234!',
         }
         response = self.client.post('/connexion/inscription/', data)
-        self.assertRedirects(response, '/connexion/')
+        self.assertRedirects(response, '/connexion/inscription/attente/')
         self.assertEqual(Mutualite.objects.count(), 1)
         self.assertEqual(Mutualite.objects.first().nom, 'Mutuelle Test')
 

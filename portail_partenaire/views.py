@@ -1,6 +1,5 @@
 import json
 import io
-import os
 from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
@@ -11,7 +10,6 @@ from django.utils import timezone
 from django.db.models.functions import TruncMonth
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
-from django.conf import settings
 
 from partenaires.models import UtilisateurPartenaire, Partenaire, DocumentMedical, RelationPartenaireMutualite
 from affilies.models import Affilie
@@ -696,12 +694,6 @@ def export_pdf(request, pk):
         import weasyprint
         pdf_bytes = weasyprint.HTML(string=html).write_pdf()
 
-        pdf_dir = os.path.join(settings.MEDIA_ROOT, 'factures_pdf')
-        os.makedirs(pdf_dir, exist_ok=True)
-        pdf_path = os.path.join(pdf_dir, f'facture_{facture.numero}.pdf')
-        with open(pdf_path, 'wb') as f:
-            f.write(pdf_bytes)
-
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="facture_{facture.numero}.pdf"'
         return response
@@ -731,11 +723,10 @@ def affilie_search_json(request):
     for a in affilies:
         ayants_droit = list(AyantDroit.objects.filter(
             affilie=a, actif=True, supprime=False
-        ).values('pk', 'nom', 'postnom', 'prenom', 'lien_parente'))
+        ).values('pk', 'nom', 'prenom', 'lien_parente'))
         results.append({
             'pk': a.pk,
             'nom': a.nom,
-            'postnom': a.postnom,
             'prenom': a.prenom,
             'nom_complet': a.nom_complet,
             'numero_carte_identite': a.numero_carte_identite,

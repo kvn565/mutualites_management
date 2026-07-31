@@ -135,6 +135,14 @@ class InscriptionForm(forms.Form):
         }),
     )
 
+    def clean_nif(self):
+        nif = self.cleaned_data.get('nif', '').strip()
+        if nif and Partenaire.all_objects.filter(nif=nif, is_deleted=False).exists():
+            raise forms.ValidationError(
+                'Ce NIF est déjà utilisé : un établissement est déjà inscrit avec ce numéro. Connectez-vous avec son compte gestionnaire.'
+            )
+        return nif
+
     def clean(self):
         cleaned = super().clean()
         password = cleaned.get('password')

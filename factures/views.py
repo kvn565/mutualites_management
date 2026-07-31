@@ -193,6 +193,9 @@ def ajouter(request):
         messages.error(request, "Vous n'êtes pas rattaché à une mutualité.")
         return redirect('factures:liste')
 
+    from core.models import set_current_mutualite
+    set_current_mutualite(request.user.mutualite)
+
     if request.method == 'POST':
         form = FactureForm(request.POST, request.FILES)
         formset = LigneFactureFormSet(request.POST)
@@ -326,11 +329,10 @@ def rechercher_affilie_json(request):
     for a in affilies:
         ayants_droit = list(AyantDroit.objects.filter(
             affilie=a, actif=True, supprime=False
-        ).values('pk', 'nom', 'postnom', 'prenom', 'lien_parente'))
+        ).values('pk', 'nom', 'prenom', 'lien_parente'))
         results.append({
             'pk': a.pk,
             'nom': a.nom,
-            'postnom': a.postnom,
             'prenom': a.prenom,
             'numero_carte_identite': a.numero_carte_identite,
             'numero_affiliation': a.numero_affiliation,

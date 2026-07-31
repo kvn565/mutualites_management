@@ -181,7 +181,7 @@ class Partenaire(SoftDeleteMixin):
 
     def save(self, *args, **kwargs):
         if not self.code_partenaire:
-            self.code_partenaire = self._generer_code()
+            self.code_partenaire = self.generer_code(self.type_partenaire)
         super().save(*args, **kwargs)
 
     def soft_delete(self):

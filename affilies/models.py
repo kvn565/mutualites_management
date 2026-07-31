@@ -39,7 +39,6 @@ class Affilie(models.Model):
     
     numero_affiliation = models.CharField(max_length=20, unique=True, verbose_name='ID du membre')
     nom = models.CharField(max_length=100, db_index=True, verbose_name='Nom')
-    postnom = models.CharField(max_length=100, blank=True, db_index=True, verbose_name='Postnom')
     prenom = models.CharField(max_length=100, db_index=True, verbose_name='Prénom')
     sexe = models.CharField(max_length=1, choices=SEXE_CHOICES, verbose_name='Sexe')
     date_naissance = models.DateField(verbose_name='Date de naissance')
@@ -195,7 +194,7 @@ class Affilie(models.Model):
     
     @property
     def nom_complet(self):
-        return f"{self.nom} {self.postnom} {self.prenom}".strip()
+        return f"{self.nom} {self.prenom}".strip()
     
     @property
     def age(self):
@@ -246,10 +245,9 @@ class Affilie(models.Model):
         return {
             'numero_affiliation': self.numero_affiliation,
             'nom': self.nom,
-            'postnom': self.postnom,
             'prenom': self.prenom,
             'sexe': self.sexe,
-            'date_naissance': self.date_naissance.isoformat() if self.date_naissance else None,
+            'date_naissance': str(self.date_naissance) if self.date_naissance else None,
             'etat_civil': self.etat_civil,
             'telephone': self.telephone,
             'email': self.email,

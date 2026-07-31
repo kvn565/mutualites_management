@@ -35,7 +35,6 @@ class AyantDroit(SoftDeleteMixin):
         verbose_name='Chef de ménage',
     )
     nom = models.CharField(max_length=100, db_index=True, verbose_name='Nom')
-    postnom = models.CharField(max_length=100, blank=True, verbose_name='Postnom')
     prenom = models.CharField(max_length=100, blank=True, verbose_name='Prénom')
     sexe = models.CharField(max_length=1, choices=SEXE_CHOICES, verbose_name='Sexe')
     date_naissance = models.DateField(verbose_name='Date de naissance')
@@ -81,7 +80,7 @@ class AyantDroit(SoftDeleteMixin):
 
     @property
     def nom_complet(self):
-        return f"{self.nom} {self.postnom} {self.prenom}".strip()
+        return f"{self.nom} {self.prenom}".strip()
 
     @property
     def age(self):
@@ -110,7 +109,6 @@ class AyantDroit(SoftDeleteMixin):
     def _serialiser_pour_corbeille(self):
         return {
             'nom': self.nom,
-            'postnom': self.postnom,
             'prenom': self.prenom,
             'sexe': self.sexe,
             'date_naissance': self.date_naissance.isoformat() if self.date_naissance else None,
