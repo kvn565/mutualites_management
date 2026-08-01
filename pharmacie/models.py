@@ -70,8 +70,13 @@ class Medicament(SoftDeleteMixin):
     @classmethod
     def generer_code(cls):
         prefix = "MED"
-        count = cls.objects.count() + 1
-        return f"{prefix}-{count:04d}"
+        base = f"{prefix}-"
+        count = cls._base_manager.filter(code__startswith=base).count() + 1
+        code = f"{base}{count:04d}"
+        while cls._base_manager.filter(code=code).exists():
+            count += 1
+            code = f"{base}{count:04d}"
+        return code
 
     def _serialiser_pour_corbeille(self):
         return {

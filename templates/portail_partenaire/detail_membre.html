@@ -66,35 +66,35 @@
             <div class="info-grid">
                 <div class="info-item">
                     <label>Soins ambulatoires</label>
-                    <span>{{ membre.soins_ambulatoires|floatformat:0|intcomma }} BIF</span>
+                    <span>{{ membre.plafonds_effectifs.soins_ambulatoires|floatformat:0|intcomma }} BIF</span>
                 </div>
                 <div class="info-item">
                     <label>Hospitalisation générale</label>
-                    <span>{{ membre.limite_hospitalisation_generale|floatformat:0|intcomma }} BIF</span>
+                    <span>{{ membre.plafonds_effectifs.limite_hospitalisation_generale|floatformat:0|intcomma }} BIF</span>
                 </div>
                 <div class="info-item">
                     <label>Pharmacie / Médicaments</label>
-                    <span>{{ membre.limites_medicaments|floatformat:0|intcomma }} BIF</span>
+                    <span>{{ membre.plafonds_effectifs.limites_medicaments|floatformat:0|intcomma }} BIF</span>
                 </div>
                 <div class="info-item">
                     <label>Laboratoire</label>
-                    <span>{{ membre.limite_laboratoire|floatformat:0|intcomma }} BIF</span>
+                    <span>{{ membre.plafonds_effectifs.limite_laboratoire|floatformat:0|intcomma }} BIF</span>
                 </div>
                 <div class="info-item">
                     <label>Imagerie médicale</label>
-                    <span>{{ membre.limite_imagerie_medicale|floatformat:0|intcomma }} BIF</span>
+                    <span>{{ membre.plafonds_effectifs.limite_imagerie_medicale|floatformat:0|intcomma }} BIF</span>
                 </div>
                 <div class="info-item">
                     <label>Maternité (forfait)</label>
-                    <span>{{ membre.maternite_forfait|floatformat:0|intcomma }} BIF</span>
+                    <span>{{ membre.plafonds_effectifs.maternite_forfait|floatformat:0|intcomma }} BIF</span>
                 </div>
                 <div class="info-item">
                     <label>Plafond chambre/nuit</label>
-                    <span>{{ membre.hopital_plafond_chambre|floatformat:0|intcomma }} BIF</span>
+                    <span>{{ membre.plafonds_effectifs.hopital_plafond_chambre|floatformat:0|intcomma }} BIF</span>
                 </div>
                 <div class="info-item">
                     <label>Cotisation mensuelle</label>
-                    <span class="fw-bold">{{ membre.cotisation_mensuelle|floatformat:0|intcomma }} BIF</span>
+                    <span class="fw-bold">{{ membre.plafonds_effectifs.cotisation_mensuelle|floatformat:0|intcomma }} BIF</span>
                 </div>
             </div>
         </div>
@@ -136,6 +136,16 @@
                     <label>Total consommé</label>
                     <span class="fw-bold">{{ total_consomme|floatformat:0|intcomma }} BIF</span>
                 </div>
+                <div class="info-item">
+                    <label>Consommé ce mois</label>
+                    <span class="fw-bold">{{ consommation_mois|floatformat:0|intcomma }} BIF</span>
+                </div>
+                {% if reste_plafond is not None %}
+                <div class="info-item">
+                    <label>Reste (plafond mensuel)</label>
+                    <span class="fw-bold text-success">{{ reste_plafond|floatformat:0|intcomma }} BIF</span>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -170,6 +180,7 @@
                     <th>Âge</th>
                     <th>Lien parenté</th>
                     <th>Statut</th>
+                    <th>Facturer</th>
                 </tr>
             </thead>
             <tbody>
@@ -183,6 +194,13 @@
                         {% if ad.statut == 'ACTIF' %}<span class="badge badge-success">Actif</span>
                         {% else %}<span class="badge badge-secondary">{{ ad.get_statut_display }}</span>
                         {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'portail_partenaire:ajouter_facture' membre.pk %}?ayant_droit={{ ad.pk }}"
+                           class="btn btn-sm btn-outline-primary"
+                           title="Créer une facture pour {{ ad.nom_complet }}">
+                            <i class="bi bi-plus-circle"></i> Facturer
+                        </a>
                     </td>
                 </tr>
                 {% endfor %}

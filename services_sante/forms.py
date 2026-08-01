@@ -10,7 +10,7 @@ class ServiceSanteForm(forms.ModelForm):
             'taux_prise_en_charge', 'plafond', 'conditions', 'actif'
         ]
         widgets = {
-            'code': forms.TextInput(attrs={'class': 'form-control'}),
+            'code': forms.TextInput(attrs={'class': 'form-control', 'readonly': True}),
             'nom': forms.TextInput(attrs={'class': 'form-control'}),
             'categorie': forms.Select(attrs={'class': 'form-select'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),

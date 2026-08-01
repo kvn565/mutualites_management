@@ -53,8 +53,13 @@ class ServiceSante(SoftDeleteMixin):
     @classmethod
     def generer_code(cls, categorie):
         prefix = categorie[:3].upper()
-        count = cls.objects.filter(categorie=categorie).count() + 1
-        return f"{prefix}-{count:03d}"
+        base = f"{prefix}-"
+        count = cls._base_manager.filter(categorie=categorie).count() + 1
+        code = f"{base}{count:03d}"
+        while cls._base_manager.filter(code=code).exists():
+            count += 1
+            code = f"{base}{count:03d}"
+        return code
 
     def _serialiser_pour_corbeille(self):
         return {

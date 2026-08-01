@@ -16,6 +16,7 @@
                 {% csrf_token %}
                 <input type="hidden" name="mode" value="{{ mode }}">
                 <input type="hidden" id="affilie_id" name="affilie_id" value="">
+                <input type="hidden" id="ayant_droit_id" name="ayant_droit_id" value="">
 
                 {% if mode == 'mutualite' %}
                 <div style="margin-bottom:16px;">
@@ -23,6 +24,12 @@
                     <input type="text" id="affilieSearch" class="form-control form-control-lg" placeholder="Chercher par N° carte, nom ou n° affiliation..." autocomplete="off">
                     <div id="affilieResults" class="list-group mt-1" style="display:none;position:absolute;z-index:1000;max-height:200px;overflow-y:auto;width:calc(100% - 24px);"></div>
                     <div id="affilieInfo" class="mt-1 small text-muted" style="display:none;"></div>
+                    <div id="ayantDroitBlock" style="display:none;margin-top:8px;">
+                        <label class="form-label">Ayant droit (bénéficiaire)</label>
+                        <select id="ayantDroitSelect" class="form-select">
+                            <option value="">Le titulaire</option>
+                        </select>
+                    </div>
                 </div>
                 {% endif %}
 
@@ -217,6 +224,18 @@ document.addEventListener('DOMContentLoaded', function() {
                                 affilieInfo.style.display = 'block';
                                 affilieResults.style.display = 'none';
                                 if (clientNomInput) clientNomInput.value = '';
+                                var adSelect = document.getElementById('ayantDroitSelect');
+                                var adBlock = document.getElementById('ayantDroitBlock');
+                                var ayantDroitId = document.getElementById('ayant_droit_id');
+                                adSelect.innerHTML = '<option value="">Le titulaire</option>';
+                                (a.ayants_droit || []).forEach(function(ad) {
+                                    var opt = document.createElement('option');
+                                    opt.value = ad.pk;
+                                    opt.textContent = ad.nom + ' ' + ad.prenom + ' (' + ad.lien_parente + ')';
+                                    adSelect.appendChild(opt);
+                                });
+                                adBlock.style.display = (a.ayants_droit && a.ayants_droit.length > 0) ? 'block' : 'none';
+                                ayantDroitId.value = '';
                             });
                             affilieResults.appendChild(item);
                         });
@@ -230,6 +249,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         affilieSearch.addEventListener('focus', function() {
             if (affilieResults.children.length > 0) affilieResults.style.display = 'block';
+        });
+    }
+
+    // ── Ayant droit ──
+    var ayantDroitSelect = document.getElementById('ayantDroitSelect');
+    if (ayantDroitSelect) {
+        ayantDroitSelect.addEventListener('change', function() {
+            document.getElementById('ayant_droit_id').value = this.value;
         });
     }
 

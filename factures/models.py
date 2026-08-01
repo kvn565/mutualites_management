@@ -66,8 +66,13 @@ class Facture(SoftDeleteMixin):
     @classmethod
     def generer_numero(cls):
         date_str = timezone.now().strftime('%Y%m')
-        count = cls.objects.filter(date__year=timezone.now().year, date__month=timezone.now().month).count() + 1
-        return f"FAC-{date_str}-{count}"
+        base = f"FAC-{date_str}-"
+        count = cls._base_manager.filter(numero__startswith=base).count() + 1
+        numero = f"{base}{count}"
+        while cls._base_manager.filter(numero=numero).exists():
+            count += 1
+            numero = f"{base}{count}"
+        return numero
 
     def _serialiser_pour_corbeille(self):
         return {

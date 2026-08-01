@@ -1,0 +1,94 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% block title %}Services de santé{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="flex items-center justify-between w-full">
+        <div>
+            <h1><i class="bi bi-hospital" style="color:var(--primary)"></i> Services de santé</h1>
+            <p>{{ total }} service(s) référencé(s) pour {{ mutualites|length }} mutualité(s)</p>
+        </div>
+        <a href="{% url 'portail_partenaire:ajouter_service' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Ajouter
+        </a>
+    </div>
+</div>
+
+<form method="get" class="flex gap-2 mb-4" style="flex-wrap:wrap;">
+    <div class="search-bar" style="flex:1;">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" name="q" class="form-control" placeholder="Rechercher par nom ou code..." value="{{ q }}">
+    </div>
+    <select name="categorie" class="form-select" style="width:220px;" onchange="this.form.submit()">
+        <option value="">Toutes catégories</option>
+        {% for code, label in categorie_choices %}
+        <option value="{{ code }}" {% if categorie == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
+</form>
+
+{% if services %}
+<div class="card" style="padding:0;">
+    <div class="table-scroll">
+    <table>
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Nom</th>
+                <th>Catégorie</th>
+                <th>Mutualité</th>
+                <th>Taux PEC</th>
+                <th>Statut</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in services %}
+            <tr>
+                <td><code>{{ s.code }}</code></td>
+                <td class="fw-bold">{{ s.nom }}</td>
+                <td>{{ s.get_categorie_display }}</td>
+                <td><span class="badge badge-info">{{ s.mutualite.sigle|default:s.mutualite.code_mutualite }}</span></td>
+                <td>{{ s.taux_prise_en_charge|floatformat:0 }}%</td>
+                <td>
+                    {% if s.actif %}<span class="badge badge-success">Actif</span>
+                    {% else %}<span class="badge badge-secondary">Inactif</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'portail_partenaire:modifier_service' s.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <a href="{% url 'portail_partenaire:supprimer_service' s.pk %}" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+{% if services.paginator.num_pages > 1 %}
+<div class="pagination">
+    {% if services.has_previous %}
+    <a href="?page={{ services.previous_page_number }}&q={{ q }}&categorie={{ categorie }}" class="page-link">&laquo;</a>
+    {% endif %}
+    {% for p in services.paginator.page_range %}
+    <a href="?page={{ p }}&q={{ q }}&categorie={{ categorie }}" class="page-link {% if p == services.number %}active{% endif %}">{{ p }}</a>
+    {% endfor %}
+    {% if services.has_next %}
+    <a href="?page={{ services.next_page_number }}&q={{ q }}&categorie={{ categorie }}" class="page-link">&raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <i class="bi bi-hospital"></i>
+    <p>Aucun service trouvé. {% if not q %}Cliquez sur "Ajouter" pour commencer.{% endif %}</p>
+</div>
+{% endif %}
+{% endblock %}

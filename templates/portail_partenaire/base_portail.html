@@ -601,6 +601,10 @@ document.addEventListener('click', function(e) {
        class="nav-item {% if 'medicaments' in request.path %}active{% endif %}">
         <i class="bi bi-capsule-pill"></i> Médicaments
     </a>
+    <a href="{% url 'portail_partenaire:liste_services' %}"
+       class="nav-item {% if 'services' in request.path %}active{% endif %}">
+        <i class="bi bi-hospital"></i> Services
+    </a>
 </div>
 {% endif %}
 

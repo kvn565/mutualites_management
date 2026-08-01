@@ -206,6 +206,26 @@ class Affilie(models.Model):
     @property
     def nombre_beneficiaires(self):
         return self.ayants_droit.filter(actif=True).count()
+
+    @property
+    def plafonds_effectifs(self):
+        from decimal import Decimal
+        champs = [
+            'cotisation_mensuelle', 'soins_ambulatoires', 'limite_laboratoire',
+            'limite_kinesitherapie', 'limite_reanimation', 'limite_imagerie_medicale',
+            'hopital_plafond_chambre', 'hpc_nuit', 'limite_hospitalisation_generale',
+            'maternite_forfait', 'pourcentage_maternite', 'pharmacie_forfait',
+            'limites_medicaments', 'limites_lunettes', 'limites_dents',
+        ]
+        resultat = {}
+        for champ in champs:
+            valeur = getattr(self, champ, None) or Decimal('0')
+            if valeur <= 0 and self.origine:
+                valeur = getattr(self.origine, champ, None) or Decimal('0')
+            if valeur <= 0 and self.mutualite_id:
+                valeur = getattr(self.mutualite, f'def_{champ}', None) or Decimal('0')
+            resultat[champ] = valeur
+        return resultat
     
     def save(self, *args, **kwargs):
         if not self.numero_affiliation:

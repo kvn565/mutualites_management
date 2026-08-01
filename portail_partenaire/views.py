@@ -24,6 +24,7 @@ from .forms import (
     CreerUtilisateurForm,
     MedicamentForm,
 )
+from services_sante.forms import ServiceSanteForm
 from pharmacie.models import Medicament, CategorieMedicament
 
 
@@ -351,9 +352,15 @@ def detail_membre(request, pk):
         mutualite=membre.mutualite, affilie=membre, partenaire=partenaire,
     ).select_related('partenaire').order_by('-date')[:10]
 
-    total_consomme = factures.aggregate(
-        total=Sum('montant_total'),
-    )['total'] or 0
+    total_consomme = Facture.objects.filter(
+        mutualite=membre.mutualite, affilie=membre,
+        statut__in=['SOUMIS', 'VALIDE', 'PAYE'],
+    ).aggregate(total=Sum('montant_mutualite'))['total'] or 0
+
+    from core.utils import consommation_mensuelle_affilie
+    consommation_mois = consommation_mensuelle_affilie(membre)
+    plafond_mensuel = membre.plafond_mensuel
+    reste_plafond = (plafond_mensuel - consommation_mois) if plafond_mensuel > 0 else None
 
     documents = DocumentMedical.objects.filter(
         mutualite=membre.mutualite, affilie=membre,
@@ -401,10 +408,27 @@ def detail_membre(request, pk):
         'factures': factures,
         'documents': documents,
         'total_consomme': total_consomme,
+        'consommation_mois': consommation_mois,
+        'plafond_mensuel': plafond_mensuel,
+        'reste_plafond': reste_plafond,
         'exclusions_actives': exclusions_actives,
         'excluded_service_ids': excluded_service_ids,
         'excluded_medicament_ids': excluded_medicament_ids,
     })
+
+
+def _montant_mutualite_projete(formset):
+    from decimal import Decimal
+    total = Decimal('0')
+    for ligne_form in formset.forms:
+        cleaned = getattr(ligne_form, 'cleaned_data', None)
+        if not cleaned or cleaned.get('DELETE'):
+            continue
+        prix = cleaned.get('prix_unitaire') or Decimal('0')
+        quantite = cleaned.get('quantite') or Decimal('1')
+        taux = cleaned.get('taux_applique') or Decimal('0')
+        total += Decimal(quantite) * Decimal(prix) * Decimal(taux) / Decimal('100')
+    return total
 
 
 def ajouter_facture(request, membre_pk):
@@ -420,8 +444,19 @@ def ajouter_facture(request, membre_pk):
         pk=membre_pk,
     )
     mutualite = membre.mutualite
+    ayants_droit = AyantDroit.objects.filter(
+        mutualite=mutualite, affilie=membre, actif=True, supprime=False,
+    )
 
     if request.method == 'POST':
+        if membre.bloque or membre.bloque_definitif:
+            messages.error(
+                request,
+                f"Le membre {membre.nom_complet} est bloqué (plafond mensuel atteint). "
+                f"La création de facture est refusée."
+            )
+            return redirect('portail_partenaire:detail_membre', pk=membre.pk)
+
         form = FactureForm(request.POST)
         formset = LigneFactureFormSet(request.POST)
 
@@ -430,6 +465,9 @@ def ajouter_facture(request, membre_pk):
             facture.mutualite = mutualite
             facture.partenaire = partenaire
             facture.affilie = membre
+            ayant_droit_id = request.POST.get('ayant_droit_id', '')
+            if ayant_droit_id:
+                facture.ayant_droit = ayants_droit.filter(pk=ayant_droit_id).first()
             facture.numero = Facture.generer_numero()
             facture.statut = 'BROUILLON'
             facture.save()
@@ -453,8 +491,16 @@ def ajouter_facture(request, membre_pk):
         form = FactureForm()
         formset = LigneFactureFormSet()
 
+    ayant_droit_preselect = None
+    preselection_id = request.GET.get('ayant_droit') or request.GET.get('ayant_droit_id') or ''
+    if preselection_id:
+        ayant_droit_preselect = ayants_droit.filter(pk=preselection_id).first()
+
     services = ServiceSante.objects.filter(mutualite=mutualite, actif=True)
     medicaments = Medicament.objects.filter(mutualite=mutualite, actif=True, pris_en_charge=True)
+    for ligne_form in formset.forms:
+        ligne_form.fields['service'].queryset = services
+        ligne_form.fields['medicament'].queryset = medicaments
     medicaments_json = json.dumps([
         {
             'id': m.pk,
@@ -501,12 +547,22 @@ def ajouter_facture(request, membre_pk):
     except Exception:
         pass
 
+    from core.utils import consommation_mensuelle_affilie
+    consommation_mois = consommation_mensuelle_affilie(membre)
+    plafond_mensuel = membre.plafond_mensuel
+    reste_plafond = (plafond_mensuel - consommation_mois) if plafond_mensuel > 0 else None
+
     return render(request, 'portail_partenaire/ajouter_facture.html', {
         'user': user,
         'partenaire': partenaire,
         'mutualites': mutualites,
         'membre': membre,
         'mutualite': mutualite,
+        'ayants_droit': ayants_droit,
+        'ayant_droit_preselect': ayant_droit_preselect,
+        'consommation_mois': consommation_mois,
+        'plafond_mensuel': plafond_mensuel,
+        'reste_plafond': reste_plafond,
         'form': form,
         'formset': formset,
         'services': services,
@@ -564,6 +620,22 @@ def ajouter_facture_simple(request):
                 except Affilie.DoesNotExist:
                     pass
 
+            if facture.affilie:
+                ayant_droit_id = request.POST.get('ayant_droit_id', '')
+                if ayant_droit_id:
+                    facture.ayant_droit = AyantDroit.objects.filter(
+                        affilie=facture.affilie, mutualite=mutualite,
+                        actif=True, supprime=False, pk=ayant_droit_id,
+                    ).first()
+
+            if facture.affilie and (facture.affilie.bloque or facture.affilie.bloque_definitif):
+                messages.error(
+                    request,
+                    f"Le membre {facture.affilie.nom_complet} est bloqué "
+                    f"(plafond mensuel atteint). La création de facture est refusée."
+                )
+                return redirect('portail_partenaire:detail_membre', pk=facture.affilie.pk)
+
             facture.numero = Facture.generer_numero()
             facture.statut = 'BROUILLON'
             facture.save()
@@ -588,6 +660,9 @@ def ajouter_facture_simple(request):
 
     services = ServiceSante.objects.filter(mutualite__in=mutualites, actif=True)
     medicaments = Medicament.objects.filter(mutualite__in=mutualites, actif=True, pris_en_charge=True)
+    for ligne_form in formset.forms:
+        ligne_form.fields['service'].queryset = services
+        ligne_form.fields['medicament'].queryset = medicaments
     medicaments_json = json.dumps([
         {
             'id': m.pk,
@@ -1029,11 +1104,12 @@ def ajouter_medicament(request):
         if form.is_valid():
             obj = form.save(commit=False)
             obj.mutualite = mutualite
+            obj.code = Medicament.generer_code()
             obj.save()
             messages.success(request, f"Médicament {obj.nom} ajouté.")
             return redirect('portail_partenaire:liste_medicaments')
     else:
-        form = MedicamentForm()
+        form = MedicamentForm(initial={'code': Medicament.generer_code()})
 
     categories = CategorieMedicament.objects.filter(mutualite__in=mutualites)
     from core.models import Mutualite as MutModel
@@ -1111,6 +1187,134 @@ def supprimer_medicament(request, pk):
         return redirect('portail_partenaire:liste_medicaments')
 
     return render(request, 'portail_partenaire/medicament_confirm_supprimer.html', {
+        'user': user,
+        'partenaire': partenaire,
+        'mutualites': mutualites,
+        'mutualite': obj.mutualite,
+        'obj': obj,
+    })
+
+
+def liste_services(request):
+    user = get_partenaire_from_session(request)
+    if not user:
+        return redirect('portail_partenaire:connexion')
+
+    partenaire = user.partenaire
+    mutualites = get_mutualites_list(user)
+    mutualite_ids = list(mutualites.values_list('pk', flat=True))
+
+    qs = ServiceSante.objects.filter(mutualite__in=mutualite_ids).select_related('mutualite')
+    q = request.GET.get('q', '')
+    categorie = request.GET.get('categorie', '')
+
+    if q:
+        qs = qs.filter(Q(nom__icontains=q) | Q(code__icontains=q))
+    if categorie:
+        qs = qs.filter(categorie=categorie)
+
+    paginator = Paginator(qs, 15)
+    page = request.GET.get('page', 1)
+    services = paginator.get_page(page)
+
+    return render(request, 'portail_partenaire/liste_services.html', {
+        'user': user,
+        'partenaire': partenaire,
+        'mutualites': mutualites,
+        'services': services,
+        'q': q,
+        'categorie': categorie,
+        'total': qs.count(),
+        'categorie_choices': ServiceSante.CATEGORIE_CHOICES,
+    })
+
+
+def ajouter_service(request):
+    user = get_partenaire_from_session(request)
+    if not user:
+        return redirect('portail_partenaire:connexion')
+
+    partenaire = user.partenaire
+    mutualites = get_mutualites_list(user)
+    mutualite = user.mutualite
+
+    if request.method == 'POST':
+        mut_pk = request.POST.get('mutualite_id', user.mutualite_id)
+        try:
+            mutualite = mutualites.get(pk=mut_pk)
+        except (ValueError, mutualites.model.DoesNotExist):
+            mutualite = user.mutualite
+
+        form = ServiceSanteForm(request.POST)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.code = ServiceSante.generer_code(obj.categorie)
+            obj.mutualite = mutualite
+            obj.save()
+            messages.success(request, f"Service {obj.nom} ajouté.")
+            return redirect('portail_partenaire:liste_services')
+    else:
+        form = ServiceSanteForm(initial={
+            'code': ServiceSante.generer_code('AUTRE'),
+        })
+
+    return render(request, 'portail_partenaire/service_form.html', {
+        'user': user,
+        'partenaire': partenaire,
+        'mutualites': mutualites,
+        'mutualite': mutualite,
+        'form': form,
+        'titre': 'Ajouter un service de santé',
+    })
+
+
+def modifier_service(request, pk):
+    user = get_partenaire_from_session(request)
+    if not user:
+        return redirect('portail_partenaire:connexion')
+
+    partenaire = user.partenaire
+    mutualites = get_mutualites_list(user)
+    mutualite_ids = list(mutualites.values_list('pk', flat=True))
+    obj = get_object_or_404(ServiceSante.objects.filter(mutualite__in=mutualite_ids), pk=pk)
+
+    if request.method == 'POST':
+        form = ServiceSanteForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Service {obj.nom} modifié.")
+            return redirect('portail_partenaire:liste_services')
+    else:
+        form = ServiceSanteForm(instance=obj)
+
+    return render(request, 'portail_partenaire/service_form.html', {
+        'user': user,
+        'partenaire': partenaire,
+        'mutualites': mutualites,
+        'mutualite': obj.mutualite,
+        'form': form,
+        'obj': obj,
+        'titre': 'Modifier le service',
+    })
+
+
+def supprimer_service(request, pk):
+    user = get_partenaire_from_session(request)
+    if not user:
+        return redirect('portail_partenaire:connexion')
+
+    partenaire = user.partenaire
+    mutualites = get_mutualites_list(user)
+    mutualite_ids = list(mutualites.values_list('pk', flat=True))
+    obj = get_object_or_404(ServiceSante.objects.filter(mutualite__in=mutualite_ids), pk=pk)
+
+    if request.method == 'POST':
+        nom = obj.nom
+        obj.delete()
+        messages.success(request, f"Service {nom} supprimé.")
+        return redirect('portail_partenaire:liste_services')
+
+    return render(request, 'portail_partenaire/service_confirm_supprimer.html', {
         'user': user,
         'partenaire': partenaire,
         'mutualites': mutualites,

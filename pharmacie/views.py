@@ -55,6 +55,7 @@ def ajouter(request):
         if form.is_valid():
             obj = form.save(commit=False)
             obj.mutualite = request.user.mutualite
+            obj.code = Medicament.generer_code()
             obj.save()
             enregistrer_audit(request, 'CREATION', 'pharmacie', f"Création médicament : {obj.nom}", 'Medicament', obj.pk)
             messages.success(request, f"✅ Médicament {obj.nom} ajouté.")

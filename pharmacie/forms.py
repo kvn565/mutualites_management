@@ -11,7 +11,7 @@ class MedicamentForm(forms.ModelForm):
             'observations', 'actif'
         ]
         widgets = {
-            'code': forms.TextInput(attrs={'class': 'form-control'}),
+            'code': forms.TextInput(attrs={'class': 'form-control', 'readonly': True}),
             'nom': forms.TextInput(attrs={'class': 'form-control'}),
             'dci': forms.TextInput(attrs={'class': 'form-control'}),
             'categorie': forms.Select(attrs={'class': 'form-select'}),

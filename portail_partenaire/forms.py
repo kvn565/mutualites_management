@@ -289,12 +289,43 @@ class FactureSimpleClientForm(forms.ModelForm):
         self.fields['date'].initial = timezone.now().date()
 
 
+class DonneesSelect(forms.Select):
+    def __init__(self, attrs=None, data_attr=None):
+        super().__init__(attrs=attrs)
+        self.data_attr = data_attr or {}
+        self._obj_map = {}
+
+    def optgroups(self, name, value, attrs=None):
+        self._obj_map = {}
+        if hasattr(self.choices, 'queryset'):
+            self._obj_map = {str(o.pk): o for o in self.choices.queryset}
+        return super().optgroups(name, value, attrs)
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex, attrs)
+        obj = self._obj_map.get(str(value))
+        if obj is not None:
+            for attr, expr in self.data_attr.items():
+                option['attrs'][attr] = str(expr(obj))
+        return option
+
+
 class LigneFactureForm(forms.ModelForm):
     class Meta:
         model = LigneFacture
-        fields = ['service', 'designation', 'quantite', 'prix_unitaire', 'taux_applique']
+        fields = ['service', 'medicament', 'designation', 'quantite', 'prix_unitaire', 'taux_applique']
         widgets = {
-            'service': forms.Select(attrs={'class': 'form-select form-select-lg'}),
+            'service': DonneesSelect(
+                attrs={'class': 'form-select form-select-lg'},
+                data_attr={'data-taux': lambda o: o.taux_prise_en_charge},
+            ),
+            'medicament': DonneesSelect(
+                attrs={'class': 'form-select form-select-lg'},
+                data_attr={
+                    'data-prix': lambda o: o.prix_reference,
+                    'data-taux': lambda o: o.taux_remboursement,
+                },
+            ),
             'designation': forms.TextInput(attrs={
                 'class': 'form-control form-control-lg', 'placeholder': 'Ex: Consultation générale',
             }),
@@ -313,6 +344,28 @@ class LigneFactureForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if not self.instance.pk:
             self.fields['taux_applique'].initial = 80
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('DELETE'):
+            return cleaned
+        service = cleaned.get('service')
+        medicament = cleaned.get('medicament')
+        designation = (cleaned.get('designation') or '').strip()
+        prix = cleaned.get('prix_unitaire')
+        quantite = cleaned.get('quantite')
+        ligne_vide = not service and not medicament and not designation and prix in (None, 0)
+        if ligne_vide:
+            return cleaned
+        if not designation:
+            self.add_error('designation', 'Précisez la désignation de la prestation.')
+        if service and medicament:
+            self.add_error('service', 'Choisissez soit un service, soit un médicament.')
+        if quantite is None or quantite < 1:
+            self.add_error('quantite', 'La quantité doit être au moins 1.')
+        if prix is None or prix <= 0:
+            self.add_error('prix_unitaire', 'Le prix unitaire doit être supérieur à 0.')
+        return cleaned
 
 
 LigneFactureFormSet = forms.inlineformset_factory(
@@ -447,7 +500,7 @@ class MedicamentForm(forms.ModelForm):
             'observations', 'actif'
         ]
         widgets = {
-            'code': forms.TextInput(attrs={'class': 'form-control'}),
+            'code': forms.TextInput(attrs={'class': 'form-control', 'readonly': True}),
             'nom': forms.TextInput(attrs={'class': 'form-control'}),
             'dci': forms.TextInput(attrs={'class': 'form-control'}),
             'categorie': forms.Select(attrs={'class': 'form-select'}),

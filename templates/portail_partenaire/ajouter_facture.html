@@ -30,6 +30,17 @@
                         {{ form.date }}
                     </div>
                 </div>
+                {% if ayants_droit %}
+                <div style="margin-bottom:16px;">
+                    <label class="form-label">Bénéficiaire des soins</label>
+                    <select name="ayant_droit_id" class="form-select form-select-lg">
+                        <option value="">Le titulaire ({{ membre.nom_complet }})</option>
+                        {% for ad in ayants_droit %}
+                        <option value="{{ ad.pk }}" {% if ayant_droit_preselect and ad.pk == ayant_droit_preselect.pk %}selected{% endif %}>{{ ad.nom_complet }} ({{ ad.get_lien_parente_display }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
                 <div style="margin-bottom:16px;">
                     <label class="form-label">Diagnostic / Raison</label>
                     {{ form.diagnostic }}
@@ -159,20 +170,30 @@
                 <div class="info-grid">
                     <div class="info-item">
                         <label>Soins ambulatoires</label>
-                        <span class="fw-bold">{{ membre.soins_ambulatoires|floatformat:0|intcomma }} BIF</span>
+                        <span class="fw-bold">{{ membre.plafonds_effectifs.soins_ambulatoires|floatformat:0|intcomma }} BIF</span>
                     </div>
                     <div class="info-item">
                         <label>Hospitalisation</label>
-                        <span class="fw-bold">{{ membre.limite_hospitalisation_generale|floatformat:0|intcomma }} BIF</span>
+                        <span class="fw-bold">{{ membre.plafonds_effectifs.limite_hospitalisation_generale|floatformat:0|intcomma }} BIF</span>
                     </div>
                     <div class="info-item">
                         <label>Pharmacie</label>
-                        <span class="fw-bold">{{ membre.limites_medicaments|floatformat:0|intcomma }} BIF</span>
+                        <span class="fw-bold">{{ membre.plafonds_effectifs.limites_medicaments|floatformat:0|intcomma }} BIF</span>
                     </div>
                     <div class="info-item">
                         <label>Maternité</label>
-                        <span class="fw-bold">{{ membre.maternite_forfait|floatformat:0|intcomma }} BIF</span>
+                        <span class="fw-bold">{{ membre.plafonds_effectifs.maternite_forfait|floatformat:0|intcomma }} BIF</span>
                     </div>
+                    <div class="info-item">
+                        <label>Consommé ce mois</label>
+                        <span class="fw-bold text-danger">{{ consommation_mois|floatformat:0|intcomma }} BIF</span>
+                    </div>
+                    {% if reste_plafond is not None %}
+                    <div class="info-item">
+                        <label>Reste (plafond mensuel)</label>
+                        <span class="fw-bold text-success">{{ reste_plafond|floatformat:0|intcomma }} BIF</span>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

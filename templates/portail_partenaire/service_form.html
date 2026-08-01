@@ -1,0 +1,77 @@
+{% extends 'portail_partenaire/base_portail.html' %}
+{% block title %}{{ titre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-hospital" style="color:var(--primary)"></i> {{ titre }}</h1>
+    <p>Mutualités liées : {% for m in mutualites %}{{ m.nom }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="grid-2">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-info-circle"></i> Identification</div>
+            <div class="card-body">
+                <div class="info-grid" style="grid-template-columns:1fr;">
+                    <div class="info-item">
+                        <label class="form-label">{{ form.code.label }}</label>
+                        {{ form.code }}
+                        <div class="form-text">Généré automatiquement à l'enregistrement</div>
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.nom.label }}</label>
+                        {{ form.nom }}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.categorie.label }}</label>
+                        {{ form.categorie }}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.description.label }}</label>
+                        {{ form.description }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="bi bi-cash-coin"></i> Prise en charge</div>
+            <div class="card-body">
+                <div class="info-grid" style="grid-template-columns:1fr;">
+                    <div class="info-item">
+                        <label class="form-label">{{ form.taux_prise_en_charge.label }}</label>
+                        {{ form.taux_prise_en_charge }}
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">Mutualité</label>
+                        <select name="mutualite_id" class="form-select">
+                            {% for m in mutualites %}
+                            <option value="{{ m.pk }}" {% if mutualite.pk == m.pk %}selected{% endif %}>{{ m.nom }} ({{ m.code_mutualite }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="info-item">
+                        <label class="form-label">{{ form.conditions.label }}</label>
+                        {{ form.conditions }}
+                    </div>
+                    <div class="info-item">
+                        <div class="form-check" style="padding-left:0;">
+                            <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+                                {{ form.actif }} Service actif
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex gap-2 mt-4" style="justify-content:flex-end;">
+        <a href="{% url 'portail_partenaire:liste_services' %}" class="btn btn-outline">Annuler</a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i> Enregistrer
+        </button>
+    </div>
+</form>
+{% endblock %}
