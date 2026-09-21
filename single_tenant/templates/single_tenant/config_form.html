@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Configuration Single-Tenant{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1>Configuration Single-Tenant</h1>
+
+    <div class="card mt-3">
+        <div class="card-header"><h5>Configurer la mutualité unique</h5></div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-primary">Sauvegarder</button>
+                <a href="{% url 'single_tenant:config' %}" class="btn btn-secondary">Annuler</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

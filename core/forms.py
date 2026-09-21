@@ -29,6 +29,17 @@ class ConnexionForm(forms.Form):
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
     )
 
+    # ==================== PROTECTION ANTI-ROBOT ====================
+    not_a_robot = forms.BooleanField(
+        label="Je ne suis pas un robot",
+        required=True,
+        error_messages={
+            'required': "Vous devez confirmer que vous n'êtes pas un robot pour vous connecter."
+        },
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+    # ============================================================
+
 
 class ProfilForm(forms.ModelForm):
     class Meta:

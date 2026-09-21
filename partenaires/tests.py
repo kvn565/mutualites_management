@@ -217,6 +217,8 @@ class ConventionModelTest(TestCase):
             email='conv@test.com',
             province='Bujumbura',
             commune='Mairie',
+            cle_activation='KEY-CONV-123456789012',
+            date_expiration=timezone.now() + timedelta(days=365),
         )
         self.user = User.objects.create_user(
             username='agent_conv',
@@ -258,6 +260,42 @@ class ConventionModelTest(TestCase):
         )
         self.assertEqual(c1.numero_convention, 'CONV-2026-0001')
         self.assertEqual(c2.numero_convention, 'CONV-2026-0002')
+
+    def test_numero_convention_collision_avoidance(self):
+        # Créer manuellement un numero pour tester le saut d'index
+        Convention.objects.create(
+            partenaire=self.partenaire,
+            mutualite=self.mutualite,
+            numero_convention='CONV-2026-0005',
+            date_debut=date(2026, 1, 1),
+            date_fin=date(2027, 1, 1),
+            created_by=self.user,
+        )
+        c = Convention.objects.create(
+            partenaire=self.partenaire,
+            mutualite=self.mutualite,
+            date_debut=date(2026, 1, 1),
+            date_fin=date(2027, 1, 1),
+            created_by=self.user,
+        )
+        self.assertEqual(c.numero_convention, 'CONV-2026-0006')
+
+    def test_accepter_demande_partenaire(self):
+        self.client.login(username='agent_conv', password='test123')
+        p_attente = Partenaire.all_objects.create(
+            mutualite=None,
+            type_partenaire='CLINIQUE',
+            nom_etablissement='Clinique En Attente',
+            statut='EN_ATTENTE',
+        )
+        from django.urls import reverse
+        response = self.client.get(reverse('partenaires:accepter_demande', args=[p_attente.pk]))
+        self.assertEqual(response.status_code, 302)
+        p_attente.refresh_from_db()
+        self.assertEqual(p_attente.statut, 'ACTIF')
+        self.assertEqual(p_attente.mutualite, self.mutualite)
+        self.assertTrue(Convention.objects.filter(partenaire=p_attente, mutualite=self.mutualite).exists())
+
 
     def test_mutualite_auto_assignee_depuis_partenaire(self):
         c = Convention.objects.create(

@@ -29,6 +29,7 @@ urlpatterns = [
     path('chambres/', include('gestion_chambres.urls')),
     path('superadmin/', include('superadmin.urls')),
     path('api/superadmin/', include('superadmin.api_urls')),
+    path('single-tenant/', include('single_tenant.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 admin.site.site_header = "Mutualité de Santé — Administration"

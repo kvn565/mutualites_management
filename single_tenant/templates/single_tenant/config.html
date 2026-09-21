@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Single-Tenant Configuration{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1>Configuration Single-Tenant</h1>
+
+    {% if config %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>{{ config.nom_instance }}</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <tr>
+                        <th>Mutualité</th>
+                        <td>{{ config.mutualite.nom }}</td>
+                    </tr>
+                    <tr>
+                        <th>Code</th>
+                        <td>{{ config.mutualite.code_mutualite }}</td>
+                    </tr>
+                    <tr>
+                        <th>Statut</th>
+                        <td>
+                            <span class="badge badge-{% if config.statut == 'ACTIVE' %}success{% else %}secondary{% endif %}">
+                                {{ config.get_statut_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Date d'activation</th>
+                        <td>{{ config.date_activation|date:"d/m/Y H:i"|default:"Non activée" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <form method="post" action="{% url 'single_tenant:toggle_active' config.pk %}" class="mt-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">
+                {% if config.statut == 'ACTIVE' %}Désactiver{% else %}Activer comme unique{% endif %}
+            </button>
+        </form>
+    {% else %}
+        <div class="alert alert-warning mt-3">
+            Aucune configuration single-tenant trouvée. Veuillez en créer une.
+        </div>
+        <a href="{% url 'admin:single_tenant_singletenantconfig_add' %}" class="btn btn-success">Créer la configuration</a>
+    {% endif %}
+</div>
+{% endblock %}

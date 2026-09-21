@@ -68,7 +68,7 @@
                             <th>Téléphone</th>
                             <th>Statut</th>
                             <th>Date création</th>
-                            <th>Actions</th>
+                            <th class="actions-nowrap">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -89,13 +89,15 @@
                                 </span>
                             </td>
                             <td>{{ p.date_creation|date:"d/m/Y" }}</td>
-                            <td>
+                            <td class="actions-nowrap">
+                                <div class="d-flex gap-1 flex-nowrap">
                                 <a href="{% url 'superadmin:partenaire_detail' p.pk %}" class="btn btn-sm btn-primary" title="Détails">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="{% url 'superadmin:partenaire_modifier' p.pk %}" class="btn btn-sm btn-outline-vert" title="Modifier">
+                                <a href="{% url 'superadmin:partenaire_modifier' p.pk %}" class="btn btn-sm btn-outline-primary" title="Modifier">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                </div>
                             </td>
                         </tr>
                         {% empty %}

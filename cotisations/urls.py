@@ -16,4 +16,6 @@ urlpatterns = [
     path('export/pdf/', views.export_pdf, name='export_pdf'),
     path('import/excel/', views.importer_excel, name='importer_excel'),
     path('import/modele/', views.telecharger_modele_import, name='telecharger_modele_import'),
+    path('rapport-periodique/', views.rapport_periodique, name='rapport_periodique'),
+    path('rapport-periodique/excel/', views.rapport_periodique_excel, name='rapport_periodique_excel'),
 ]

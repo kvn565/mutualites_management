@@ -92,6 +92,11 @@ class AffilieCreateView(CrudCreateView):
     titre = 'Ajouter un affilié'
     success_message_create = "✅ Affilié {obj.nom_complet} ajouté avec succès."
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['mutualite'] = self.request.user.mutualite
+        return kwargs
+
     def get_initial(self):
         from django.utils import timezone
         initial = super().get_initial()
@@ -103,20 +108,28 @@ class AffilieCreateView(CrudCreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        from origines.models import Origine
+        from origines.models import Origine, CategorieOrigine
         import json
         plafond_fields = [
-            'cotisation_mensuelle', 'soins_ambulatoires',
+            'cotisation_mensuelle', 'taux_prise_en_charge', 'soins_ambulatoires',
             'limite_laboratoire', 'limite_kinesitherapie', 'limite_reanimation', 'limite_imagerie_medicale',
             'hopital_plafond_chambre', 'hpc_nuit', 'limite_hospitalisation_generale',
             'maternite_forfait', 'pourcentage_maternite',
             'pharmacie_forfait', 'limites_medicaments', 'limites_lunettes', 'limites_dents',
         ]
+        # Origines
         origines = Origine.objects.filter(mutualite=self.request.user.mutualite)
-        data = {}
+        data_origines = {}
         for o in origines:
-            data[str(o.pk)] = {f: str(getattr(o, f, '0')) for f in plafond_fields}
-        ctx['origin_plafonds_json'] = json.dumps(data)
+            data_origines[str(o.pk)] = {f: str(getattr(o, f, '0')) for f in plafond_fields}
+        ctx['origin_plafonds_json'] = json.dumps(data_origines)
+        
+        # Catégories
+        categories = CategorieOrigine.objects.filter(mutualite=self.request.user.mutualite)
+        data_categories = {}
+        for c in categories:
+            data_categories[str(c.pk)] = {f: str(getattr(c, f, '0')) for f in plafond_fields}
+        ctx['categorie_plafonds_json'] = json.dumps(data_categories)
         return ctx
 
     def before_save(self, obj):
@@ -125,19 +138,25 @@ class AffilieCreateView(CrudCreateView):
         if not obj.mutualite_id:
             obj.mutualite = self.request.user.mutualite
         plafond_fields = [
-            'cotisation_mensuelle', 'soins_ambulatoires',
+            'cotisation_mensuelle', 'taux_prise_en_charge', 'soins_ambulatoires',
             'limite_laboratoire', 'limite_kinesitherapie', 'limite_reanimation', 'limite_imagerie_medicale',
             'hopital_plafond_chambre', 'hpc_nuit', 'limite_hospitalisation_generale',
             'maternite_forfait', 'pourcentage_maternite',
             'pharmacie_forfait', 'limites_medicaments', 'limites_lunettes', 'limites_dents',
         ]
-        # Priorité 1 : plafonds de l'origine (si définie)
-        if obj.origine_id:
+        # Priorité 1 : plafonds de la catégorie d'origine (si définie)
+        if obj.categorie_origine_id:
+            for field in plafond_fields:
+                val = getattr(obj.categorie_origine, field, None)
+                if val:
+                    setattr(obj, field, val)
+        # Priorité 2 : plafonds de l'origine (si définie)
+        elif obj.origine_id:
             for field in plafond_fields:
                 val = getattr(obj.origine, field, None)
                 if val:
                     setattr(obj, field, val)
-        # Priorité 2 : plafonds par défaut de la mutualité
+        # Priorité 3 : plafonds par défaut de la mutualité
         elif obj.mutualite:
             m = obj.mutualite
             plafonds_map = {
@@ -219,6 +238,11 @@ class AffilieUpdateView(CrudUpdateView):
     success_message_update = "✅ Affilié {obj.nom_complet} modifié avec succès."
     success_url = None
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['mutualite'] = self.request.user.mutualite
+        return kwargs
+
 
 class AffilieDeleteView(CrudDeleteView):
     model = Affilie
@@ -244,16 +268,16 @@ def telecharger_modele(request):
         'Groupe_sanguin', 'Contact_urgence_nom', 'Contact_urgence_telephone',
         'Centre_sante_reference', 'Hopital_reference',
         'Date_adhesion', 'Type_adhesion', 'Section_antenne',
-        'Statut', 'Notes',
+        'Categorie', 'Statut', 'Notes',
     ]
     ws.append(headers)
-    ws.append(['Ex: NDIMUBANDI', 'M', '1990-05-15', 'MARIE',
-               'BUJUMBURA', 'BUJUMBURA', 'CENTRE', '', '',
+    ws.append(['NDIMUBANDI', 'Jean', 'M', '1990-05-15', 'MARIE',
+               '123456', 'BUJUMBURA', 'MUKAZA', 'CENTRE', 'Bwiza', 'Av. Large',
                '79123456', 'jean@mail.com', 'Enseignant',
                'B+', 'MARIE NDIMUBANDI', '79987654',
-               '', '',
-               '2026-07-20', 'INDIVIDUELLE', '',
-               'ACTIF', ''])
+               'CS Kinama', 'HPRC',
+               '2026-07-20', 'INDIVIDUELLE', 'Section Nord',
+               'Cadre', 'ACTIF', 'Exemple'])
 
     for col, h in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col)
@@ -327,6 +351,7 @@ def importer(request):
                     'date adhesion': 'date_adhesion', 'date_adhesion': 'date_adhesion',
                     'type adhesion': 'type_adhesion', 'type_adhesion': 'type_adhesion',
                     'section antenne': 'section_antenne', 'section_antenne': 'section_antenne',
+                    'categorie': 'categorie', 'categorie employe': 'categorie', 'category': 'categorie',
                     'statut': 'statut', 'notes': 'notes',
                 }
 
@@ -341,6 +366,13 @@ def importer(request):
                     raise ValueError(f"Colonnes obligatoires manquantes : {', '.join(missing_cols)}")
 
                 origine = Origine.objects.get(pk=origine_id, mutualite=request.user.mutualite)
+                from origines.models import CategorieOrigine as _Cat
+                categorie_forcee = None
+                _cat_id = (request.POST.get('categorie') or '').strip()
+                if _cat_id:
+                    categorie_forcee = _Cat.objects.filter(pk=_cat_id, origine=origine, mutualite=request.user.mutualite).first()
+                    if not categorie_forcee:
+                        raise ValueError("Catégorie invalide pour cette origine.")
                 succes, erreurs = 0, []
 
                 format_numero = request.POST.get('format_numero') or format_defaut
@@ -432,7 +464,51 @@ def importer(request):
                                     except ValueError:
                                         pass
 
-                        aff.cotisation_mensuelle = 0
+                        # ── Catégorie : forcée par le formulaire OU colonne fichier ──
+                        from origines.models import CategorieOrigine
+                        _plafonds = ['cotisation_mensuelle', 'soins_ambulatoires',
+                                      'limite_laboratoire', 'limite_kinesitherapie', 'limite_reanimation',
+                                      'limite_imagerie_medicale', 'hopital_plafond_chambre', 'hpc_nuit',
+                                      'limite_hospitalisation_generale', 'maternite_forfait', 'pourcentage_maternite',
+                                      'pharmacie_forfait', 'limites_medicaments', 'limites_lunettes', 'limites_dents']
+                        if categorie_forcee:
+                            aff.categorie_origine = categorie_forcee
+                            for f in _plafonds:
+                                setattr(aff, f, getattr(categorie_forcee, f, 0))
+                        else:
+                            cat_nom = val('categorie')
+                            if cat_nom and str(cat_nom).strip():
+                                cat_nom = str(cat_nom).strip()
+                                cat = CategorieOrigine.objects.filter(
+                                    origine=origine, mutualite=request.user.mutualite,
+                                    nom__iexact=cat_nom, actif=True,
+                                ).first()
+                                if not cat:
+                                    cat = CategorieOrigine.objects.create(
+                                        mutualite=request.user.mutualite, origine=origine,
+                                        nom=cat_nom,
+                                        cotisation_mensuelle=origine.cotisation_mensuelle,
+                                        soins_ambulatoires=origine.soins_ambulatoires,
+                                        limite_laboratoire=origine.limite_laboratoire,
+                                        limite_kinesitherapie=origine.limite_kinesitherapie,
+                                        limite_reanimation=origine.limite_reanimation,
+                                        limite_imagerie_medicale=origine.limite_imagerie_medicale,
+                                        hopital_plafond_chambre=origine.hopital_plafond_chambre,
+                                        hpc_nuit=origine.hpc_nuit,
+                                        limite_hospitalisation_generale=origine.limite_hospitalisation_generale,
+                                        maternite_forfait=origine.maternite_forfait,
+                                        pourcentage_maternite=origine.pourcentage_maternite,
+                                        pharmacie_forfait=origine.pharmacie_forfait,
+                                        limites_medicaments=origine.limites_medicaments,
+                                        limites_lunettes=origine.limites_lunettes,
+                                        limites_dents=origine.limites_dents,
+                                    )
+                                aff.categorie_origine = cat
+                                for f in _plafonds:
+                                    setattr(aff, f, getattr(cat, f, 0))
+                            else:
+                                aff.cotisation_mensuelle = 0
+
                         aff.numero_affiliation = formater_numero_affiliation(prochain_numero, largeur)
                         prochain_numero += 1
                         aff.save()
@@ -447,10 +523,16 @@ def importer(request):
                 messages.error(request, f"❌ Erreur d'import : {str(e)}")
 
     origines = Origine.objects.filter(mutualite=request.user.mutualite, actif=True)
+    import json
+    from origines.models import CategorieOrigine
+    cats_map = {}
+    for c in CategorieOrigine.objects.filter(mutualite=request.user.mutualite, actif=True).select_related('origine').order_by('nom'):
+        cats_map.setdefault(str(c.origine_id), []).append({'pk': c.pk, 'nom': c.nom, 'cotisation': str(c.cotisation_mensuelle)})
     return render(request, 'affilies/importer.html', {
         'origines': origines,
         'result': result,
         'format_defaut': format_defaut,
+        'categories_map_json': json.dumps(cats_map),
     })
 
 
@@ -463,12 +545,13 @@ def export_excel(request):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Affiliés"
-    headers = ['N° Affiliation', 'Nom', 'Prénom', 'Sexe', 'Date Naissance', 'Téléphone', 'Catégorie', 'Statut']
+    headers = ['N° Affiliation', 'Nom', 'Prénom', 'Sexe', 'Date Naissance', 'Téléphone', 'Origine', 'Catégorie', 'Type adhésion', 'Statut']
     ws.append(headers)
     for obj in qs:
         ws.append([
             obj.numero_affiliation, obj.nom, obj.prenom, obj.get_sexe_display(),
-            obj.date_naissance.strftime('%d/%m/%Y'), obj.telephone,
+            obj.date_naissance.strftime('%d/%m/%Y') if obj.date_naissance else '', obj.telephone,
+            obj.origine.nom if obj.origine else '', obj.categorie_origine.nom if obj.categorie_origine else '',
             obj.get_type_adhesion_display(), obj.get_statut_display()
         ])
     output = BytesIO()
@@ -765,6 +848,15 @@ def origin_plafonds_ajax(request, pk):
         return JsonResponse({'success': True, 'data': data})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def categories_par_origine_ajax(request, pk):
+    from origines.models import CategorieOrigine
+    cats = CategorieOrigine.objects.filter(
+        origine_id=pk, mutualite=request.user.mutualite, actif=True,
+    ).values('pk', 'nom', 'cotisation_mensuelle').order_by('nom')
+    return JsonResponse({'success': True, 'data': list(cats)})
 
 
 # ─────────────────────────────────────────────

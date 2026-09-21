@@ -17,13 +17,21 @@
 
                     <div class="col-12">
                         <label class="form-label">Origine <span class="text-danger">*</span></label>
-                        <select name="origine" class="form-select" required>
+                        <select name="origine" id="id_origine_import" class="form-select" required>
                             <option value="">Sélectionner une origine...</option>
                             {% for o in origines %}
                             <option value="{{ o.pk }}">{{ o.nom }}</option>
                             {% endfor %}
                         </select>
                         <div class="form-text">Les affiliés importés seront rattachés à cette origine.</div>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Catégorie</label>
+                        <select name="categorie" id="id_categorie_import" class="form-select">
+                            <option value="">— Selon colonne Categorie du fichier —</option>
+                        </select>
+                        <div class="form-text">Sélectionnez l'origine d'abord : la liste montre ses catégories. Si vous choisissez une catégorie ici, tout le fichier sera importé dans cette catégorie. Sinon laissez vide et la colonne <code>Categorie</code> du fichier sera utilisée ligne par ligne.</div>
                     </div>
 
                     <div class="col-12">
@@ -72,7 +80,7 @@
                                     <li>Groupe sanguin, Contact urgence</li>
                                     <li>Centre santé réf., Hôpital réf.</li>
                                     <li>Date adhésion, Type adhésion, Section</li>
-                                    <li>Statut, Notes</li>
+                                    <li>Categorie (nom exact, créée si inexistante), Statut, Notes</li>
                                 </ul>
                             </div>
                         </div>
@@ -84,6 +92,40 @@
                             <i class="bi bi-upload me-1"></i> Importer
                         </button>
                     </div>
+<script>
+(function(){
+  var map = {{ categories_map_json|default:"{}"|safe }};
+  var sel = document.getElementById('id_origine_import');
+  var cat = document.getElementById('id_categorie_import');
+  function render(){
+    var v = sel.value;
+    var cur = cat.value;
+    cat.innerHTML = '<option value="">— Selon colonne Categorie du fichier —</option>';
+    var list = map[v] || [];
+    list.forEach(function(c){
+      var o = document.createElement('option');
+      o.value = c.pk;
+      o.textContent = c.nom + ' (' + c.cotisation + ' BIF)';
+      cat.appendChild(o);
+    });
+    if(cur) cat.value = cur;
+    if(!list.length && v){
+      fetch('/affilies/ajax/categories-origine/' + v + '/').then(function(r){return r.json();}).then(function(j){
+        if(!j.success) return;
+        cat.innerHTML = '<option value="">— Selon colonne Categorie du fichier —</option>';
+        j.data.forEach(function(c){
+          var o = document.createElement('option');
+          o.value = c.pk;
+          o.textContent = c.nom + ' (' + c.cotisation_mensuelle + ' BIF)';
+          cat.appendChild(o);
+        });
+      });
+    }
+  }
+  sel.addEventListener('change', render);
+  render();
+})();
+</script>
                 </form>
             </div>
         </div>

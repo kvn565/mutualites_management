@@ -170,7 +170,12 @@ def mutualite_creer(request):
 
                 mutualite.username_admin = admin_username
                 mutualite.email_admin = admin_email
-                mutualite.activer_essai(cree_par=request.user)
+                from single_tenant.models import SingleTenantConfig
+                if SingleTenantConfig.objects.filter(statut='ACTIVE').exists():
+                    mutualite.statut = 'EN_ATTENTE'
+                    mutualite.save()
+                else:
+                    mutualite.activer_essai(cree_par=request.user)
 
                 JournalAudit.objects.create(
                     mutualite=mutualite,
@@ -275,6 +280,11 @@ def mutualite_suspendre(request, pk):
 @superadmin_required
 def mutualite_reactiver(request, pk):
     mutualite = get_object_or_404(Mutualite, pk=pk)
+    from single_tenant.views import get_active_mutualite
+    active = get_active_mutualite()
+    if active and active.pk != mutualite.pk:
+        messages.error(request, f"Mode single-tenant : seule « {active.nom} » peut être active.")
+        return redirect('superadmin:mutualite_detail', pk=pk)
     if mutualite.statut != 'SUSPENDU':
         messages.info(request, f"La mutualité « {mutualite.nom} » n'est pas suspendue.")
         return redirect('superadmin:mutualite_detail', pk=pk)
@@ -302,6 +312,11 @@ def mutualite_reactiver(request, pk):
 @superadmin_required
 def mutualite_renouveler_licence(request, pk):
     mutualite = get_object_or_404(Mutualite, pk=pk)
+    from single_tenant.views import get_active_mutualite
+    active = get_active_mutualite()
+    if active and active.pk != mutualite.pk:
+        messages.error(request, f"Mode single-tenant : seule « {active.nom} » peut être active.")
+        return redirect('superadmin:mutualite_detail', pk=pk)
     if request.method == 'POST':
         type_abonnement = request.POST.get('type_abonnement', 'MENSUEL')
         duree_jours = int(request.POST.get('duree_jours', 30))
@@ -329,6 +344,11 @@ def mutualite_renouveler_licence(request, pk):
 @superadmin_required
 def mutualite_essai_prolonger(request, pk):
     mutualite = get_object_or_404(Mutualite, pk=pk)
+    from single_tenant.views import get_active_mutualite
+    active = get_active_mutualite()
+    if active and active.pk != mutualite.pk:
+        messages.error(request, f"Mode single-tenant : seule « {active.nom} » peut être active.")
+        return redirect('superadmin:mutualite_detail', pk=pk)
     if request.method == 'POST':
         jours = int(request.POST.get('jours', 7))
         from datetime import timedelta
@@ -592,6 +612,11 @@ def cle_generer(request):
 def cle_activer(request, pk):
     cle = get_object_or_404(CleActivation, pk=pk)
     mutualite = cle.mutualite
+    from single_tenant.views import get_active_mutualite
+    active = get_active_mutualite()
+    if active and active.pk != mutualite.pk:
+        messages.error(request, f"Mode single-tenant : seule « {active.nom} » peut être active. Désactivez-la d'abord.")
+        return redirect('superadmin:cles_liste')
 
     if cle.statut != 'DISPONIBLE':
         messages.warning(request, f"Cette clé a déjà le statut « {cle.get_statut_display()} ».")
@@ -1383,6 +1408,7 @@ def partenaire_valider(request, pk):
 
     partenaire.statut = 'ACTIF'
     partenaire.save(update_fields=['statut'])
+    RelationPartenaireMutualite.objects.filter(partenaire=partenaire, mutualite=partenaire.mutualite).update(statut='ACTIVE', date_action=timezone.now())
 
     if not partenaire.conventions.filter(statut='ACTIVE').exists():
         from datetime import timedelta

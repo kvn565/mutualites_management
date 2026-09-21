@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'aide',
     'portail_partenaire',
     'gestion_chambres',
+    'single_tenant',
 ]
 
 
@@ -76,6 +77,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'core.middleware.MutualiteMiddleware',
+    'single_tenant.middleware.SingleTenantMiddleware',
     'core.middleware.LicenseMiddleware',
     'core.middleware.AuditLogMiddleware',
     'core.middleware.RateLimitMiddleware',

@@ -81,7 +81,7 @@
                         <div class="fw-bold"><a href="{% url 'factures:detail' fac.pk %}" class="text-decoration-none text-vert">{{ fac.numero }}</a></div>
                         <div class="text-muted small">{{ fac.date|date:"d/m/Y" }}</div>
                     </td>
-                    <td><i class="bi bi-hospital small text-muted"></i> {{ fac.partenaire.nom }}</td>
+                    <td><i class="bi bi-hospital small text-muted"></i> {{ fac.partenaire.nom_etablissement }}</td>
                     <td>
                         <div class="fw-medium text-dark"><i class="bi bi-person small text-muted"></i> {{ fac.affilie.nom_complet }}</div>
                         {% if fac.ayant_droit %}

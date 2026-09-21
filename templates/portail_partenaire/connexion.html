@@ -126,6 +126,19 @@
             color: #92400e;
             border-left: 4px solid #f59e0b;
         }
+        #robotContainer {
+            background-color: #f8f9ff;
+            border: 2px solid #d0d7e5;
+            border-radius: 10px;
+            padding: 14px 16px;
+            box-shadow: 0 2px 8px rgba(10, 92, 54, 0.08);
+            margin-bottom: 20px;
+        }
+        #robotContainer .form-check-label { color: #5a6a7a; font-size: 0.88rem; }
+        .btn-submit:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -142,7 +155,7 @@
         {% endfor %}
         {% endif %}
 
-        <form method="post">
+        <form method="post" id="loginForm">
             {% csrf_token %}
             <div class="form-group">
                 <label for="id_username">Nom d'utilisateur</label>
@@ -157,8 +170,20 @@
                     </button>
                 </div>
             </div>
-            <button type="submit" class="btn-submit">
-                <i class="bi bi-box-arrow-in-right"></i> Se connecter
+            <div id="robotContainer">
+                <div class="form-check">
+                    {{ form.not_a_robot }}
+                    <label class="form-check-label fw-medium" for="{{ form.not_a_robot.id_for_label }}">
+                        Je ne suis pas un robot
+                    </label>
+                </div>
+                {% if form.not_a_robot.errors %}
+                <div class="text-danger small mt-2">{{ form.not_a_robot.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn-submit" id="submitBtn" disabled>
+                <span class="spinner-border spinner-border-sm me-2 d-none" id="spinner" role="status"></span>
+                <span id="btnText"><i class="bi bi-box-arrow-in-right"></i> Se connecter</span>
             </button>
         </form>
         <div style="text-align:center;margin-top:20px;font-size:0.85rem;color:#64748b;">
@@ -180,6 +205,39 @@
                 icon.classList.add('bi-eye');
             }
         }
+
+        // Anti-Robot + vérification
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkbox = document.querySelector('input[name="not_a_robot"]');
+            const container = document.getElementById('robotContainer');
+            const submitBtn = document.getElementById('submitBtn');
+            const spinner = document.getElementById('spinner');
+            const btnText = document.getElementById('btnText');
+
+            if (checkbox && submitBtn) {
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        spinner.classList.remove('d-none');
+                        btnText.textContent = 'Vérification...';
+
+                        setTimeout(function() {
+                            container.style.display = 'none';
+                            spinner.classList.add('d-none');
+                            btnText.textContent = 'Se connecter';
+                            submitBtn.disabled = false;
+                        }, 2000);
+                    } else {
+                        submitBtn.disabled = true;
+                    }
+                });
+            }
+
+            document.getElementById('loginForm')?.addEventListener('submit', function() {
+                submitBtn.disabled = true;
+                spinner.classList.remove('d-none');
+                btnText.textContent = 'Connexion en cours...';
+            });
+        });
     </script>
 </body>
 </html>

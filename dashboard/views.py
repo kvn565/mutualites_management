@@ -79,14 +79,14 @@ def index(request):
     if Partenaire:
         stats['nb_partenaires'] = Partenaire.objects.filter(mutualite=mutualite, statut='ACTIF').count()
         stats['top_partenaires'] = Partenaire.objects.filter(mutualite=mutualite, statut='ACTIF').annotate(
-            nb_factures=Count('factures')
-        ).order_by('-nb_factures')[:5]
+            factures_count=Count('factures')
+        ).order_by('-factures_count')[:5]
 
     if Cotisation:
         stats['cotisations_mois'] = Cotisation.objects.filter(
             mutualite=mutualite,
-            date_paiement__month=mois,
-            date_paiement__year=annee,
+            mois=mois,
+            annee=annee,
             statut='PAYE'
         ).aggregate(total=Sum('montant'))['total'] or 0
 
@@ -95,7 +95,7 @@ def index(request):
             mutualite=mutualite,
             date__month=mois,
             date__year=annee,
-        ).exclude(statut='REJETE').aggregate(total=Sum('montant_mutualite'))['total'] or 0
+        ).exclude(statut__in=['REJETE', 'BROUILLON']).aggregate(total=Sum('montant_mutualite'))['total'] or 0
 
         stats['factures_en_attente'] = Facture.objects.filter(mutualite=mutualite, statut='SOUMIS').count()
 
@@ -114,8 +114,8 @@ def index(request):
         if Cotisation:
             c_val = float(Cotisation.objects.filter(
                 mutualite=mutualite,
-                date_paiement__month=d.month,
-                date_paiement__year=d.year,
+                mois=d.month,
+                annee=d.year,
                 statut='PAYE'
             ).aggregate(t=Sum('montant'))['t'] or 0)
         data_cotisations.append(c_val)
@@ -126,7 +126,7 @@ def index(request):
                 mutualite=mutualite,
                 date__month=d.month,
                 date__year=d.year,
-            ).exclude(statut='REJETE').aggregate(t=Sum('montant_mutualite'))['t'] or 0)
+            ).exclude(statut__in=['REJETE', 'BROUILLON']).aggregate(t=Sum('montant_mutualite'))['t'] or 0)
         data_factures.append(f_val)
 
     return render(request, 'dashboard/index.html', {

@@ -54,7 +54,7 @@
                             <th>Téléphone</th>
                             <th>Province</th>
                             <th>Date d'inscription</th>
-                            <th>Actions</th>
+                            <th class="actions-nowrap-wide">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -66,16 +66,18 @@
                             <td>{{ p.telephone|default:"—" }}</td>
                             <td>{{ p.province|default:"—" }}</td>
                             <td>{{ p.date_creation|date:"d/m/Y H:i" }}</td>
-                            <td>
+                            <td class="actions-nowrap-wide">
+                                <div class="d-flex gap-1 flex-nowrap">
                                 <a href="{% url 'partenaires:accepter_demande' p.pk %}" class="btn btn-sm btn-success" onclick="return confirm('Accepter {{ p.nom_etablissement }} comme partenaire ? Une convention sera automatiquement créée.')">
                                     <i class="bi bi-check-circle"></i> Accepter
                                 </a>
                                 <a href="{% url 'partenaires:detail' p.pk %}" class="btn btn-sm btn-outline-primary" title="Voir">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="{% url 'partenaires:supprimer' p.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Supprimer {{ p.nom_etablissement }} de la liste d\'attente ? Il pourra être restauré depuis la corbeille.')" title="Supprimer">
+                                <a href="{% url 'partenaires:supprimer_attente' p.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Supprimer {{ p.nom_etablissement }} de la liste d\'attente ? Il pourra être restauré depuis la corbeille.')" title="Supprimer">
                                     <i class="bi bi-trash"></i>
                                 </a>
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
@@ -126,7 +128,7 @@
                             <th>Établissement</th>
                             <th>Type</th>
                             <th>Date de suppression</th>
-                            <th>Actions</th>
+                            <th class="actions-nowrap-wide">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -136,13 +138,15 @@
                             <td class="fw-semibold"><s>{{ p.nom_etablissement }}</s></td>
                             <td>{{ p.get_type_partenaire_display }}</td>
                             <td>{{ p.date_suppression|date:"d/m/Y H:i" }}</td>
-                            <td>
+                            <td class="actions-nowrap-wide">
+                                <div class="d-flex gap-1 flex-nowrap">
                                 <a href="{% url 'partenaires:restaurer' p.pk %}" class="btn btn-sm btn-outline-success" onclick="return confirm('Restaurer {{ p.nom_etablissement }} ?')" title="Restaurer">
                                     <i class="bi bi-arrow-counterclockwise"></i> Restaurer
                                 </a>
                                 <a href="{% url 'partenaires:purger' p.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Supprimer définitivement {{ p.nom_etablissement }} ? Cette action est irréversible.')" title="Supprimer définitivement">
                                     <i class="bi bi-trash3-fill"></i> Purger
                                 </a>
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
@@ -226,7 +230,7 @@
                             <th>Province</th>
                             <th>Convention</th>
                             <th>Statut</th>
-                            <th>Actions</th>
+                            <th class="actions-nowrap-wide">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -253,13 +257,23 @@
                                     {{ p.get_statut_display }}
                                 </span>
                             </td>
-                            <td>
+                            <td class="actions-nowrap-wide">
+                                <div class="d-flex gap-1 flex-nowrap">
                                 <a href="{% url 'partenaires:detail' p.pk %}" class="btn btn-sm btn-primary" title="Voir">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="{% url 'partenaires:modifier' p.pk %}" class="btn btn-sm btn-outline-vert" title="Modifier">
+                                <a href="{% url 'partenaires:modifier' p.pk %}" class="btn btn-sm btn-outline-primary" title="Modifier">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                {% if user.peut_supprimer %}
+                                <form method="post" action="{% url 'partenaires:supprimer' p.pk %}" style="display:inline;" onsubmit="return confirm('Supprimer {{ p.nom_etablissement }} ? Il sera mis à la corbeille.')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% empty %}

@@ -256,6 +256,14 @@ class Mutualite(models.Model):
                 self.slug = f"{base}-{counter}"
                 counter += 1
         self._mettre_a_jour_statut()
+        if self.statut in ('ACTIF', 'ESSAI'):
+            try:
+                from single_tenant.models import SingleTenantConfig
+                cfg = SingleTenantConfig.objects.filter(statut='ACTIVE').first()
+                if cfg and cfg.mutualite_id and cfg.mutualite_id != self.pk:
+                    self.statut = 'SUSPENDU'
+            except Exception:
+                pass
         super().save(*args, **kwargs)
 
     def _generer_code(self):
@@ -275,11 +283,12 @@ class Mutualite(models.Model):
             if self.statut != 'EN_ATTENTE':
                 self.statut = 'EN_ATTENTE'
             return
-        if self.date_expiration and self.date_expiration < timezone.now():
+        now = timezone.now()
+        if self.date_expiration and self.date_expiration < now:
             self.statut = 'EXPIRE'
             return
         if self.essai_gratuit:
-            if self.date_fin_essai and self.date_fin_essai < timezone.now():
+            if self.date_fin_essai and self.date_fin_essai < now:
                 self.statut = 'EXPIRE'
             else:
                 self.statut = 'ESSAI'

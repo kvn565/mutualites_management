@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ titre }} — Mutualité de Santé{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+{% block page_icon %}bi bi-tags-fill{% endblock %}
+{% block nav_categories %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">{{ titre }}</h1>
+    <a href="{% url 'origines:categories' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Retour
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Informations de la catégorie</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">{{ form.origine.label }}</label>
+                    {{ form.origine }}
+                    {% if form.origine.errors %}
+                    <div class="text-danger small mt-1">{{ form.origine.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">{{ form.nom.label }}</label>
+                    {{ form.nom }}
+                    {% if form.nom.errors %}
+                    <div class="text-danger small mt-1">{{ form.nom.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">{{ form.ordre.label }}</label>
+                    {{ form.ordre }}
+                    {% if form.ordre.errors %}
+                    <div class="text-danger small mt-1">{{ form.ordre.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check mt-3">
+                        {{ form.actif }}
+                        <label class="form-check-label">{{ form.actif.label }}</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">{{ form.description.label }}</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                    <div class="text-danger small mt-1">{{ form.description.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <hr class="my-4">
+            <h5 class="mb-3">Cotisation et plafonds</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.cotisation_mensuelle.label }}</label>
+                    {{ form.cotisation_mensuelle }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.taux_prise_en_charge.label }}</label>
+                    {{ form.taux_prise_en_charge }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.soins_ambulatoires.label }}</label>
+                    {{ form.soins_ambulatoires }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.limite_laboratoire.label }}</label>
+                    {{ form.limite_laboratoire }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.limite_kinesitherapie.label }}</label>
+                    {{ form.limite_kinesitherapie }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.limite_reanimation.label }}</label>
+                    {{ form.limite_reanimation }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.limite_imagerie_medicale.label }}</label>
+                    {{ form.limite_imagerie_medicale }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.hopital_plafond_chambre.label }}</label>
+                    {{ form.hopital_plafond_chambre }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.hpc_nuit.label }}</label>
+                    {{ form.hpc_nuit }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.limite_hospitalisation_generale.label }}</label>
+                    {{ form.limite_hospitalisation_generale }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.maternite_forfait.label }}</label>
+                    {{ form.maternite_forfait }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.pourcentage_maternite.label }}</label>
+                    {{ form.pourcentage_maternite }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.pharmacie_forfait.label }}</label>
+                    {{ form.pharmacie_forfait }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.limites_medicaments.label }}</label>
+                    {{ form.limites_medicaments }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.limites_lunettes.label }}</label>
+                    {{ form.limites_lunettes }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.limites_dents.label }}</label>
+                    {{ form.limites_dents }}
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{% url 'origines:categories' %}" class="btn btn-secondary">Annuler</a>
+                <button type="submit" class="btn btn-vert">
+                    <i class="bi bi-save"></i> Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

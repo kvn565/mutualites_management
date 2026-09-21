@@ -472,22 +472,24 @@
             <nav class="mt-2">
                 <ul class="nav sidebar-menu flex-column" role="navigation" aria-label="Navigation principale">
                     {% block sidebar_nav %}
-                    {% if not user.est_super_admin %}
-                    {% menu_autorise 'dashboard:index' as show_dashboard %}
-                    {% section_autorise 'affilies:liste' 'ayants_droit:liste' 'origines:liste' as show_membres %}
-                    {% menu_autorise 'affilies:liste' as show_affilies %}
-                    {% menu_autorise 'ayants_droit:liste' as show_ayants %}
-                    {% menu_autorise 'origines:liste' as show_origines %}
-                    {% section_autorise 'services_sante:liste' 'partenaires:liste' 'pharmacie:liste' as show_sante %}
+{% if not user.est_super_admin %}
+{% menu_autorise 'dashboard:index' as show_dashboard %}
+{% section_autorise 'affilies:liste' 'ayants_droit:liste' 'origines:liste' 'origines:categories' as show_membres %}
+{% menu_autorise 'affilies:liste' as show_affilies %}
+{% menu_autorise 'ayants_droit:liste' as show_ayants %}
+{% menu_autorise 'origines:liste' as show_origines %}
+{% menu_autorise 'origines:categories' as show_categories %}
+{% section_autorise 'services_sante:liste' 'partenaires:liste' 'pharmacie:liste' as show_sante %}
                     {% menu_autorise 'services_sante:liste' as show_services %}
                     {% menu_autorise 'partenaires:liste' as show_partenaires %}
                     {% menu_autorise 'pharmacie:liste' as show_pharmacie %}
                     {% section_autorise 'factures:liste' 'factures:journal' as show_facturation %}
                     {% menu_autorise 'factures:liste' as show_factures %}
                     {% menu_autorise 'factures:journal' as show_journal_factures %}
-                    {% section_autorise 'cotisations:liste' 'cotisations:journal' as show_cotisations %}
+                    {% section_autorise 'cotisations:liste' 'cotisations:journal' 'cotisations:rapport_periodique' as show_cotisations %}
                     {% menu_autorise 'cotisations:liste' as show_cotisation_liste %}
                     {% menu_autorise 'cotisations:journal' as show_journal_cotisations %}
+                    {% menu_autorise 'cotisations:rapport_periodique' as show_rapport_periodique %}
                     {% section_autorise 'comptabilite:dashboard' 'ventilations:index' as show_finance %}
                     {% menu_autorise 'comptabilite:dashboard' as show_compta %}
                     {% menu_autorise 'ventilations:index' as show_ventilations %}
@@ -529,6 +531,22 @@
                     <!-- Membres -->
                     {% if show_membres %}
                     <li class="nav-header">Membres</li>
+                    {% if show_origines %}
+                    <li class="nav-item">
+                        <a href="{% url 'origines:liste' %}" class="nav-link {% block nav_origines %}{% endblock %}">
+                            <i class="nav-icon bi bi-diagram-3-fill"></i>
+                            <p>Origines</p>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if show_categories %}
+                    <li class="nav-item">
+                        <a href="{% url 'origines:categories' %}" class="nav-link {% block nav_categories %}{% endblock %}">
+                            <i class="nav-icon bi bi-tags-fill"></i>
+                            <p>Catégories</p>
+                        </a>
+                    </li>
+                    {% endif %}
                     {% if show_affilies %}
                     <li class="nav-item">
                         <a href="{% url 'affilies:liste' %}" class="nav-link {% block nav_affilies %}{% endblock %}">
@@ -542,14 +560,6 @@
                         <a href="{% url 'ayants_droit:liste' %}" class="nav-link {% block nav_ayants_droit %}{% endblock %}">
                             <i class="nav-icon bi bi-person-heart"></i>
                             <p>Ayants droit</p>
-                        </a>
-                    </li>
-                    {% endif %}
-                    {% if show_origines %}
-                    <li class="nav-item">
-                        <a href="{% url 'origines:liste' %}" class="nav-link {% block nav_origines %}{% endblock %}">
-                            <i class="nav-icon bi bi-diagram-3-fill"></i>
-                            <p>Origines</p>
                         </a>
                     </li>
                     {% endif %}
@@ -621,6 +631,14 @@
                         <a href="{% url 'cotisations:journal' %}" class="nav-link {% block nav_journal_cotisations %}{% endblock %}">
                             <i class="nav-icon bi bi-journal-check"></i>
                             <p>Journal des cotisations</p>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if show_rapport_periodique %}
+                    <li class="nav-item">
+                        <a href="{% url 'cotisations:rapport_periodique' %}" class="nav-link {% block nav_rapport_periodique %}{% endblock %}">
+                            <i class="nav-icon bi bi-calendar-range"></i>
+                            <p>Rapport périodique</p>
                         </a>
                     </li>
                     {% endif %}

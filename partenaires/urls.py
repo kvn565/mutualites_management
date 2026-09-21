@@ -9,6 +9,7 @@ urlpatterns = [
     path('<int:pk>/', views.detail, name='detail'),
     path('<int:pk>/modifier/', views.modifier, name='modifier'),
     path('<int:pk>/supprimer/', views.supprimer, name='supprimer'),
+    path('<int:pk>/supprimer-attente/', views.supprimer_attente, name='supprimer_attente'),
     path('<int:pk>/suspendre/', views.suspendre, name='suspendre'),
     path('<int:pk>/reactiver/', views.reactiver, name='reactiver'),
     path('<int:pk>/accepter/', views.accepter_demande, name='accepter_demande'),
