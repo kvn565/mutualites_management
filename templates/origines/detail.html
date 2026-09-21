@@ -130,6 +130,79 @@
             </div>
         </div>
 
+        <!-- Catégories de cette structure -->
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <span class="fw-bold text-vert"><i class="bi bi-tags me-2"></i> Catégories d'affiliés ({{ categories|length }})</span>
+                {% if user.peut_modifier %}
+                <a href="{% url 'origines:categorie_ajouter' %}?origine={{ origine.pk }}" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-plus"></i> Nouvelle catégorie
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 border-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Catégorie</th>
+                                <th class="text-center">Cotisation (BIF)</th>
+                                <th class="text-center">Taux (%)</th>
+                                <th class="text-center">Affiliés</th>
+                                <th class="text-center">Statut</th>
+                                <th class="text-end"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cat in categories %}
+                            <tr>
+                                <td>
+                                    <div class="fw-medium">{{ cat.nom }}</div>
+                                    {% if cat.description %}<div class="text-muted small">{{ cat.description|truncatewords:8 }}</div>{% endif %}
+                                </td>
+                                <td class="text-center">{{ cat.cotisation_mensuelle|floatformat:0 }} BIF</td>
+                                <td class="text-center">{{ cat.taux_prise_en_charge }}%</td>
+                                <td class="text-center">{{ cat.affilies.count }}</td>
+                                <td class="text-center">
+                                    {% if cat.actif %}<span class="badge-actif">Active</span>
+                                    {% else %}<span class="badge-inactif">Inactive</span>{% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        {% if user.peut_modifier %}
+                                        <a href="{% url 'origines:categorie_modifier' cat.pk %}" class="btn btn-sm btn-outline-primary" title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if user.peut_supprimer %}
+                                        <a href="{% url 'origines:categorie_supprimer' cat.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="bi bi-tags fs-3 d-block mb-2 text-muted"></i>
+                                    Aucune catégorie définie pour cette origine.
+                                    {% if user.peut_modifier %}
+                                    <div class="mt-2">
+                                        <a href="{% url 'origines:categorie_ajouter' %}?origine={{ origine.pk }}" class="btn btn-sm btn-vert">
+                                            <i class="bi bi-plus-lg"></i> Ajouter la première catégorie
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- Exclusions (médicaments / services) -->
         <div class="card border-0 shadow-sm mt-4">
             <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">

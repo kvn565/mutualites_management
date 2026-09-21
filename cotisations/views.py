@@ -703,3 +703,411 @@ def importer_excel(request):
                 messages.error(request, f"❌ Erreur d'import : {str(e)}")
     
     return render(request, 'cotisations/importer.html', {'result': result})
+
+
+# ── Rapport Périodique (Cotisations & Factures par Affilié / Mois) ──
+
+MOIS_NOMS_FR = {
+    1: 'Jan', 2: 'Fév', 3: 'Mar', 4: 'Avr',
+    5: 'Mai', 6: 'Juin', 7: 'Juil', 8: 'Août',
+    9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Déc',
+}
+
+MOIS_NOMS_LONGS = {
+    1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril',
+    5: 'Mai', 6: 'Juin', 7: 'Juillet', 8: 'Août',
+    9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre',
+}
+
+def _construire_donnees_rapport_periodique(mutualite, md, ad, mf, af, origine_id=None, statut_filter=None, q=None):
+    from datetime import date
+    from calendar import monthrange
+    from factures.models import Facture
+    
+    # 1. Générer la liste des mois
+    date_debut = date(ad, md, 1)
+    dernier_jour = monthrange(af, mf)[1]
+    date_fin = date(af, mf, dernier_jour)
+    
+    mois_list = []
+    curr = date_debut
+    while curr <= date_fin:
+        mois_list.append((curr.month, curr.year, f"{MOIS_NOMS_FR[curr.month]} {curr.year}"))
+        if curr.month == 12:
+            curr = date(curr.year + 1, 1, 1)
+        else:
+            curr = date(curr.year, curr.month + 1, 1)
+        if len(mois_list) >= 36:  # Sécurité max 36 mois
+            break
+            
+    # 2. Récupérer les affiliés
+    qs_aff = Affilie.objects.filter(mutualite=mutualite, supprime=False).select_related('origine', 'categorie_origine')
+    if origine_id:
+        qs_aff = qs_aff.filter(origine_id=origine_id)
+    if statut_filter == 'ACTIF':
+        qs_aff = qs_aff.filter(statut='ACTIF')
+    if q:
+        qs_aff = qs_aff.filter(
+            Q(nom__icontains=q) |
+            Q(prenom__icontains=q) |
+            Q(numero_affiliation__icontains=q)
+        )
+    affilies = list(qs_aff.order_by('nom', 'prenom'))
+    affilie_ids = [a.id for a in affilies]
+
+    # 3. Récupérer et indexer les cotisations (statut PAYE)
+    cot_dict = {}  # (affilie_id, mois, annee) -> montant
+    if affilie_ids:
+        cots = Cotisation.objects.filter(
+            mutualite=mutualite,
+            affilie_id__in=affilie_ids,
+            statut='PAYE'
+        )
+        for c in cots:
+            m = c.mois or (c.date_paiement.month if c.date_paiement else c.date_emission.month)
+            a = c.annee or (c.date_paiement.year if c.date_paiement else c.date_emission.year)
+            key = (c.affilie_id, m, a)
+            cot_dict[key] = cot_dict.get(key, 0) + float(c.montant)
+
+    # 4. Récupérer et indexer les factures (statuts VALIDE ou PAYE)
+    fac_dict = {}  # (affilie_id, mois, annee) -> montant_mutualite
+    if affilie_ids:
+        factures = Facture.objects.filter(
+            mutualite=mutualite,
+            statut__in=['VALIDE', 'PAYE'],
+            date__gte=date_debut,
+            date__lte=date_fin
+        ).select_related('ayant_droit')
+        
+        for f in factures:
+            aff_id = f.affilie_id or (f.ayant_droit.affilie_id if f.ayant_droit else None)
+            if aff_id and aff_id in affilie_ids:
+                key = (aff_id, f.date.month, f.date.year)
+                montant = float(f.montant_mutualite if f.montant_mutualite is not None else f.montant_total)
+                fac_dict[key] = fac_dict.get(key, 0) + montant
+
+    # 5. Construire la matrice de données
+    rows = []
+    totaux_mois = [{'mois': m, 'annee': a, 'label': lbl, 'total_cotisation': 0.0, 'total_facture': 0.0, 'solde': 0.0} for m, a, lbl in mois_list]
+    grand_total_cotisations = 0.0
+    grand_total_factures = 0.0
+
+    for aff in affilies:
+        mois_data = []
+        tot_cot = 0.0
+        tot_fac = 0.0
+        
+        for idx, (m, a, lbl) in enumerate(mois_list):
+            cot_val = cot_dict.get((aff.id, m, a), 0.0)
+            fac_val = fac_dict.get((aff.id, m, a), 0.0)
+            diff = cot_val - fac_val
+            
+            mois_data.append({
+                'mois': m,
+                'annee': a,
+                'cotisation': cot_val,
+                'facture': fac_val,
+                'solde': diff,
+            })
+            
+            tot_cot += cot_val
+            tot_fac += fac_val
+            totaux_mois[idx]['total_cotisation'] += cot_val
+            totaux_mois[idx]['total_facture'] += fac_val
+            totaux_mois[idx]['solde'] += diff
+
+        solde_aff = tot_cot - tot_fac
+        ratio_conso = round((tot_fac / tot_cot * 100), 1) if tot_cot > 0 else (100.0 if tot_fac > 0 else 0.0)
+        
+        rows.append({
+            'affilie': aff,
+            'mois_data': mois_data,
+            'total_cotisations': tot_cot,
+            'total_factures': tot_fac,
+            'solde': solde_aff,
+            'ratio_conso': ratio_conso,
+        })
+        
+        grand_total_cotisations += tot_cot
+        grand_total_factures += tot_fac
+
+    grand_total_solde = grand_total_cotisations - grand_total_factures
+    taux_sinistralite = round((grand_total_factures / grand_total_cotisations * 100), 1) if grand_total_cotisations > 0 else 0.0
+
+    return {
+        'mois_list': mois_list,
+        'rows': rows,
+        'totaux_mois': totaux_mois,
+        'grand_total_cotisations': grand_total_cotisations,
+        'grand_total_factures': grand_total_factures,
+        'grand_total_solde': grand_total_solde,
+        'taux_sinistralite': taux_sinistralite,
+        'nb_affilies': len(affilies),
+        'date_debut': date_debut,
+        'date_fin': date_fin,
+    }
+
+
+@login_required
+def rapport_periodique(request):
+    if request.user.est_super_admin:
+        messages.warning(request, "⛔ Les Super Admins ne peuvent pas gérer les données d'une mutualité spécifique.")
+        return redirect('superadmin:dashboard')
+    
+    from .forms import RapportPeriodiqueFilterForm
+    now = timezone.now()
+    
+    # Valeurs par défaut : 6 derniers mois de l'année en cours
+    init_md = max(1, now.month - 5)
+    init_ad = now.year
+    init_mf = now.month
+    init_af = now.year
+
+    md = int(request.GET.get('mois_debut', init_md))
+    ad = int(request.GET.get('annee_debut', init_ad))
+    mf = int(request.GET.get('mois_fin', init_mf))
+    af = int(request.GET.get('annee_fin', init_af))
+    origine_id = request.GET.get('origine')
+    statut_filter = request.GET.get('statut', 'ACTIF')
+    q = request.GET.get('q', '').strip()
+
+    form = RapportPeriodiqueFilterForm(
+        initial={
+            'mois_debut': md,
+            'annee_debut': ad,
+            'mois_fin': mf,
+            'annee_fin': af,
+            'origine': origine_id,
+            'statut': statut_filter,
+            'q': q,
+        },
+        mutualite=request.user.mutualite
+    )
+
+    data = _construire_donnees_rapport_periodique(
+        mutualite=request.user.mutualite,
+        md=md, ad=ad, mf=mf, af=af,
+        origine_id=origine_id,
+        statut_filter=statut_filter,
+        q=q
+    )
+
+    # Pagination 20 par page
+    paginator = Paginator(data['rows'], 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'cotisations/rapport_periodique.html', {
+        'form': form,
+        'data': data,
+        'page_obj': page_obj,
+        'md': md, 'ad': ad, 'mf': mf, 'af': af,
+        'origine_id': origine_id,
+        'statut_filter': statut_filter,
+        'q': q,
+    })
+
+
+@login_required
+def rapport_periodique_excel(request):
+    if request.user.est_super_admin:
+        return redirect('superadmin:dashboard')
+        
+    now = timezone.now()
+    md = int(request.GET.get('mois_debut', 1))
+    ad = int(request.GET.get('annee_debut', now.year))
+    mf = int(request.GET.get('mois_fin', now.month))
+    af = int(request.GET.get('annee_fin', now.year))
+    origine_id = request.GET.get('origine')
+    statut_filter = request.GET.get('statut', 'ACTIF')
+    q = request.GET.get('q', '').strip()
+
+    data = _construire_donnees_rapport_periodique(
+        mutualite=request.user.mutualite,
+        md=md, ad=ad, mf=mf, af=af,
+        origine_id=origine_id,
+        statut_filter=statut_filter,
+        q=q
+    )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Rapport Périodique"
+
+    # Styles
+    font_title = Font(name='Segoe UI', size=14, bold=True, color='1B3B2B')
+    font_header = Font(name='Segoe UI', size=10, bold=True, color='FFFFFF')
+    font_bold = Font(name='Segoe UI', size=9, bold=True)
+    font_regular = Font(name='Segoe UI', size=9)
+    fill_header = PatternFill(start_color='1B3B2B', end_color='1B3B2B', fill_type='solid')
+    fill_sub_cot = PatternFill(start_color='D1E7DD', end_color='D1E7DD', fill_type='solid')
+    fill_sub_fac = PatternFill(start_color='F8D7DA', end_color='F8D7DA', fill_type='solid')
+    fill_total = PatternFill(start_color='F3F4F6', end_color='F3F4F6', fill_type='solid')
+    align_center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    align_right = Alignment(horizontal='right', vertical='center')
+    align_left = Alignment(horizontal='left', vertical='center')
+
+    # Titre
+    mut_nom = request.user.mutualite.nom if request.user.mutualite else "Mutualité de Santé"
+    ws.merge_cells('A1:G1')
+    ws['A1'] = f"{mut_nom} — Rapport Périodique des Cotisations & Soins"
+    ws['A1'].font = font_title
+    ws['A1'].alignment = align_left
+
+    ws.merge_cells('A2:G2')
+    ws['A2'] = f"Période du {data['date_debut'].strftime('%d/%m/%Y')} au {data['date_fin'].strftime('%d/%m/%Y')} — Généré le {now.strftime('%d/%m/%Y à %H:%M')}"
+    ws['A2'].font = Font(name='Segoe UI', size=9, italic=True, color='6B7280')
+
+    # Ligne 4 : Entêtes groupées
+    row_num = 4
+    ws.cell(row=row_num, column=1, value="N° Affiliation").font = font_header
+    ws.cell(row=row_num, column=1).fill = fill_header
+    ws.cell(row=row_num, column=1).alignment = align_center
+
+    ws.cell(row=row_num, column=2, value="Nom & Prénom").font = font_header
+    ws.cell(row=row_num, column=2).fill = fill_header
+    ws.cell(row=row_num, column=2).alignment = align_center
+
+    ws.cell(row=row_num, column=3, value="Structure / Origine").font = font_header
+    ws.cell(row=row_num, column=3).fill = fill_header
+    ws.cell(row=row_num, column=3).alignment = align_center
+
+    col_idx = 4
+    for m, a, lbl in data['mois_list']:
+        ws.merge_cells(start_row=row_num, start_column=col_idx, end_row=row_num, end_column=col_idx + 1)
+        cell = ws.cell(row=row_num, column=col_idx, value=lbl)
+        cell.font = font_header
+        cell.fill = fill_header
+        cell.alignment = align_center
+        col_idx += 2
+
+    # Totaux globaux colonnes
+    ws.cell(row=row_num, column=col_idx, value="Total Cotisations").font = font_header
+    ws.cell(row=row_num, column=col_idx).fill = fill_header
+    ws.cell(row=row_num, column=col_idx).alignment = align_center
+    col_idx += 1
+
+    ws.cell(row=row_num, column=col_idx, value="Total Soins").font = font_header
+    ws.cell(row=row_num, column=col_idx).fill = fill_header
+    ws.cell(row=row_num, column=col_idx).alignment = align_center
+    col_idx += 1
+
+    ws.cell(row=row_num, column=col_idx, value="Solde (BIF)").font = font_header
+    ws.cell(row=row_num, column=col_idx).fill = fill_header
+    ws.cell(row=row_num, column=col_idx).alignment = align_center
+
+    # Ligne 5 : Sous-entêtes (Cotis. / Soins)
+    row_num = 5
+    ws.cell(row=row_num, column=1, value="")
+    ws.cell(row=row_num, column=2, value="")
+    ws.cell(row=row_num, column=3, value="")
+    sub_col = 4
+    for _ in data['mois_list']:
+        c1 = ws.cell(row=row_num, column=sub_col, value="Cotis.")
+        c1.font = font_bold
+        c1.fill = fill_sub_cot
+        c1.alignment = align_center
+
+        c2 = ws.cell(row=row_num, column=sub_col + 1, value="Soins")
+        c2.font = font_bold
+        c2.fill = fill_sub_fac
+        c2.alignment = align_center
+        sub_col += 2
+
+    ws.cell(row=row_num, column=sub_col, value="").fill = fill_total
+    ws.cell(row=row_num, column=sub_col + 1, value="").fill = fill_total
+    ws.cell(row=row_num, column=sub_col + 2, value="").fill = fill_total
+
+    # Données lignes affiliés
+    row_num = 6
+    for r in data['rows']:
+        aff = r['affilie']
+        ws.cell(row=row_num, column=1, value=aff.numero_affiliation).font = font_regular
+        ws.cell(row=row_num, column=2, value=aff.nom_complet).font = font_bold
+        ws.cell(row=row_num, column=3, value=aff.origine.nom if aff.origine else "-").font = font_regular
+
+        cur_col = 4
+        for m_data in r['mois_data']:
+            c_cell = ws.cell(row=row_num, column=cur_col, value=m_data['cotisation'])
+            c_cell.font = font_regular
+            c_cell.alignment = align_right
+            c_cell.number_format = '#,##0'
+
+            f_cell = ws.cell(row=row_num, column=cur_col + 1, value=m_data['facture'])
+            f_cell.font = font_regular
+            f_cell.alignment = align_right
+            f_cell.number_format = '#,##0'
+            cur_col += 2
+
+        tot_c = ws.cell(row=row_num, column=cur_col, value=r['total_cotisations'])
+        tot_c.font = font_bold
+        tot_c.alignment = align_right
+        tot_c.number_format = '#,##0'
+
+        tot_f = ws.cell(row=row_num, column=cur_col + 1, value=r['total_factures'])
+        tot_f.font = font_bold
+        tot_f.alignment = align_right
+        tot_f.number_format = '#,##0'
+
+        solde_c = ws.cell(row=row_num, column=cur_col + 2, value=r['solde'])
+        solde_c.font = font_bold
+        solde_c.alignment = align_right
+        solde_c.number_format = '#,##0'
+        if r['solde'] < 0:
+            solde_c.font = Font(name='Segoe UI', size=9, bold=True, color='DC2626')
+
+        row_num += 1
+
+    # Ligne TOTAUX GLOBAUX
+    ws.merge_cells(start_row=row_num, start_column=1, end_row=row_num, end_column=3)
+    tot_label = ws.cell(row=row_num, column=1, value="TOTAUX GÉNÉRAUX")
+    tot_label.font = font_bold
+    tot_label.alignment = Alignment(horizontal='center', vertical='center')
+    tot_label.fill = fill_total
+
+    cur_col = 4
+    for tm in data['totaux_mois']:
+        tc = ws.cell(row=row_num, column=cur_col, value=tm['total_cotisation'])
+        tc.font = font_bold
+        tc.alignment = align_right
+        tc.number_format = '#,##0'
+        tc.fill = fill_total
+
+        tf = ws.cell(row=row_num, column=cur_col + 1, value=tm['total_facture'])
+        tf.font = font_bold
+        tf.alignment = align_right
+        tf.number_format = '#,##0'
+        tf.fill = fill_total
+        cur_col += 2
+
+    gtc = ws.cell(row=row_num, column=cur_col, value=data['grand_total_cotisations'])
+    gtc.font = font_bold
+    gtc.alignment = align_right
+    gtc.number_format = '#,##0'
+    gtc.fill = fill_total
+
+    gtf = ws.cell(row=row_num, column=cur_col + 1, value=data['grand_total_factures'])
+    gtf.font = font_bold
+    gtf.alignment = align_right
+    gtf.number_format = '#,##0'
+    gtf.fill = fill_total
+
+    gts = ws.cell(row=row_num, column=cur_col + 2, value=data['grand_total_solde'])
+    gts.font = font_bold
+    gts.alignment = align_right
+    gts.number_format = '#,##0'
+    gts.fill = fill_total
+
+    # Ajustement largeur des colonnes
+    ws.column_dimensions['A'].width = 16
+    ws.column_dimensions['B'].width = 26
+    ws.column_dimensions['C'].width = 22
+    for c_i in range(4, cur_col + 3):
+        col_letter = openpyxl.utils.get_column_letter(c_i)
+        ws.column_dimensions[col_letter].width = 14
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="Rapport_Periodique_{data["date_debut"].strftime("%Y%m")}_{data["date_fin"].strftime("%Y%m")}.xlsx"'
+    wb.save(response)
+    return response
+

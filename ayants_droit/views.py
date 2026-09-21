@@ -321,7 +321,9 @@ def ajouter(request):
 
     form = AyantDroitForm(request.POST or None, user=request.user, initial=initial)
     if request.method == 'POST' and form.is_valid():
-        obj = form.save()
+        obj = form.save(commit=False)
+        obj.mutualite = request.user.mutualite
+        obj.save()
         enregistrer_audit(request, 'CREATION', 'ayants_droit',
                           f"Création ayant droit : {obj.nom_complet}", 'AyantDroit', obj.pk)
         messages.success(request, f"✅ Ayant droit {obj.nom_complet} ajouté avec succès.")

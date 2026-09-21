@@ -96,6 +96,13 @@ class Affilie(models.Model):
         related_name='affilies',
         verbose_name='Origine',
     )
+    categorie_origine = models.ForeignKey(
+        'origines.CategorieOrigine',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='affilies',
+        verbose_name='Catégorie d\'origine',
+    )
     
     # ── Garanties / Plafonds de remboursement ────────────────────
     cotisation_mensuelle = models.DecimalField(
@@ -208,10 +215,164 @@ class Affilie(models.Model):
         return self.ayants_droit.filter(actif=True).count()
 
     @property
+    def total_cotisations_payees(self):
+        from django.db.models import Sum
+        from cotisations.models import Cotisation
+        return Cotisation.objects.filter(affilie=self, statut='PAYE').aggregate(
+            total=Sum('montant')
+        )['total'] or 0
+
+    @property
+    def total_cotisations_dues(self):
+        from django.db.models import Sum
+        from cotisations.models import Cotisation
+        return Cotisation.objects.filter(affilie=self).aggregate(
+            total=Sum('montant')
+        )['total'] or 0
+
+    @property
+    def cotisations_en_retard(self):
+        from cotisations.models import Cotisation
+        from datetime import date
+        return Cotisation.objects.filter(
+            affilie=self, 
+            statut__in=['EN_ATTENTE', 'EN_RETARD'],
+            date_echeance__lt=date.today()
+        ).count()
+
+    def factures_mensuelles_mutualite(self, mois=None, annee=None):
+        """Montant total que la mutualité paiera pour cet affilié (Part Mutualité) par mois."""
+        from factures.models import Facture
+        from django.db.models import Sum
+        from datetime import date
+        
+        if mois is None:
+            mois = date.today().month
+        if annee is None:
+            annee = date.today().year
+            
+        # Include factures where affiliate is either titulaire or having right
+        from django.db.models import Q
+        return Facture.objects.filter(
+            Q(affilie=self) | Q(ayant_droit__affilie=self),
+            mutualite=self.mutualite,
+            date__month=mois,
+            date__year=annee,
+            statut__in=['VALIDE', 'PAYE']  # Only validated/paid factures
+        ).aggregate(total=Sum('montant_mutualite'))['total'] or 0
+
+    def factures_mensuelles_total(self, mois=None, annee=None):
+        """Montant total des factures (tout statut) pour cet affilié par mois."""
+        from factures.models import Facture
+        from django.db.models import Sum
+        from datetime import date
+        
+        if mois is None:
+            mois = date.today().month
+        if annee is None:
+            annee = date.today().year
+            
+        from django.db.models import Q
+        return Facture.objects.filter(
+            Q(affilie=self) | Q(ayant_droit__affilie=self),
+            mutualite=self.mutualite,
+            date__month=mois,
+            date__year=annee
+        ).aggregate(total=Sum('montant_total'))['total'] or 0
+
+    def total_factures_mutualite(self):
+        """Total Part Mutualité sur toutes les factures VALIDE/PAYE."""
+        from factures.models import Facture
+        from django.db.models import Sum
+        from django.db.models import Q
+        return Facture.objects.filter(
+            Q(affilie=self) | Q(ayant_droit__affilie=self),
+            mutualite=self.mutualite,
+            statut__in=['VALIDE', 'PAYE']
+        ).aggregate(total=Sum('montant_mutualite'))['total'] or 0
+
+    def total_factures_all(self):
+        """Total Montant Total sur toutes les factures."""
+        from factures.models import Facture
+        from django.db.models import Sum
+        from django.db.models import Q
+        return Facture.objects.filter(
+            Q(affilie=self) | Q(ayant_droit__affilie=self),
+            mutualite=self.mutualite
+        ).aggregate(total=Sum('montant_total'))['total'] or 0
+
+    def total_cotisations_payees_all(self):
+        """Total cotisations PAYE sur toute la période."""
+        from cotisations.models import Cotisation
+        from django.db.models import Sum
+        return Cotisation.objects.filter(
+            affilie=self, statut='PAYE'
+        ).aggregate(total=Sum('montant'))['total'] or 0
+
+    def total_cotisations_all(self):
+        """Total cotisations dues sur toute la période."""
+        from cotisations.models import Cotisation
+        from django.db.models import Sum
+        return Cotisation.objects.filter(affilie=self).aggregate(total=Sum('montant'))['total'] or 0
+
+    def factures_par_mois(self, annee=None):
+        """Détail des factures (mutualité et total) groupé par mois."""
+        from factures.models import Facture
+        from django.db.models import Sum
+        from django.db.models import Q
+        from datetime import date
+        
+        if annee is None:
+            annee = date.today().year
+            
+        qs = Facture.objects.filter(
+            Q(affilie=self) | Q(ayant_droit__affilie=self),
+            mutualite=self.mutualite,
+            date__year=annee
+        ).values('date__month').annotate(
+            total_mutualite=Sum('montant_mutualite', filter=Q(statut__in=['VALIDE', 'PAYE'])),
+            total_all=Sum('montant_total')
+        ).order_by('date__month')
+        
+        result = []
+        for item in qs:
+            result.append({
+                'mois': item['date__month'],
+                'mutualite': item['total_mutualite'] or 0,
+                'total': item['total_all'] or 0,
+            })
+        return result
+
+    def cotisations_par_mois(self, annee=None):
+        """Détail des cotisations payées groupé par mois."""
+        from cotisations.models import Cotisation
+        from django.db.models import Sum
+        from datetime import date
+        
+        if annee is None:
+            annee = date.today().year
+            
+        qs = Cotisation.objects.filter(
+            affilie=self,
+            annee=annee,
+            statut='PAYE'
+        ).values('mois').annotate(
+            total=Sum('montant')
+        ).order_by('mois')
+        
+        result = []
+        for item in qs:
+            result.append({
+                'mois': item['mois'],
+                'total': item['total'] or 0,
+            })
+        return result
+
+    @property
     def plafonds_effectifs(self):
         from decimal import Decimal
         champs = [
-            'cotisation_mensuelle', 'soins_ambulatoires', 'limite_laboratoire',
+            'cotisation_mensuelle', 'taux_prise_en_charge', 'soins_ambulatoires', 'limite_laboratoire',
             'limite_kinesitherapie', 'limite_reanimation', 'limite_imagerie_medicale',
             'hopital_plafond_chambre', 'hpc_nuit', 'limite_hospitalisation_generale',
             'maternite_forfait', 'pourcentage_maternite', 'pharmacie_forfait',
@@ -220,8 +381,13 @@ class Affilie(models.Model):
         resultat = {}
         for champ in champs:
             valeur = getattr(self, champ, None) or Decimal('0')
+            # 1. Check category first
+            if valeur <= 0 and self.categorie_origine:
+                valeur = getattr(self.categorie_origine, champ, None) or Decimal('0')
+            # 2. Then origine
             if valeur <= 0 and self.origine:
                 valeur = getattr(self.origine, champ, None) or Decimal('0')
+            # 3. Then mutualité defaults
             if valeur <= 0 and self.mutualite_id:
                 valeur = getattr(self.mutualite, f'def_{champ}', None) or Decimal('0')
             resultat[champ] = valeur

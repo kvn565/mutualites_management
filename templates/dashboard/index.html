@@ -131,7 +131,7 @@
                                     <div class="text-muted" style="font-size:0.75rem;">{{ part.get_type_partenaire_display }}</div>
                                 </td>
                                 <td class="text-end">
-                                    <span class="badge bg-light text-dark border">{{ part.nb_factures|default:"0" }} factures</span>
+                                    <span class="badge bg-light text-dark border">{{ part.factures_count|default:"0" }} factures</span>
                                 </td>
                             </tr>
                             {% empty %}

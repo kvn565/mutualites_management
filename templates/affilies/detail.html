@@ -450,6 +450,90 @@
         </script>
         {% endif %}
 
+        <!-- Totaux Factures & Cotisations -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <span class="fw-bold text-vert"><i class="bi bi-calculator me-2"></i> Totaux Factures & Cotisations</span>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-md-3">
+                        <div class="text-muted small">Total Part Mutualité</div>
+                        <div class="fw-bold fs-5 text-success">{{ affilie.total_factures_mutualite|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="text-muted small">Total Factures</div>
+                        <div class="fw-bold fs-5 text-primary">{{ affilie.total_factures_all|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="text-muted small">Total Cotisations Payées</div>
+                        <div class="fw-bold fs-5 text-info">{{ affilie.total_cotisations_payees_all|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="text-muted small">Total Cotisations Dues</div>
+                        <div class="fw-bold fs-5 text-warning">{{ affilie.total_cotisations_all|floatformat:0|intcomma }} BIF</div>
+                    </div>
+                </div>
+
+                <!-- Factures par mois -->
+                <div class="mb-4">
+                    <h6 class="fw-bold text-vert mb-3"><i class="bi bi-calendar-month me-2"></i> Factures par mois ({{ affilie.date_adhesion|date:"Y"|default:"2026" }})</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="text-center">Mois</th>
+                                    <th class="text-end">Part Mutualité</th>
+                                    <th class="text-end">Total Factures</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in affilie.factures_par_mois %}
+                                <tr>
+                                    <td class="text-center fw-medium">{{ m.mois|stringformat:"02d" }}</td>
+                                    <td class="text-end text-success">{{ m.mutualite|floatformat:0|intcomma }} BIF</td>
+                                    <td class="text-end text-primary">{{ m.total|floatformat:0|intcomma }} BIF</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">Aucune facture pour cette année</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Cotisations par mois -->
+                <div class="mb-4">
+                    <h6 class="fw-bold text-vert mb-3"><i class="bi bi-calendar-month me-2"></i> Cotisations payées par mois ({{ affilie.date_adhesion|date:"Y"|default:"2026" }})</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="text-center">Mois</th>
+                                    <th class="text-end">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in affilie.cotisations_par_mois %}
+                                <tr>
+                                    <td class="text-center fw-medium">{{ c.mois|stringformat:"02d" }}</td>
+                                    <td class="text-end text-success">{{ c.total|floatformat:0|intcomma }} BIF</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted py-4">Aucune cotisation payée pour cette année</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
         <!-- Cotisations récentes -->
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">

@@ -3,6 +3,61 @@ from django.db import models
 from core.models import TenantManager
 from comptabilite.models import SoftDeleteMixin
 
+
+class CategorieOrigine(models.Model):
+    """Catégories d'affiliés au sein d'une origine (ex: Cadre, Employé, Agent, etc.)"""
+    mutualite = models.ForeignKey(
+        'core.Mutualite', on_delete=models.CASCADE,
+        null=True, blank=True, related_name='categories_origine',
+        verbose_name='Mutualité',
+    )
+    origine = models.ForeignKey(
+        'Origine', on_delete=models.CASCADE,
+        related_name='categories', verbose_name='Origine',
+    )
+    nom = models.CharField(max_length=100, verbose_name='Nom de la catégorie')
+    description = models.TextField(blank=True, verbose_name='Description')
+    ordre = models.PositiveSmallIntegerField(default=0, verbose_name='Ordre')
+    actif = models.BooleanField(default=True, verbose_name='Actif')
+
+    objects = TenantManager()
+
+    # Cotisation et plafonds spécifiques à cette catégorie
+    cotisation_mensuelle = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Cotisation mensuelle (BIF)')
+    taux_prise_en_charge = models.DecimalField(max_digits=5, decimal_places=2, default=80, verbose_name='Taux prise en charge mutualité (%)')
+    soins_ambulatoires = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Soins Ambulatoires (BIF)')
+    limite_laboratoire = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Limite Laboratoire (BIF)')
+    limite_kinesitherapie = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Limite Kinésithérapie (BIF)')
+    limite_reanimation = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Limite Réanimation (BIF)')
+    limite_imagerie_medicale = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Limite Imagerie Médicale (BIF)')
+    hopital_plafond_chambre = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Hôpital plafond chambre/nuit (BIF)')
+    hpc_nuit = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='HPC / Nuit (BIF)')
+    limite_hospitalisation_generale = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Limite Hospitalisation Générale (BIF)')
+    maternite_forfait = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Maternité forfait (BIF)')
+    pourcentage_maternite = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name='Pourcentage Maternité (%)')
+    pharmacie_forfait = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Pharmacie forfait (BIF)')
+    limites_medicaments = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Limites Médicaments (BIF)')
+    limites_lunettes = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Limites Lunettes (BIF)')
+    limites_dents = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Limites Soins Dentaires (BIF)')
+
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Catégorie d\'origine'
+        verbose_name_plural = 'Catégories d\'origine'
+        ordering = ['origine', 'ordre', 'nom']
+        unique_together = ['origine', 'nom']
+
+    def __str__(self):
+        return f"{self.origine.nom} — {self.nom}"
+
+    def save(self, *args, **kwargs):
+        if self.origine_id and not self.mutualite_id:
+            self.mutualite = self.origine.mutualite
+        super().save(*args, **kwargs)
+
+
 class Origine(SoftDeleteMixin):
     mutualite = models.ForeignKey(
         'core.Mutualite', on_delete=models.CASCADE,

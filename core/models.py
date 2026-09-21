@@ -275,11 +275,12 @@ class Mutualite(models.Model):
             if self.statut != 'EN_ATTENTE':
                 self.statut = 'EN_ATTENTE'
             return
-        if self.date_expiration and self.date_expiration < timezone.now():
+        now = timezone.now()
+        if self.date_expiration and self.date_expiration < now:
             self.statut = 'EXPIRE'
             return
         if self.essai_gratuit:
-            if self.date_fin_essai and self.date_fin_essai < timezone.now():
+            if self.date_fin_essai and self.date_fin_essai < now:
                 self.statut = 'EXPIRE'
             else:
                 self.statut = 'ESSAI'
@@ -326,13 +327,43 @@ class Mutualite(models.Model):
     @property
     def licence_valide(self):
         """Vérifie si la licence est valide (non expirée)."""
-        if self.statut in ('EXPIRE', 'BLOQUE', 'EN_ATTENTE'):
+        now = timezone.now()
+        if self.statut in ('EXPIRE', 'BLOQUE', 'SUSPENDU', 'EN_ATTENTE'):
             return False
-        if self.date_expiration and self.date_expiration < timezone.now():
+        if not self.cle_activation:
             return False
-        if self.essai_gratuit and self.date_fin_essai and self.date_fin_essai < timezone.now():
+        if self.essai_gratuit:
+            if not self.date_fin_essai or self.date_fin_essai < now:
+                return False
+            if self.date_expiration and self.date_expiration < now:
+                return False
+            return True
+        if not self.date_expiration or self.date_expiration < now:
             return False
         return True
+
+    def actualiser_statut_expiration(self):
+        """Bascule le statut en EXPIRE si la licence est dépassée.
+
+        Ne touche jamais aux statuts BLOQUE/SUSPENDU (décision manuelle).
+        Retourne True si le statut a été modifié et persisté.
+        """
+        if self.statut in ('BLOQUE', 'SUSPENDU', 'EN_ATTENTE', 'EXPIRE'):
+            return False
+        now = timezone.now()
+        expiree = False
+        if self.essai_gratuit:
+            if self.date_fin_essai and self.date_fin_essai < now:
+                expiree = True
+            elif self.date_expiration and self.date_expiration < now:
+                expiree = True
+        elif self.date_expiration and self.date_expiration < now:
+            expiree = True
+        if expiree:
+            self.statut = 'EXPIRE'
+            super().save(update_fields=['statut'])
+            return True
+        return False
 
     @property
     def jours_restants(self):

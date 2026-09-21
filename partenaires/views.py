@@ -238,7 +238,7 @@ def supprimer(request, pk):
         if obj.nb_factures > 0:
             messages.error(request, f"Impossible de supprimer {nom} car il a des factures associées.")
             return redirect('partenaires:liste')
-        obj.delete()
+        obj.delete(user=request.user)
         enregistrer_audit(request, 'SUPPRESSION', 'partenaires',
                           f"Suppression partenaire : {nom}",
                           'Partenaire', pk)
@@ -318,33 +318,22 @@ def accepter_demande(request, pk):
         return redirect('partenaires:liste')
 
     partenaire.mutualite = mutualite
-    partenaire.statut = 'ACTIF'
+    partenaire.statut = 'EN_ATTENTE'
     partenaire.save(update_fields=['mutualite', 'statut'])
 
     relation = RelationPartenaireMutualite(
         partenaire=partenaire,
         mutualite=mutualite,
-        statut='ACTIVE',
+        statut='EN_ATTENTE',
         date_action=timezone.now(),
     )
     relation.save()
 
-    convention = Convention(
-        partenaire=partenaire,
-        mutualite=mutualite,
-        numero_convention=Convention._generer_numero(Convention),
-        date_debut=timezone.now().date(),
-        date_fin=timezone.now().date() + timezone.timedelta(days=365),
-        statut='ACTIVE',
-        created_by=request.user,
-    )
-    convention.save()
-
     enregistrer_audit(request, 'VALIDATION', 'partenaires',
-                      f"Acceptation partenaire : {partenaire.nom_etablissement} par {mutualite.nom}",
+                      f"Demande partenaire : {partenaire.nom_etablissement} par {mutualite.nom} — en attente validation superadmin",
                       'Partenaire', pk)
-    messages.success(request, f"Partenaire {partenaire.nom_etablissement} accepté. Une convention a été créée.")
-    return redirect('partenaires:detail', pk=pk)
+    messages.success(request, f"Demande pour {partenaire.nom_etablissement} envoyée. En attente de validation superadmin.")
+    return redirect('partenaires:liste')
 
 
 @login_required
@@ -401,22 +390,22 @@ def debloquer_relation(request, pk):
         messages.error(request, "Aucune relation bloquée avec ce partenaire.")
         return redirect('partenaires:detail', pk=pk)
 
-    relation.statut = 'ACTIVE'
+    relation.statut = 'EN_ATTENTE'
     relation.date_action = timezone.now()
     relation.save(update_fields=['statut', 'date_action'])
 
-    partenaire.statut = 'ACTIF'
+    partenaire.statut = 'EN_ATTENTE'
     partenaire.save(update_fields=['statut'])
 
     enregistrer_audit(request, 'MODIFICATION', 'partenaires',
-                      f"Déblocage relation avec {partenaire.nom_etablissement}",
+                      f"Demande déblocage {partenaire.nom_etablissement} — en attente validation superadmin",
                       'RelationPartenaireMutualite', relation.pk)
-    messages.success(request, f"Relation avec {partenaire.nom_etablissement} rétablie.")
+    messages.success(request, f"Demande envoyée pour {partenaire.nom_etablissement}. En attente de validation superadmin.")
     return redirect('partenaires:detail', pk=pk)
 
 
 @login_required
-def supprimer(request, pk):
+def supprimer_attente(request, pk):
     if _check_super_admin(request.user):
         messages.warning(request, "Accès réservé aux utilisateurs de la mutualité.")
         return redirect('superadmin:dashboard')
@@ -441,13 +430,15 @@ def restaurer(request, pk):
     partenaire = get_object_or_404(
         Partenaire.all_objects.filter(supprime=True), pk=pk
     )
-    partenaire.restore()
+    partenaire.restore(user=request.user)
     enregistrer_audit(request, 'MODIFICATION', 'partenaires',
                       f"Restauration du partenaire {partenaire.nom_etablissement}",
                       'Partenaire', partenaire.pk)
     messages.success(request, f"{partenaire.nom_etablissement} a été restauré.")
     return redirect('partenaires:liste')
 
+
+from django.db.models import RestrictedError
 
 @login_required
 def purger(request, pk):
@@ -458,8 +449,16 @@ def purger(request, pk):
     partenaire = get_object_or_404(
         Partenaire.all_objects.filter(supprime=True), pk=pk
     )
+    if partenaire.nb_factures > 0:
+        messages.error(request, f"Impossible de purger {partenaire.nom_etablissement} car il a des factures associées.")
+        return redirect('partenaires:liste')
     nom = partenaire.nom_etablissement
-    partenaire.delete()
+    try:
+        partenaire.delete(hard=True, user=request.user)
+    except RestrictedError as e:
+        messages.error(request, f"Impossible de purger {nom} car il est référencé par d'autres enregistrements.")
+        logger.error("Erreur purge partenaire %s: %s", pk, e)
+        return redirect('partenaires:liste')
     enregistrer_audit(request, 'SUPPRESSION', 'partenaires',
                       f"Suppression définitive du partenaire {nom}",
                       'Partenaire', pk)

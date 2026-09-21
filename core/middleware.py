@@ -1,8 +1,12 @@
 import logging
 import time
+from datetime import timedelta
+
 from django.utils import timezone
 from django.contrib.auth import logout
 from django.shortcuts import redirect
+from django.core.cache import cache
+from django.core.management import call_command
 
 from core.models import JournalAudit, HistoriqueConnexion, set_current_mutualite
 
@@ -21,9 +25,25 @@ class MutualiteMiddleware:
             mutualite = request.user.mutualite
         set_current_mutualite(mutualite)
         request.current_mutualite = mutualite
+
+        self._nettoyer_mutualites_expirees()
+
         response = self.get_response(request)
         set_current_mutualite(None)
         return response
+
+    def _nettoyer_mutualites_expirees(self):
+        """Supprime automatiquement les mutualités en attente depuis plus de 7 jours."""
+        last_cleanup = cache.get('last_mutualite_cleanup')
+        now = timezone.now()
+        if last_cleanup and (now - last_cleanup).total_seconds() < 86400:
+            return
+        cache.set('last_mutualite_cleanup', now, 86400)
+        try:
+            call_command('nettoyer_mutualites_attente', '--jours', '7', verbosity=0)
+            logger.info('Nettoyage automatique des mutualités expirées exécuté.')
+        except Exception as e:
+            logger.error(f'Erreur nettoyage mutualités: {e}')
 
 
 class LicenseMiddleware:
@@ -36,7 +56,25 @@ class LicenseMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
-    ALLOWED_PATHS = ('/connexion/activer-licence', '/licence/', '/connexion/', '/connexion/deconnexion/', '/admin/')
+    ALLOWED_PATHS = ('/connexion/activer-licence', '/licence/', '/connexion/', '/connexion/deconnexion/', '/admin/', '/portail/connexion/', '/portail/deconnexion/', '/aide/')
+
+    def _licence_exigee(self, mutualite):
+        if not mutualite:
+            return False
+        try:
+            mutualite.actualiser_statut_expiration()
+        except Exception:
+            pass
+        try:
+            return not mutualite.licence_valide
+        except Exception:
+            return False
+
+    def _reponse_licence(self, request):
+        if request.path.startswith('/api/'):
+            from django.http import JsonResponse
+            return JsonResponse({'detail': 'Licence expirée. Veuillez activer votre licence.'}, status=403)
+        return redirect('activer_licence')
 
     def __call__(self, request):
         path = request.path
@@ -44,20 +82,51 @@ class LicenseMiddleware:
             return self.get_response(request)
 
         if request.user.is_authenticated and not request.user.est_super_admin:
-            mutualite = request.user.mutualite
-            if mutualite and not mutualite.licence_valide:
-                return redirect('activer_licence')
+            mutualite = getattr(request.user, 'mutualite', None)
+            if mutualite and self._licence_exigee(mutualite):
+                return self._reponse_licence(request)
+
+        if not request.user.is_authenticated and request.session.get('partenaire_user_id'):
+            if path.startswith('/portail/') and not self._portail_exempte(path):
+                if self._portail_licence_expiree(request):
+                    from django.contrib import messages
+                    messages.error(request, "⚠️ La licence de cette mutualité est expirée. Contactez la mutualité.")
+                    return redirect('portail_partenaire:connexion')
 
         return self.get_response(request)
+
+    def _portail_exempte(self, path):
+        return path.startswith(('/portail/connexion/', '/portail/deconnexion/', '/portail/inscription'))
+
+    def _portail_licence_expiree(self, request):
+        try:
+            from partenaires.models import UtilisateurPartenaire
+            from core.models import Mutualite
+            user = UtilisateurPartenaire.objects.select_related('mutualite').get(
+                pk=request.session.get('partenaire_user_id'), actif=True,
+            )
+            pk_active = request.session.get('mutualite_active_pk')
+            if pk_active:
+                try:
+                    mut = Mutualite.objects.get(pk=int(pk_active))
+                except (ValueError, Mutualite.DoesNotExist):
+                    return False
+            else:
+                mut = user.mutualite
+            if not mut:
+                return False
+            return self._licence_exigee(mut)
+        except Exception:
+            return False
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         path = request.path
         if any(path.startswith(p) for p in self.ALLOWED_PATHS):
             return None
         if request.user.is_authenticated and not request.user.est_super_admin:
-            mutualite = request.user.mutualite
-            if mutualite and not mutualite.licence_valide:
-                return redirect('activer_licence')
+            mutualite = getattr(request.user, 'mutualite', None)
+            if mutualite and self._licence_exigee(mutualite):
+                return self._reponse_licence(request)
         return None
 
 

@@ -38,6 +38,13 @@ def landing_view(request):
 def login_view(request):
     from core.forms import ConnexionForm
     if request.user.is_authenticated:
+        if not request.user.est_super_admin and request.user.mutualite:
+            try:
+                request.user.mutualite.actualiser_statut_expiration()
+            except Exception:
+                pass
+            if not request.user.mutualite.licence_valide:
+                return redirect('activer_licence')
         return redirect('dashboard:index')
     if request.method == 'POST':
         form = ConnexionForm(request.POST)
@@ -79,6 +86,16 @@ def login_view(request):
                     if not user.est_super_admin and getattr(user.mutualite, 'statut', None) == 'EN_ATTENTE':
                         request.session['mutualite_inscrite_id'] = user.mutualite.pk
                         return redirect('core:inscription_attente')
+                    if not user.est_super_admin and user.mutualite:
+                        try:
+                            user.mutualite.actualiser_statut_expiration()
+                        except Exception:
+                            pass
+                        if not user.mutualite.licence_valide:
+                            messages.warning(request, "⚠️ Votre licence est expirée. Veuillez saisir une clé d'activation pour continuer.")
+                            if user.est_super_admin:
+                                return redirect('superadmin:dashboard')
+                            return redirect('activer_licence')
                     messages.success(request, f"Bienvenue {user.nom_complet} !")
                     if user.est_super_admin:
                         return redirect('superadmin:dashboard')

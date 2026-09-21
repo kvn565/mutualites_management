@@ -23,6 +23,14 @@
     <i class="bi bi-play-circle me-1"></i>Réactiver
 </a>
 {% endif %}
+{% if user.peut_supprimer and partenaire.statut != 'EXPIRE' %}
+<form method="post" action="{% url 'partenaires:supprimer' partenaire.pk %}" style="display:inline;" onsubmit="return confirm('Supprimer {{ partenaire.nom_etablissement }} ? Il sera mis à la corbeille.')">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-outline-danger">
+        <i class="bi bi-trash me-1"></i>Supprimer
+    </button>
+</form>
+{% endif %}
 <a href="{% url 'partenaires:liste' %}" class="btn btn-outline-secondary">
     <i class="bi bi-arrow-left me-1"></i>Retour
 </a>

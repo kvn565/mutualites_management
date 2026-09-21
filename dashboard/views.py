@@ -79,8 +79,8 @@ def index(request):
     if Partenaire:
         stats['nb_partenaires'] = Partenaire.objects.filter(mutualite=mutualite, statut='ACTIF').count()
         stats['top_partenaires'] = Partenaire.objects.filter(mutualite=mutualite, statut='ACTIF').annotate(
-            nb_factures=Count('factures')
-        ).order_by('-nb_factures')[:5]
+            factures_count=Count('factures')
+        ).order_by('-factures_count')[:5]
 
     if Cotisation:
         stats['cotisations_mois'] = Cotisation.objects.filter(

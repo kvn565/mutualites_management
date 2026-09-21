@@ -1383,6 +1383,7 @@ def partenaire_valider(request, pk):
 
     partenaire.statut = 'ACTIF'
     partenaire.save(update_fields=['statut'])
+    RelationPartenaireMutualite.objects.filter(partenaire=partenaire, mutualite=partenaire.mutualite).update(statut='ACTIVE', date_action=timezone.now())
 
     if not partenaire.conventions.filter(statut='ACTIVE').exists():
         from datetime import timedelta

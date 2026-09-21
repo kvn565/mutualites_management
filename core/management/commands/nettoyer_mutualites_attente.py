@@ -48,28 +48,63 @@ class Command(BaseCommand):
             self.stdout.write(f'  - {m.code_mutualite} | {m.nom} | {age} jours | Admin: {m.username_admin}')
 
             if not dry_run:
-                # Log audit avant suppression
-                JournalAudit.objects.create(
-                    mutualite=None,
-                    utilisateur=None,
-                    action='SUPPRESSION_AUTO',
-                    module='core',
-                    description=f"Suppression automatique : mutualité '{m.nom}' ({m.code_mutualite}) en attente depuis {age} jours",
-                    objet_type='Mutualite',
-                    objet_id=m.pk,
-                    adresse_ip='system',
-                )
+                try:
+                    JournalAudit.objects.create(
+                        mutualite=None,
+                        utilisateur=None,
+                        action='SUPPRESSION',
+                        module='core',
+                        description=f"Suppression automatique : mutualité '{m.nom}' ({m.code_mutualite}) en attente depuis {age} jours",
+                        objet_type='Mutualite',
+                        objet_id=m.pk,
+                        adresse_ip='system',
+                    )
 
-                # Supprimer l'admin user associé s'il existe
-                if m.username_admin:
+                    if m.username_admin:
+                        try:
+                            admin_user = Utilisateur.objects.get(username=m.username_admin, mutualite=m)
+                            admin_user.delete()
+                        except Utilisateur.DoesNotExist:
+                            pass
+
+                    from django.apps import apps
                     try:
-                        admin_user = Utilisateur.objects.get(username=m.username_admin, mutualite=m)
-                        admin_user.delete()
-                    except Utilisateur.DoesNotExist:
+                        Partenaire = apps.get_model('partenaires', 'Partenaire')
+                        ServiceSante = apps.get_model('services_sante', 'ServiceSante')
+                        Medicament = apps.get_model('pharmacie', 'Medicament')
+                        Facture = apps.get_model('factures', 'Facture')
+                        LigneFacture = apps.get_model('factures', 'LigneFacture')
+                        for p in Partenaire.objects.filter(mutualite=m):
+                            autres = Facture.objects.exclude(mutualite=m).filter(partenaire=p)
+                            if autres.exists():
+                                dest = autres.first().mutualite
+                                if dest:
+                                    p.mutualite = dest
+                                    p.save(update_fields=['mutualite'])
+                        for s in ServiceSante.objects.filter(mutualite=m):
+                            autres = LigneFacture.objects.exclude(mutualite=m).filter(service=s)
+                            if autres.exists():
+                                dest = autres.first().mutualite or autres.first().facture.mutualite
+                                if dest:
+                                    s.mutualite = dest
+                                    s.save(update_fields=['mutualite'])
+                        for med in Medicament.objects.filter(mutualite=m):
+                            autres = LigneFacture.objects.exclude(mutualite=m).filter(medicament=med)
+                            if autres.exists():
+                                dest = autres.first().mutualite or autres.first().facture.mutualite
+                                if dest:
+                                    med.mutualite = dest
+                                    med.save(update_fields=['mutualite'])
+                    except Exception:
                         pass
-
-                # Supprimer la mutualité (cascade supprimera les données liées)
-                m.delete()
+                    for label in ['factures.LigneFacture', 'factures.Facture', 'partenaires.RelationPartenaireMutualite', 'partenaires.Convention']:
+                        try:
+                            apps.get_model(label).objects.filter(mutualite=m).delete()
+                        except Exception:
+                            pass
+                    m.delete()
+                except Exception as e:
+                    logger.error(f'Erreur suppression mutualité {m.code_mutualite}: {e}')
 
         if dry_run:
             self.stdout.write(self.style.WARNING(f'\n[DRY RUN] {count} mutualité(s) seraient supprimées.'))
