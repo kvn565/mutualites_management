@@ -17,7 +17,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-from core.models import JournalAudit, Mutualite, CleActivation, AuditCle, HistoriqueConnexion, ConfigurationApp, Notification, Utilisateur
+from core.models import JournalAudit, Mutualite, HistoriqueConnexion, ConfigurationApp, Notification, Utilisateur
 from groupe.models import Groupe
 from factures.models import Facture, LigneFacture
 from affilies.models import Affilie
@@ -99,17 +99,6 @@ class DashboardView(SuperAdminRequiredMixin, TemplateView):
             date_fin_essai__lte=seuil_expiration,
         )
 
-        ctx['mutualites_sans_licence'] = Mutualite.objects.filter(
-            statut__in=['EN_ATTENTE', 'EXPIRE'],
-        )
-
-        seuil_7j = now + timedelta(days=7)
-        ctx['expiration_proche'] = Mutualite.objects.filter(
-            statut__in=['ACTIF', 'ESSAI'],
-            date_expiration__lte=seuil_7j,
-            date_expiration__gte=now,
-        )
-
         return ctx
 
 
@@ -170,7 +159,8 @@ def mutualite_creer(request):
 
                 mutualite.username_admin = admin_username
                 mutualite.email_admin = admin_email
-                mutualite.activer_essai(cree_par=request.user)
+                mutualite.statut = 'ACTIF'
+                mutualite.save()
 
                 JournalAudit.objects.create(
                     mutualite=mutualite,
@@ -185,9 +175,8 @@ def mutualite_creer(request):
 
                 messages.success(
                     request,
-                    f"Mutualité « {mutualite.nom} » enregistrée. "
-                    f"Administrateur créé : {admin_username} / mot de passe : {admin_password}. "
-                    f"Essai gratuit de 14 jours activé !"
+                    f"Mutualité « {mutualite.nom} » enregistrée et activée. "
+                    f"Administrateur créé : {admin_username} / mot de passe : {admin_password}."
                 )
                 return redirect('superadmin:mutualite_detail', pk=mutualite.pk)
     else:
@@ -275,15 +264,17 @@ def mutualite_suspendre(request, pk):
 @superadmin_required
 def mutualite_reactiver(request, pk):
     mutualite = get_object_or_404(Mutualite, pk=pk)
+    from single_tenant.views import get_active_mutualite
+    active = get_active_mutualite()
+    if active and active.pk != mutualite.pk:
+        messages.error(request, f"Mode single-tenant : seule « {active.nom} » peut être active.")
+        return redirect('superadmin:mutualite_detail', pk=pk)
     if mutualite.statut != 'SUSPENDU':
         messages.info(request, f"La mutualité « {mutualite.nom} » n'est pas suspendue.")
         return redirect('superadmin:mutualite_detail', pk=pk)
 
-    if mutualite.essai_gratuit:
-        mutualite.activer_essai()
-    else:
-        mutualite.statut = 'ACTIF'
-        mutualite.save()
+    mutualite.statut = 'ACTIF'
+    mutualite.save()
 
     JournalAudit.objects.create(
         mutualite=mutualite,
@@ -300,35 +291,13 @@ def mutualite_reactiver(request, pk):
 
 
 @superadmin_required
-def mutualite_renouveler_licence(request, pk):
-    mutualite = get_object_or_404(Mutualite, pk=pk)
-    if request.method == 'POST':
-        type_abonnement = request.POST.get('type_abonnement', 'MENSUEL')
-        duree_jours = int(request.POST.get('duree_jours', 30))
-
-        mutualite.activer_licence(type_abonnement, duree_jours)
-
-        JournalAudit.objects.create(
-            mutualite=mutualite,
-            utilisateur=request.user,
-            action='MODIFICATION',
-            module='superadmin',
-            description=f"Licence renouvelée pour '{mutualite.nom}' : {type_abonnement}, {duree_jours} jours, par {request.user.username}",
-            objet_type='Mutualite',
-            objet_id=mutualite.pk,
-            adresse_ip=request.META.get('REMOTE_ADDR', ''),
-        )
-        messages.success(request, f"Licence renouvelée pour « {mutualite.nom} » jusqu'au {mutualite.date_expiration.strftime('%d/%m/%Y')}.")
-        return redirect('superadmin:mutualite_detail', pk=pk)
-
-    return render(request, 'superadmin/renouveler_licence.html', {
-        'mutualite': mutualite,
-    })
-
-
-@superadmin_required
 def mutualite_essai_prolonger(request, pk):
     mutualite = get_object_or_404(Mutualite, pk=pk)
+    from single_tenant.views import get_active_mutualite
+    active = get_active_mutualite()
+    if active and active.pk != mutualite.pk:
+        messages.error(request, f"Mode single-tenant : seule « {active.nom} » peut être active.")
+        return redirect('superadmin:mutualite_detail', pk=pk)
     if request.method == 'POST':
         jours = int(request.POST.get('jours', 7))
         from datetime import timedelta
@@ -484,171 +453,6 @@ def utilisateur_supprimer(request, pk):
 
 
 @superadmin_required
-def cles_liste(request):
-    q = request.GET.get('q', '')
-    statut = request.GET.get('statut', '')
-    type_plan = request.GET.get('type_plan', '')
-
-    cles = CleActivation.objects.all().select_related('mutualite')
-
-    if q:
-        cles = cles.filter(
-            Q(cle_visible__icontains=q) |
-            Q(mutualite__nom__icontains=q) |
-            Q(mutualite__nif__icontains=q)
-        )
-    if statut:
-        cles = cles.filter(statut=statut)
-    if type_plan:
-        cles = cles.filter(type_plan=type_plan)
-
-    paginator = Paginator(cles, 10)
-    page_number = request.GET.get('page')
-    cles_page = paginator.get_page(page_number)
-
-    return render(request, 'superadmin/cles_liste.html', {
-        'cles': cles_page,
-        'paginator': paginator,
-        'q': q,
-        'statut': statut,
-        'type_plan': type_plan,
-    })
-
-
-@superadmin_required
-def cle_generer(request):
-    mutualites = Mutualite.objects.all().order_by('nom')
-
-    if request.method == 'POST':
-        mutualite_id = request.POST.get('mutualite')
-        type_plan = request.POST.get('type_plan')
-        date_debut = request.POST.get('date_debut')
-        date_fin = request.POST.get('date_fin')
-
-        if not mutualite_id or not type_plan:
-            messages.error(request, 'Veuillez sélectionner une mutualité et un type de plan.')
-            return redirect('superadmin:cles_generer')
-
-        mutualite = get_object_or_404(Mutualite, pk=mutualite_id)
-
-        try:
-            from datetime import datetime
-
-            if type_plan == 'PERSONNALISE':
-                if not date_debut or not date_fin:
-                    messages.error(request, 'Veuillez spécifier les dates de début et fin pour un plan personnalisé.')
-                    return redirect('superadmin:cles_generer')
-                dt_debut = datetime.strptime(date_debut, '%Y-%m-%d').replace(tzinfo=timezone.get_current_timezone())
-                dt_fin = datetime.strptime(date_fin, '%Y-%m-%d').replace(tzinfo=timezone.get_current_timezone())
-            else:
-                dt_debut = timezone.now()
-                plan_to_duree = {
-                    'ESSAI': 14, '1MOIS': 30, '6MOIS': 182,
-                    '12MOIS': 365, '24MOIS': 730,
-                }
-                duree_jours = plan_to_duree.get(type_plan, 30)
-                dt_debut = timezone.now()
-                dt_fin = dt_debut + timedelta(days=duree_jours)
-
-            cle = CleActivation.objects.create(
-                mutualite=mutualite,
-                type_plan=type_plan,
-                date_debut=dt_debut,
-                date_fin=dt_fin,
-                active=True,
-                utilisee=False,
-                statut='DISPONIBLE',
-                cree_par=request.user.username,
-                notes=f"Générée par {request.user.username}",
-            )
-
-            AuditCle.objects.create(
-                cle=cle,
-                mutualite=mutualite,
-                action='CREEE',
-                message=f"Clé {cle.cle_visible} générée pour {mutualite.nom} ({cle.label_plan})",
-                ip_address=request.META.get('REMOTE_ADDR', ''),
-            )
-
-            messages.success(
-                request,
-                f"Clé générée avec succès pour « {mutualite.nom} ».<br>"
-                f"<strong>Clé :</strong> <code>{cle.cle_visible}</code><br>"
-                f"<strong>Plan :</strong> {cle.label_plan}<br>"
-                f"<strong>Validité :</strong> du {dt_debut.strftime('%d/%m/%Y')} au {dt_fin.strftime('%d/%m/%Y')}"
-            )
-            return redirect('superadmin:cles_liste')
-
-        except Exception as e:
-            messages.error(request, f"Erreur lors de la génération : {e}")
-            return redirect('superadmin:cles_generer')
-
-    return render(request, 'superadmin/cle_generer.html', {
-        'mutualites': mutualites,
-    })
-
-
-@superadmin_required
-def cle_activer(request, pk):
-    cle = get_object_or_404(CleActivation, pk=pk)
-    mutualite = cle.mutualite
-
-    if cle.statut != 'DISPONIBLE':
-        messages.warning(request, f"Cette clé a déjà le statut « {cle.get_statut_display()} ».")
-        return redirect('superadmin:cles_liste')
-
-    cle.utilisee = True
-    cle.date_utilisation = timezone.now()
-    cle.save()
-
-    mutualite.cle_activation = cle.cle_visible
-    mutualite.date_activation = cle.date_debut
-    mutualite.date_expiration = cle.date_fin
-    mutualite.type_abonnement = cle.type_plan
-    mutualite.essai_gratuit = (cle.type_plan == 'ESSAI')
-    mutualite.statut = 'ACTIF'
-    mutualite.save()
-
-    AuditCle.objects.create(
-        cle=cle,
-        mutualite=mutualite,
-        action='ACTIVEE',
-        message=f"Clé {cle.cle_visible} activée pour {mutualite.nom}",
-        ip_address=request.META.get('REMOTE_ADDR', ''),
-    )
-
-    messages.success(request, f"Clé activée pour « {mutualite.nom} ». Expire le {cle.date_fin.strftime('%d/%m/%Y')}.")
-    return redirect('superadmin:cles_liste')
-
-
-@superadmin_required
-def cle_revoquer(request, pk):
-    cle = get_object_or_404(CleActivation, pk=pk)
-    if cle.statut == 'REVOQUEE':
-        messages.warning(request, 'Cette clé est déjà révoquée.')
-        return redirect('superadmin:cles_liste')
-
-    if request.method == 'POST':
-        motif = request.POST.get('motif', '')
-        cle.active = False
-        cle.motif_revocation = motif
-        cle.save()
-
-        AuditCle.objects.create(
-            cle=cle,
-            mutualite=cle.mutualite,
-            action='REVOQUEE',
-            message=f"Clé {cle.cle_visible} révoquée : {motif or 'Aucun motif'}",
-            ip_address=request.META.get('REMOTE_ADDR', ''),
-        )
-
-        messages.success(request, f"Clé « {cle.cle_visible} » révoquée.")
-        return redirect('superadmin:cles_liste')
-
-    return render(request, 'superadmin/cle_revoquer.html', {'cle': cle})
-
-
-@superadmin_required
 def mutualite_factures(request, pk):
     mutualite = get_object_or_404(Mutualite, pk=pk)
     factures = Facture.objects.filter(mutualite=mutualite).select_related(
@@ -775,10 +579,6 @@ def reinitialiser_selection(request):
         'mutualites': mutualites,
         'selected': selected,
     })
-
-@superadmin_required
-def cle_irrevoquer(request, pk):
-    return HttpResponse("Fonctionnalité en cours de développement.")
 
 @superadmin_required
 def mutualite_reinitialiser(request, pk):
@@ -1383,6 +1183,7 @@ def partenaire_valider(request, pk):
 
     partenaire.statut = 'ACTIF'
     partenaire.save(update_fields=['statut'])
+    RelationPartenaireMutualite.objects.filter(partenaire=partenaire, mutualite=partenaire.mutualite).update(statut='ACTIVE', date_action=timezone.now())
 
     if not partenaire.conventions.filter(statut='ACTIVE').exists():
         from datetime import timedelta
@@ -1512,13 +1313,11 @@ def valider_mutualite(request, pk):
             messages.success(request, f"Mutualité « {nom} » supprimée définitivement.")
             return redirect('superadmin:validations_mutualites')
 
-        type_plan = request.POST.get('type_plan')
-        if not type_plan:
-            messages.error(request, 'Veuillez sélectionner un type de plan.')
-            return redirect('superadmin:valider_mutualite', pk=pk)
-
         with transaction.atomic():
-            mutualite.activer_essai(cree_par=request.user)
+            mutualite.statut = 'ACTIF'
+            mutualite.essai_gratuit = False
+            mutualite.date_activation = timezone.now()
+            mutualite.save()
 
             if admin_user and not admin_user.actif:
                 admin_user.actif = True
@@ -1527,14 +1326,14 @@ def valider_mutualite(request, pk):
             JournalAudit.objects.create(
                 mutualite=mutualite, utilisateur=request.user,
                 action='VALIDATION', module='superadmin',
-                description=f"Mutualité '{mutualite.nom}' validée et essai activé par {request.user.username}",
+                description=f"Mutualité '{mutualite.nom}' validée et activée par {request.user.username}",
                 objet_type='Mutualite', objet_id=mutualite.pk,
                 adresse_ip=request.META.get('REMOTE_ADDR', ''),
             )
 
         messages.success(
             request,
-            f"Mutualité « {mutualite.nom} » activée (essai 14 jours). "
+            f"Mutualité « {mutualite.nom} » activée. "
             f"Contactez l'administrateur au {mutualite.telephone} pour l'informer."
         )
         return redirect('superadmin:validations_mutualites')

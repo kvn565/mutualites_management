@@ -118,10 +118,7 @@ class Mutualite(models.Model):
         null=True, blank=True, verbose_name='Date fin essai',
     )
 
-    # ── Licence ─────────────────────────────────────────────────
-    cle_activation = models.CharField(
-        max_length=50, blank=True, verbose_name="Clé d'activation",
-    )
+    # ── Abonnement (sans clé — connexion libre) ───────────────────
     date_activation = models.DateTimeField(
         null=True, blank=True, verbose_name="Date d'activation",
     )
@@ -256,6 +253,14 @@ class Mutualite(models.Model):
                 self.slug = f"{base}-{counter}"
                 counter += 1
         self._mettre_a_jour_statut()
+        if self.statut in ('ACTIF', 'ESSAI'):
+            try:
+                from single_tenant.models import SingleTenantConfig
+                cfg = SingleTenantConfig.objects.filter(statut='ACTIVE').first()
+                if cfg and cfg.mutualite_id and cfg.mutualite_id != self.pk:
+                    self.statut = 'SUSPENDU'
+            except Exception:
+                pass
         super().save(*args, **kwargs)
 
     def _generer_code(self):
@@ -268,79 +273,26 @@ class Mutualite(models.Model):
                 return code
 
     def _mettre_a_jour_statut(self):
-        """Met à jour le statut en fonction de l'état de la licence."""
-        if self.statut in ('BLOQUE', 'SUSPENDU'):
+        """Mode sans clé : connexion libre, aucun blocage automatique.
+
+        Préserve EN_ATTENTE (demande en attente de validation),
+        BLOQUE et SUSPENDU (décisions manuelles).
+        """
+        if self.statut in ('BLOQUE', 'SUSPENDU', 'EN_ATTENTE'):
             return
-        if not self.essai_gratuit and not self.cle_activation:
-            if self.statut != 'EN_ATTENTE':
-                self.statut = 'EN_ATTENTE'
-            return
-        if self.date_expiration and self.date_expiration < timezone.now():
-            self.statut = 'EXPIRE'
-            return
-        if self.essai_gratuit:
-            if self.date_fin_essai and self.date_fin_essai < timezone.now():
-                self.statut = 'EXPIRE'
-            else:
-                self.statut = 'ESSAI'
-            return
-        if self.cle_activation:
+        # Toute autre mutualité est ACTIF (pas d'expiration auto sans clé).
+        if self.statut != 'ACTIF':
             self.statut = 'ACTIF'
-            return
+        return
 
     def activer_essai(self, cree_par=None):
-        """Active la période d'essai gratuit de 14 jours."""
-        from datetime import timedelta
+        """Conservé pour compatibilité : active directement sans clé."""
         now = timezone.now()
-        self.essai_gratuit = True
-        self.date_debut_essai = now
-        self.date_fin_essai = now + timedelta(days=14)
-        self.statut = 'ESSAI'
-        self.cle_activation = self._generer_cle_unique()
-        self.date_activation = now
-        self.date_expiration = self.date_fin_essai
-        self.type_abonnement = 'ESSAI_14J'
-        self.save()
-
-    def _generer_cle_unique(self):
-        """Génère une clé d'activation unique."""
-        import secrets
-        alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
-        while True:
-            alea = ''.join(secrets.choice(alphabet) for _ in range(12))
-            code = f"KEY-{self.code_mutualite}-{alea}"
-            if not Mutualite.objects.filter(cle_activation=code).exists():
-                return code
-
-    def activer_licence(self, type_abonnement, duree_jours, date_debut=None):
-        """Active une licence payante pour la mutualité."""
-        from datetime import timedelta
         self.essai_gratuit = False
-        self.cle_activation = self._generer_cle_unique()
-        self.date_activation = date_debut or timezone.now()
-        self.date_expiration = self.date_activation + timedelta(days=duree_jours)
-        self.type_abonnement = type_abonnement
+        self.date_activation = now
+        self.type_abonnement = 'SANS_CLE'
         self.statut = 'ACTIF'
         self.save()
-
-    @property
-    def licence_valide(self):
-        """Vérifie si la licence est valide (non expirée)."""
-        if self.statut in ('EXPIRE', 'BLOQUE', 'EN_ATTENTE'):
-            return False
-        if self.date_expiration and self.date_expiration < timezone.now():
-            return False
-        if self.essai_gratuit and self.date_fin_essai and self.date_fin_essai < timezone.now():
-            return False
-        return True
-
-    @property
-    def jours_restants(self):
-        """Nombre de jours restants avant expiration."""
-        if self.date_expiration:
-            reste = (self.date_expiration - timezone.now()).days
-            return max(0, reste)
-        return 0
 
     @property
     def chef(self):
@@ -534,151 +486,6 @@ class HistoriqueConnexion(models.Model):
         self.save(update_fields=['date_deconnexion'])
 
 
-# ═══════════════════════════════════════════════════════════════
-#  CLÉ D'ACTIVATION
-# ═══════════════════════════════════════════════════════════════
-
-class CleActivation(models.Model):
-    TYPE_PLAN = [
-        ('ESSAI',       'Essai gratuit (14 jours)'),
-        ('1MOIS',       '1 Mois'),
-        ('6MOIS',       '6 Mois'),
-        ('12MOIS',      '12 Mois'),
-        ('24MOIS',      '24 Mois'),
-        ('PERSONNALISE','Personnalisé'),
-    ]
-
-    cle_visible    = models.CharField(max_length=50, unique=True, editable=False)
-    empreinte_hmac = models.CharField(max_length=64, editable=False, blank=True)
-
-    mutualite = models.ForeignKey(
-        Mutualite, on_delete=models.CASCADE,
-        related_name='cles_activation',
-        verbose_name="Mutualité",
-    )
-
-    type_plan  = models.CharField("Type de plan", max_length=20,
-                                   choices=TYPE_PLAN, default='STARTER')
-    duree_mois = models.PositiveSmallIntegerField(
-        "Durée (mois)", default=6,
-    )
-
-    STATUT = [
-        ('DISPONIBLE', 'Disponible — prête à être remise'),
-        ('ACTIVE',     'Active'),
-        ('EXPIREE',    'Expirée'),
-        ('REVOQUEE',   "Révoquée par l'admin"),
-    ]
-    statut = models.CharField(
-        "Statut", max_length=20, choices=STATUT, default='DISPONIBLE',
-    )
-
-    date_debut = models.DateTimeField("Valide à partir du", default=timezone.now)
-    date_fin   = models.DateTimeField("Valide jusqu'au", null=True, blank=True)
-
-    active = models.BooleanField("Activée par l'admin", default=True)
-
-    utilisee = models.BooleanField("Utilisée", default=False)
-    date_utilisation = models.DateTimeField("Date d'activation", null=True, blank=True)
-
-    cree_par          = models.CharField(max_length=100, default='superadmin')
-    date_creation     = models.DateTimeField(auto_now_add=True)
-    date_modification = models.DateTimeField(auto_now=True)
-    motif_revocation  = models.TextField(blank=True)
-    notes             = models.TextField(blank=True, null=True)
-
-    class Meta:
-        verbose_name        = "Clé d'activation"
-        verbose_name_plural = "Clés d'activation"
-        ordering            = ['-date_creation']
-
-    def __str__(self):
-        statut = "✅" if self.utilisee else "🔑"
-        return f"{statut} {self.cle_visible} — {self.mutualite.nom} [{self.label_plan}]"
-
-    def generer_cle_unique(self):
-        import secrets
-        alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
-        nom_clean  = ''.join(c for c in self.mutualite.nom.upper() if c.isalpha())
-        nom_prefix = (nom_clean + 'MUT')[:3]
-        nif_digits = ''.join(c for c in (self.mutualite.nif or '') if c.isdigit())
-        nif_suffix = nif_digits[-4:] if len(nif_digits) >= 4 else nif_digits.zfill(4)
-        
-        periodes = {'ESSAI': '14J', '1MOIS': '1M', '6MOIS': '6M',
-                    '12MOIS': '12M', '24MOIS': '24M', 'PERSONNALISE': 'CUST'}
-        periode  = periodes.get(self.type_plan, '6M')
-
-        while True:
-            alea = ''.join(secrets.choice(alphabet) for _ in range(6))
-            code = f"{nom_prefix}-{nif_suffix}-{periode}-{alea}"
-            if not CleActivation.objects.filter(cle_visible=code).exists():
-                return code
-
-    def save(self, *args, **kwargs):
-        from datetime import timedelta
-        plan_to_duree = {
-            'ESSAI': 14, '1MOIS': 30, '6MOIS': 182,
-            '12MOIS': 365, '24MOIS': 730, 'PERSONNALISE': 0,
-        }
-        duree_jours = plan_to_duree.get(self.type_plan, 182)
-
-        plan_to_mois = {
-            'ESSAI': 0, '1MOIS': 1, '6MOIS': 6,
-            '12MOIS': 12, '24MOIS': 24, 'PERSONNALISE': 0,
-        }
-        self.duree_mois = plan_to_mois.get(self.type_plan, 6)
-
-        if self.type_plan == 'PERSONNALISE':
-            self.duree_mois = 0
-
-        if not self.date_debut:
-            self.date_debut = timezone.now()
-        if not self.date_fin:
-            if self.type_plan == 'PERSONNALISE':
-                self.date_fin = self.date_debut + timedelta(days=365)
-            else:
-                self.date_fin = self.date_debut + timedelta(days=duree_jours)
-
-        if not self.cle_visible:
-            self.cle_visible = self.generer_cle_unique()
-            
-        self.statut = self._calculer_statut()
-        super().save(*args, **kwargs)
-
-    def _calculer_statut(self):
-        if not self.active: return 'REVOQUEE'
-        if self.date_fin and timezone.localdate() > self.date_fin.date(): return 'EXPIREE'
-        if self.utilisee: return 'ACTIVE'
-        return 'DISPONIBLE'
-
-    @property
-    def label_plan(self):
-        labels = {
-            'ESSAI':       'Essai 14j', '1MOIS':       '1 Mois',
-            '6MOIS':       '6 Mois',    '12MOIS':      '12 Mois',
-            '24MOIS':      '24 Mois',   'PERSONNALISE':'Personnalisé',
-        }
-        return labels.get(self.type_plan, self.type_plan)
-
-    @classmethod
-    def creer_essai(cls, mutualite, cree_par='superadmin'):
-        from datetime import timedelta
-        now = timezone.now()
-        cle = cls(
-            mutualite        = mutualite,
-            type_plan        = 'ESSAI',
-            date_debut       = now,
-            date_fin         = now + timedelta(days=14),
-            active           = True,
-            utilisee         = True,
-            statut           = 'ACTIVE',
-            date_utilisation = now,
-            cree_par         = cree_par,
-            notes            = "Essai gratuit 14 jours — généré automatiquement",
-        )
-        cle.save()
-        return cle
-
 class ConfigurationApp(models.Model):
     nom_app = models.CharField(
         max_length=100, default='Mutualité de Santé',
@@ -741,36 +548,6 @@ class ConfigurationApp(models.Model):
         if not config:
             config = cls.objects.create(nom_app='Mutualité de Santé')
         return config
-
-
-class AuditCle(models.Model):
-    ACTION = [
-        ('CREEE',     'Clé créée'),
-        ('ACTIVEE',   'Clé activée'),
-        ('REVOQUEE',  'Clé révoquée'),
-        ('ECHEC',     'Tentative échouée'),
-        ('SUSPENDUE', 'Mutualité suspendue'),
-        ('REACTIVEE', 'Mutualité réactivée'),
-        ('PROLONGEE', 'Clé prolongée'),
-    ]
-
-    cle     = models.ForeignKey(CleActivation, on_delete=models.SET_NULL, null=True, blank=True)
-    mutualite = models.ForeignKey(
-        Mutualite, on_delete=models.CASCADE,
-        related_name='audits',
-        null=True, blank=True,
-    )
-    action      = models.CharField(max_length=20, choices=ACTION)
-    message     = models.TextField(blank=True)
-    ip_address  = models.GenericIPAddressField(null=True, blank=True)
-    date_action = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-date_action']
-
-    def __str__(self):
-        nom = self.mutualite.nom if self.mutualite else 'N/A'
-        return f"{nom} | {self.action} | {self.date_action:%d/%m/%Y %H:%M}"
 
 
 class Notification(models.Model):

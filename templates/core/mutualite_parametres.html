@@ -362,7 +362,7 @@
         <div class="card">
             <div class="card-header">
                 <i class="bi bi-shield-check me-2" style="color:var(--or);"></i>
-                Informations de licence
+                Informations de la mutualité
             </div>
             <div class="card-body p-4">
                 <div class="row g-3">
@@ -384,7 +384,7 @@
                     </div>
                     {% if mutualite.date_expiration %}
                     <div class="col-md-6">
-                        <p class="mb-1 text-muted small">Expiration licence</p>
+                        <p class="mb-1 text-muted small">Expiration abonnement</p>
                         <p class="mb-0 fw-medium">{{ mutualite.date_expiration|date:'d/m/Y' }}</p>
                     </div>
                     {% endif %}

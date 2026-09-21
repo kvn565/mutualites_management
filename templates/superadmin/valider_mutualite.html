@@ -231,30 +231,11 @@
                         {% csrf_token %}
                         <input type="hidden" name="action" value="valider">
 
-                        <div class="mb-3">
-                            <label for="id_type_plan" class="form-label fw-bold">
-                                <i class="bi bi-credit-card me-1"></i> Type de plan <span class="text-danger">*</span>
-                            </label>
-                            <select name="type_plan" id="id_type_plan" class="form-select" required>
-                                <option value="" selected disabled>-- Choisir un plan --</option>
-                                <option value="ESSAI_14J">Essai gratuit 14 jours</option>
-                                <option value="1MOIS">1 mois</option>
-                                <option value="3MOIS">3 mois</option>
-                                <option value="6MOIS">6 mois</option>
-                                <option value="12MOIS">12 mois</option>
-                                <option value="24MOIS">24 mois</option>
-                            </select>
-                            <div class="form-text">
-                                <strong>Essai 14J :</strong> Activation gratuite immédiate<br>
-                                <strong>Autres :</strong> Nécessite clé d'activation (générée par SuperAdmin)
-                            </div>
-                        </div>
-
                         <div class="alert alert-info mb-3">
                             <i class="bi bi-info-circle me-2"></i>
                             <strong>À la validation :</strong>
                             <ul class="mb-0 mt-2 ps-3">
-                                <li>La mutualité passe en statut <strong>ESSAI</strong> (si essai) ou <strong>ACTIF</strong></li>
+                                <li>La mutualité passe en statut <strong>ACTIF</strong> sans clé</li>
                                 <li>Le compte admin est activé s'il était inactif</li>
                                 <li>Un email/téléphone doit être envoyé à l'admin</li>
                             </ul>

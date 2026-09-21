@@ -26,20 +26,6 @@
         </a>
     </li>
 
-    <li class="nav-header">Licences & Clés</li>
-    <li class="nav-item">
-        <a href="{% url 'superadmin:cles_liste' %}" class="nav-link {% block nav_cles %}{% endblock %}">
-            <i class="nav-icon bi bi-key-fill"></i>
-            <p>Clés d'activation</p>
-        </a>
-    </li>
-    <li class="nav-item">
-        <a href="{% url 'superadmin:cles_generer' %}" class="nav-link {% block nav_cles_generer %}{% endblock %}">
-            <i class="nav-icon bi bi-plus-circle-fill"></i>
-            <p>Générer une clé</p>
-        </a>
-    </li>
-
     <li class="nav-header">Validations</li>
     <li class="nav-item">
         <a href="{% url 'superadmin:validations_mutualites' %}" class="nav-link {% block nav_validations_mutualites %}{% endblock %}">

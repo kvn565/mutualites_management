@@ -1,6 +1,7 @@
 # affilies/forms.py
 from django import forms
 from .models import Affilie
+from origines.models import CategorieOrigine
 
 class AffilieForm(forms.ModelForm):
     class Meta:
@@ -14,7 +15,7 @@ class AffilieForm(forms.ModelForm):
             'contact_urgence_nom', 'contact_urgence_telephone',
             'centre_sante_reference', 'hopital_reference',
             'date_adhesion', 'type_adhesion', 'section_antenne',
-            'origine', 'statut', 'notes',
+            'origine', 'categorie_origine', 'statut', 'notes',
             'cotisation_mensuelle',
             'limite_laboratoire', 'limite_kinesitherapie',
             'limite_reanimation', 'limite_imagerie_medicale',
@@ -50,6 +51,7 @@ class AffilieForm(forms.ModelForm):
             'type_adhesion': forms.Select(attrs={'class': 'form-select'}),
             'section_antenne': forms.TextInput(attrs={'class': 'form-control'}),
             'origine': forms.Select(attrs={'class': 'form-select'}),
+            'categorie_origine': forms.Select(attrs={'class': 'form-select'}),
             'statut': forms.Select(attrs={'class': 'form-select'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'cotisation_mensuelle': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
@@ -68,3 +70,13 @@ class AffilieForm(forms.ModelForm):
             'limites_lunettes': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'limites_dents': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        mutualite = kwargs.pop('mutualite', None)
+        super().__init__(*args, **kwargs)
+        if mutualite:
+            self.fields['origine'].queryset = Affilie._meta.get_field('origine').related_model.objects.filter(mutualite=mutualite, actif=True)
+            self.fields['categorie_origine'].queryset = CategorieOrigine.objects.filter(mutualite=mutualite, actif=True)
+        else:
+            self.fields['origine'].queryset = Affilie._meta.get_field('origine').related_model.objects.none()
+            self.fields['categorie_origine'].queryset = CategorieOrigine.objects.none()

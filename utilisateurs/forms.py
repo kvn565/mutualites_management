@@ -60,8 +60,6 @@ class InscriptionChefForm(forms.Form):
             else:
                 if mutualite.inscription_complete:
                     self.add_error('nif', "Cette mutualité est déjà gérée par un administrateur.")
-                elif not mutualite.licence_valide:
-                    self.add_error('nif', "Cette mutualité n'a pas de licence active ou sa période d'essai a expiré.")
                 else:
                     cleaned_data['_mutualite'] = mutualite
         return cleaned_data

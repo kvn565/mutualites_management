@@ -1,7 +1,4 @@
-from datetime import datetime, timedelta
-
 from django.conf import settings
-from django.utils import timezone
 from core.models import ConfigurationApp
 
 
@@ -21,7 +18,6 @@ def mutualite_context(request):
             'mutualite': None,
             'NOM_MUTUALITE': settings.MUTUALITE_NOM,
             'DEVISE': settings.MUTUALITE_DEVISE,
-            'licence_15j': False,
         }
 
     ctx = {
@@ -36,24 +32,6 @@ def mutualite_context(request):
         'MUTUALITE_BACKGROUND_BRIGHTNESS': str(float(mutualite.background_brightness)),
         'MUTUALITE_TEXT_COLOR': getattr(mutualite, 'text_color', '#1e293b'),
     }
-
-    # ── Notification licence expirant dans 15 jours ──
-    ctx['licence_15j'] = False
-    if mutualite and request.user.is_authenticated and not getattr(request.user, 'est_super_admin', False):
-        jours = mutualite.jours_restants
-        if 1 <= jours <= 15:
-            dismissed = request.session.get('licence_notif_dismissed')
-            if not dismissed:
-                ctx['licence_15j'] = jours
-            else:
-                try:
-                    dt = datetime.fromisoformat(dismissed)
-                    if dt.tzinfo is None:
-                        dt = timezone.make_aware(dt)
-                    if (timezone.now() - dt) > timedelta(hours=24):
-                        ctx['licence_15j'] = jours
-                except (ValueError, TypeError):
-                    ctx['licence_15j'] = jours
 
     return ctx
 

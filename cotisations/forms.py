@@ -34,3 +34,62 @@ class CotisationForm(forms.ModelForm):
             self.fields['affilie'].queryset = Affilie.objects.filter(
                 mutualite=mutualite, supprime=False
             ).order_by('nom', 'prenom')
+
+
+class RapportPeriodiqueFilterForm(forms.Form):
+    MOIS_CHOICES = [
+        (1, 'Janvier'), (2, 'Février'), (3, 'Mars'), (4, 'Avril'),
+        (5, 'Mai'), (6, 'Juin'), (7, 'Juillet'), (8, 'Août'),
+        (9, 'Septembre'), (10, 'Octobre'), (11, 'Novembre'), (12, 'Décembre'),
+    ]
+    
+    STATUT_CHOICES = [
+        ('TOUS', 'Tous les affiliés'),
+        ('ACTIF', 'Affiliés actifs uniquement'),
+    ]
+
+    mois_debut = forms.ChoiceField(
+        choices=MOIS_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Mois de début'
+    )
+    annee_debut = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control'}),
+        label='Année de début'
+    )
+    mois_fin = forms.ChoiceField(
+        choices=MOIS_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Mois de fin'
+    )
+    annee_fin = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control'}),
+        label='Année de fin'
+    )
+    origine = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        empty_label='Toutes les origines / structures',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Origine / Entreprise'
+    )
+    statut = forms.ChoiceField(
+        choices=STATUT_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Statut des affiliés'
+    )
+    q = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Rechercher nom, N° affiliation...'}),
+        label='Recherche'
+    )
+
+    def __init__(self, *args, **kwargs):
+        mutualite = kwargs.pop('mutualite', None)
+        super().__init__(*args, **kwargs)
+        from origines.models import Origine
+        if mutualite:
+            self.fields['origine'].queryset = Origine.objects.filter(mutualite=mutualite, actif=True).order_by('nom')
+        else:
+            self.fields['origine'].queryset = Origine.objects.filter(actif=True).order_by('nom')

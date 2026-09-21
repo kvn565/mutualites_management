@@ -2,6 +2,16 @@
 {% block title %}Connexion — {{ APP_NOM }}{% endblock %}
 
 {% block auth_body %}
+<style>
+    .robot-container {
+        background-color: #f8f9ff;
+        border: 2px solid #d0d7e5;
+        border-radius: 10px;
+        padding: 14px 16px;
+        box-shadow: 0 2px 8px rgba(15, 42, 74, 0.08);
+    }
+    .robot-container .form-check-label { color: #5a6a7a; font-size: 0.88rem; }
+</style>
 <div class="login-box">
     <div class="login-logo">
         <div class="logo-icon">
@@ -28,7 +38,7 @@
             </div>
             {% endif %}
 
-            <form method="post" autocomplete="off">
+            <form method="post" autocomplete="off" id="loginForm">
                 {% csrf_token %}
 
                 <div class="input-group mb-3">
@@ -68,12 +78,24 @@
                             </label>
                         </div>
                     </div>
-                    <div class="col-4">
-                        <button type="submit" class="btn btn-login">
-                            <i class="bi bi-box-arrow-in-right"></i>
-                        </button>
-                    </div>
                 </div>
+
+                <div class="robot-container mb-3" id="robotContainer">
+                    <div class="form-check">
+                        <input type="checkbox" name="not_a_robot" id="id_not_a_robot" class="form-check-input">
+                        <label class="form-check-label fw-medium" for="id_not_a_robot">
+                            Je ne suis pas un robot
+                        </label>
+                    </div>
+                    {% if form.not_a_robot.errors %}
+                    <div class="text-danger small mt-2">{{ form.not_a_robot.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-login w-100" id="submitBtn" disabled>
+                    <span class="spinner-border spinner-border-sm me-2 d-none" id="spinner" role="status"></span>
+                    <span id="btnText">Se connecter</span>
+                </button>
             </form>
 
             <div class="auth-footer">
@@ -101,6 +123,39 @@ function togglePwd() {
         icon.className = 'bi bi-eye';
     }
 }
+
+// Anti-Robot + vérification
+document.addEventListener('DOMContentLoaded', function() {
+    const checkbox = document.getElementById('id_not_a_robot');
+    const container = document.getElementById('robotContainer');
+    const submitBtn = document.getElementById('submitBtn');
+    const spinner = document.getElementById('spinner');
+    const btnText = document.getElementById('btnText');
+
+    if (checkbox && submitBtn) {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                spinner.classList.remove('d-none');
+                btnText.textContent = 'Vérification...';
+
+                setTimeout(function() {
+                    container.style.display = 'none';
+                    spinner.classList.add('d-none');
+                    btnText.textContent = 'Se connecter';
+                    submitBtn.disabled = false;
+                }, 2000);
+            } else {
+                submitBtn.disabled = true;
+            }
+        });
+    }
+
+    document.getElementById('loginForm')?.addEventListener('submit', function() {
+        submitBtn.disabled = true;
+        spinner.classList.remove('d-none');
+        btnText.textContent = 'Connexion en cours...';
+    });
+});
 document.getElementById('id_username')?.focus();
 </script>
 {% endblock %}

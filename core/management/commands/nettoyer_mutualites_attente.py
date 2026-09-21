@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
+from django.db.models import deletion
 
 from core.models import Mutualite, JournalAudit, Utilisateur
 
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = 'Supprime les mutualités en attente depuis plus de 7 jours (expirées)'
+    help = 'Supprime les mutualités en attente ou suspendues depuis plus de 7 jours'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -25,15 +26,27 @@ class Command(BaseCommand):
             help='Simule sans supprimer'
         )
 
+    def _force_delete(self, obj):
+        from core.nettoyage import supprimer_mutualite_complete
+        supprimer_mutualite_complete(obj)
+
     def handle(self, *args, **options):
         jours = options['jours']
         dry_run = options['dry_run']
         seuil = timezone.now() - timedelta(days=jours)
+        try:
+            from single_tenant.models import SingleTenantConfig
+            actif_ids = list(SingleTenantConfig.objects.filter(statut='ACTIVE').values_list('mutualite_id', flat=True))
+        except Exception:
+            actif_ids = []
 
+        from django.db.models import Q
         mutualites_expirees = Mutualite.objects.filter(
-            statut='EN_ATTENTE',
-            date_creation__lt=seuil
+            Q(statut='EN_ATTENTE', date_creation__lt=seuil) |
+            Q(statut='SUSPENDU', date_creation__lt=seuil)
         )
+        if actif_ids:
+            mutualites_expirees = mutualites_expirees.exclude(pk__in=actif_ids)
 
         count = mutualites_expirees.count()
 
@@ -48,11 +61,10 @@ class Command(BaseCommand):
             self.stdout.write(f'  - {m.code_mutualite} | {m.nom} | {age} jours | Admin: {m.username_admin}')
 
             if not dry_run:
-                # Log audit avant suppression
                 JournalAudit.objects.create(
                     mutualite=None,
                     utilisateur=None,
-                    action='SUPPRESSION_AUTO',
+                    action='SUPPRESSION',
                     module='core',
                     description=f"Suppression automatique : mutualité '{m.nom}' ({m.code_mutualite}) en attente depuis {age} jours",
                     objet_type='Mutualite',
@@ -68,10 +80,8 @@ class Command(BaseCommand):
                     except Utilisateur.DoesNotExist:
                         pass
 
-                # Supprimer la mutualité (cascade supprimera les données liées)
-                m.delete()
-
-        if dry_run:
-            self.stdout.write(self.style.WARNING(f'\n[DRY RUN] {count} mutualité(s) seraient supprimées.'))
-        else:
-            self.stdout.write(self.style.SUCCESS(f'\n{count} mutualité(s) expirée(s) supprimée(s).'))
+                # Forcer la suppression avec cascade complet
+                try:
+                    self._force_delete(m)
+                except Exception as e:
+                    logger.error(f'Erreur suppression mutualité {m.code_mutualite}: {e}')

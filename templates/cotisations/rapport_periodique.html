@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Rapport Périodique Cotisations & Soins — Mutualité de Santé{% endblock %}
+{% block page_title %}Rapport Périodique des Affiliés{% endblock %}
+{% block page_subtitle %}Suivi matriciel mensuel des cotisations encaissées et des dépenses de soins consommées{% endblock %}
+{% block page_icon %}bi bi-calendar-range-fill{% endblock %}
+{% block nav_rapport_periodique %}active{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group">
+    <a href="{% url 'cotisations:rapport_periodique_excel' %}?mois_debut={{ md }}&annee_debut={{ ad }}&mois_fin={{ mf }}&annee_fin={{ af }}{% if origine_id %}&origine={{ origine_id }}{% endif %}{% if statut_filter %}&statut={{ statut_filter }}{% endif %}{% if q %}&q={{ q }}{% endif %}" 
+       class="btn btn-sm btn-outline-success">
+        <i class="bi bi-file-earmark-excel me-1"></i> Exporter Excel
+    </a>
+    <button type="button" onclick="window.print();" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-printer me-1"></i> Imprimer
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+    .kpi-card {
+        border-radius: 12px;
+        border: none;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    }
+    .month-stat-card {
+        border-radius: 10px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        padding: 0.6rem 0.8rem;
+        min-width: 140px;
+        flex: 1;
+    }
+    .matrix-table th {
+        vertical-align: middle;
+        font-size: 0.8rem;
+    }
+    .matrix-table td {
+        vertical-align: middle;
+        font-size: 0.82rem;
+        padding: 0.45rem 0.5rem;
+    }
+    .col-cotis {
+        background-color: rgba(25, 135, 84, 0.04);
+        color: #198754;
+        font-weight: 500;
+    }
+    .col-soins {
+        background-color: rgba(220, 53, 69, 0.04);
+        color: #dc3545;
+        font-weight: 500;
+    }
+    .sticky-member {
+        position: sticky;
+        left: 0;
+        background-color: #fff;
+        z-index: 2;
+        min-width: 200px;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.03);
+    }
+    .thead-sticky-member {
+        position: sticky;
+        left: 0;
+        z-index: 3;
+        min-width: 200px;
+        background-color: #f8f9fa !important;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.03);
+    }
+    .total-row {
+        background: #f8fafc;
+        font-weight: 700;
+        border-top: 2px solid #cbd5e1;
+    }
+    @media print {
+        .no-print, .sidebar, .main-header, .btn, .card-header-actions, .pagination {
+            display: none !important;
+        }
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .sticky-member, .thead-sticky-member {
+            position: static !important;
+            box-shadow: none !important;
+        }
+    }
+</style>
+
+<!-- KPI Cards Globaux -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card kpi-card shadow-sm h-100 bg-white">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3 text-success">
+                    <i class="bi bi-wallet2 fs-3"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-medium">Total Cotisations</div>
+                    <h4 class="mb-0 text-success fw-bold">{{ data.grand_total_cotisations|floatformat:0|intcomma }} <small class="fs-6 text-muted">BIF</small></h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card kpi-card shadow-sm h-100 bg-white">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3 text-danger">
+                    <i class="bi bi-hospital fs-3"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-medium">Total Soins / Dépenses</div>
+                    <h4 class="mb-0 text-danger fw-bold">{{ data.grand_total_factures|floatformat:0|intcomma }} <small class="fs-6 text-muted">BIF</small></h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card kpi-card shadow-sm h-100 bg-white">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle {% if data.grand_total_solde >= 0 %}bg-primary bg-opacity-10 text-primary{% else %}bg-danger bg-opacity-10 text-danger{% endif %} p-3 me-3">
+                    <i class="bi bi-bar-chart-line fs-3"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-medium">Solde Net Période</div>
+                    <h4 class="mb-0 {% if data.grand_total_solde >= 0 %}text-primary{% else %}text-danger{% endif %} fw-bold">
+                        {{ data.grand_total_solde|floatformat:0|intcomma }} <small class="fs-6 text-muted">BIF</small>
+                    </h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card kpi-card shadow-sm h-100 bg-white">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle bg-info bg-opacity-10 p-3 me-3 text-info">
+                    <i class="bi bi-pie-chart fs-3"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-medium">Taux de Sinistralité</div>
+                    <h4 class="mb-0 text-info fw-bold">{{ data.taux_sinistralite }}%</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Récapitulatif Détaillé Mensuel (Totaux Cotisation & Facture par Mois) -->
+{% if data.totaux_mois %}
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3">
+        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-graph-up-arrow me-2 text-vert"></i> Totaux mensuels de la période</h6>
+    </div>
+    <div class="card-body p-3">
+        <div class="d-flex flex-wrap gap-2">
+            {% for tm in data.totaux_mois %}
+            <div class="month-stat-card">
+                <div class="fw-bold text-dark border-bottom pb-1 mb-1 d-flex justify-content-between">
+                    <span>{{ tm.label }}</span>
+                    <span class="badge {% if tm.solde >= 0 %}bg-success{% else %}bg-danger{% endif %} bg-opacity-15 {% if tm.solde >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 0.68rem;">
+                        Solde: {{ tm.solde|floatformat:0|intcomma }}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between small text-success">
+                    <span>Cotis. :</span>
+                    <strong>{{ tm.total_cotisation|floatformat:0|intcomma }}</strong>
+                </div>
+                <div class="d-flex justify-content-between small text-danger">
+                    <span>Soins :</span>
+                    <strong>{{ tm.total_facture|floatformat:0|intcomma }}</strong>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Filtres Période & Critères -->
+<div class="card shadow-sm border-0 mb-4 no-print">
+    <div class="card-header bg-white py-3">
+        <h6 class="mb-0 text-dark fw-bold"><i class="bi bi-funnel me-2 text-vert"></i> Critères de filtrage du rapport</h6>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small fw-bold text-muted">{{ form.mois_debut.label }}</label>
+                {{ form.mois_debut }}
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small fw-bold text-muted">{{ form.annee_debut.label }}</label>
+                {{ form.annee_debut }}
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small fw-bold text-muted">{{ form.mois_fin.label }}</label>
+                {{ form.mois_fin }}
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small fw-bold text-muted">{{ form.annee_fin.label }}</label>
+                {{ form.annee_fin }}
+            </div>
+            <div class="col-md-4 col-sm-12">
+                <label class="form-label small fw-bold text-muted">{{ form.origine.label }}</label>
+                {{ form.origine }}
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label small fw-bold text-muted">{{ form.statut.label }}</label>
+                {{ form.statut }}
+            </div>
+            <div class="col-md-5 col-sm-6">
+                <label class="form-label small fw-bold text-muted">{{ form.q.label }}</label>
+                {{ form.q }}
+            </div>
+            <div class="col-md-4 col-sm-12 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-vert flex-grow-1">
+                    <i class="bi bi-search me-1"></i> Générer le rapport
+                </button>
+                <a href="{% url 'cotisations:rapport_periodique' %}" class="btn btn-outline-secondary" title="Réinitialiser">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tableau Matriciel -->
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h6 class="mb-0 fw-bold text-dark">
+                <i class="bi bi-table me-2 text-vert"></i> Matrice des Cotisations et Factures de soins
+            </h6>
+            <small class="text-muted">
+                Période : <strong>{{ data.date_debut|date:"d/m/Y" }}</strong> au <strong>{{ data.date_fin|date:"d/m/Y" }}</strong> — 
+                <strong>{{ data.nb_affilies }}</strong> affilié(s) au total (20 par page)
+            </small>
+        </div>
+        <div class="small d-flex gap-3 text-muted">
+            <span><span class="badge bg-success bg-opacity-25 text-success border border-success me-1">Cotis.</span> = Cotisations payées</span>
+            <span><span class="badge bg-danger bg-opacity-25 text-danger border border-danger me-1">Soins</span> = Part prise en charge</span>
+        </div>
+    </div>
+    
+    <div class="card-body p-0">
+        {% if page_obj %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover matrix-table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th rowspan="2" class="thead-sticky-member text-center align-middle">Membre</th>
+                        <th rowspan="2" class="text-center align-middle" style="min-width: 140px;">Origine / Catégorie</th>
+                        {% for m, a, lbl in data.mois_list %}
+                        <th colspan="2" class="text-center bg-light fw-bold border-bottom-0">
+                            <div>{{ lbl }}</div>
+                        </th>
+                        {% endfor %}
+                        <th colspan="3" class="text-center bg-dark text-white fw-bold">Synthèse Période</th>
+                    </tr>
+                    <tr>
+                        {% for tm in data.totaux_mois %}
+                        <th class="text-center col-cotis" style="min-width: 85px;">
+                            <div>Cotis.</div>
+                            <small class="d-block text-muted" style="font-size:0.65rem;">Tot: {{ tm.total_cotisation|floatformat:0 }}</small>
+                        </th>
+                        <th class="text-center col-soins" style="min-width: 85px;">
+                            <div>Soins</div>
+                            <small class="d-block text-muted" style="font-size:0.65rem;">Tot: {{ tm.total_facture|floatformat:0 }}</small>
+                        </th>
+                        {% endfor %}
+                        <th class="text-center bg-light text-success fw-bold" style="min-width: 100px;">Cotisations</th>
+                        <th class="text-center bg-light text-danger fw-bold" style="min-width: 100px;">Soins</th>
+                        <th class="text-center bg-light fw-bold" style="min-width: 100px;">Solde Net</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in page_obj %}
+                    <tr>
+                        <td class="sticky-member">
+                            <a href="{% url 'affilies:detail' r.affilie.pk %}" class="fw-bold text-dark text-decoration-none d-block">
+                                {{ r.affilie.nom_complet }}
+                            </a>
+                            <small class="text-muted font-monospace">{{ r.affilie.numero_affiliation }}</small>
+                        </td>
+                        <td>
+                            <div class="text-truncate" style="max-width: 150px;">{{ r.affilie.origine.nom|default:"-" }}</div>
+                            {% if r.affilie.categorie_origine %}
+                            <small class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">{{ r.affilie.categorie_origine.nom }}</small>
+                            {% endif %}
+                        </td>
+                        {% for md in r.mois_data %}
+                        <td class="text-end col-cotis">
+                            {% if md.cotisation > 0 %}
+                            {{ md.cotisation|floatformat:0|intcomma }}
+                            {% else %}
+                            <span class="text-muted opacity-25">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end col-soins">
+                            {% if md.facture > 0 %}
+                            {{ md.facture|floatformat:0|intcomma }}
+                            {% else %}
+                            <span class="text-muted opacity-25">-</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                        
+                        <!-- Totaux Affilié -->
+                        <td class="text-end fw-bold text-success bg-light">
+                            {{ r.total_cotisations|floatformat:0|intcomma }}
+                        </td>
+                        <td class="text-end fw-bold text-danger bg-light">
+                            {{ r.total_factures|floatformat:0|intcomma }}
+                        </td>
+                        <td class="text-end fw-bold bg-light {% if r.solde >= 0 %}text-primary{% else %}text-danger{% endif %}">
+                            {{ r.solde|floatformat:0|intcomma }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="total-row">
+                    <tr>
+                        <td colspan="2" class="sticky-member text-center fw-bold bg-light">
+                            TOTAUX GÉNÉRAUX
+                        </td>
+                        {% for tm in data.totaux_mois %}
+                        <td class="text-end fw-bold text-success col-cotis">
+                            {{ tm.total_cotisation|floatformat:0|intcomma }}
+                        </td>
+                        <td class="text-end fw-bold text-danger col-soins">
+                            {{ tm.total_facture|floatformat:0|intcomma }}
+                        </td>
+                        {% endfor %}
+                        
+                        <td class="text-end fw-bold text-success bg-light fs-6">
+                            {{ data.grand_total_cotisations|floatformat:0|intcomma }}
+                        </td>
+                        <td class="text-end fw-bold text-danger bg-light fs-6">
+                            {{ data.grand_total_factures|floatformat:0|intcomma }}
+                        </td>
+                        <td class="text-end fw-bold {% if data.grand_total_solde >= 0 %}text-primary{% else %}text-danger{% endif %} bg-light fs-6">
+                            {{ data.grand_total_solde|floatformat:0|intcomma }}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Pagination 20 par page -->
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer bg-white border-top py-3 no-print">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="small text-muted">
+                    Affichage des affiliés <strong>{{ page_obj.start_index }}</strong> à <strong>{{ page_obj.end_index }}</strong> sur <strong>{{ data.nb_affilies }}</strong>
+                </div>
+                <nav aria-label="Pagination">
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&mois_debut={{ md }}&annee_debut={{ ad }}&mois_fin={{ mf }}&annee_fin={{ af }}{% if origine_id %}&origine={{ origine_id }}{% endif %}{% if statut_filter %}&statut={{ statut_filter }}{% endif %}{% if q %}&q={{ q }}{% endif %}">
+                                <i class="bi bi-chevron-left"></i> Précédent
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                            {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}&mois_debut={{ md }}&annee_debut={{ ad }}&mois_fin={{ mf }}&annee_fin={{ af }}{% if origine_id %}&origine={{ origine_id }}{% endif %}{% if statut_filter %}&statut={{ statut_filter }}{% endif %}{% if q %}&q={{ q }}{% endif %}">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}&mois_debut={{ md }}&annee_debut={{ ad }}&mois_fin={{ mf }}&annee_fin={{ af }}{% if origine_id %}&origine={{ origine_id }}{% endif %}{% if statut_filter %}&statut={{ statut_filter }}{% endif %}{% if q %}&q={{ q }}{% endif %}">
+                                Suivant <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox fs-1 d-block mb-2 text-muted"></i>
+            <h6>Aucune donnée trouvée pour cette période et ces critères.</h6>
+            <p class="small">Modifiez les filtres de période ou le statut des affiliés ci-dessus.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

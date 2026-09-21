@@ -37,7 +37,6 @@ class MutualiteViewSet(mixins.CreateModelMixin,
     ### Actions
     - `POST /api/superadmin/mutualites/{id}/suspendre/` — Suspendre une mutualité
     - `POST /api/superadmin/mutualites/{id}/reactiver/` — Réactiver une mutualité
-    - `POST /api/superadmin/mutualites/{id}/renouveler-licence/` — Renouveler la licence
     - `POST /api/superadmin/mutualites/{id}/prolonger-essai/` — Prolonger l'essai gratuit
 
     ### Filtres
@@ -85,22 +84,8 @@ class MutualiteViewSet(mixins.CreateModelMixin,
                 {"detail": "Seules les mutualités suspendues peuvent être réactivées."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if mutualite.essai_gratuit:
-            mutualite.activer_essai()
-        else:
-            mutualite.statut = 'ACTIF'
-            mutualite.save()
-        serializer = MutualiteDetailSerializer(mutualite)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['post'], url_path='renouveler-licence')
-    def renouveler_licence(self, request, pk=None):
-        """Renouveler la licence d'une mutualité."""
-        mutualite = self.get_object()
-        type_abonnement = request.data.get('type_abonnement', 'MENSUEL')
-        duree_jours = int(request.data.get('duree_jours', 30))
-
-        mutualite.activer_licence(type_abonnement, duree_jours)
+        mutualite.statut = 'ACTIF'
+        mutualite.save()
         serializer = MutualiteDetailSerializer(mutualite)
         return Response(serializer.data)
 

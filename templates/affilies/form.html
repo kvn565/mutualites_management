@@ -144,6 +144,20 @@
                         </div>
                     </div>
                     <div class="col-12">
+                        <label class="form-label">{{ form.categorie_origine.label }}</label>
+                        <select name="{{ form.categorie_origine.name }}" id="{{ form.categorie_origine.id_for_label }}" class="form-select" {% if form.categorie_origine.field.required %}required{% endif %}>
+                            <option value="">---------</option>
+                            {% for cat in form.fields.categorie_origine.queryset %}
+                            <option value="{{ cat.pk }}" data-origine="{{ cat.origine_id }}" {% if form.categorie_origine.value == cat.pk %}selected{% endif %}>
+                                {{ cat.origine.nom }} — {{ cat.nom }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if form.categorie_origine.errors %}
+                        <div class="text-danger small">{{ form.categorie_origine.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12">
                         <label class="form-label">{{ form.statut.label }}</label>
                         {{ form.statut }}
                     </div>
@@ -354,10 +368,45 @@ window.addEventListener('beforeunload', function() {
     }
 });
 
-// Pré-remplir les plafonds selon l'origine sélectionnée
+// Pré-remplir les plafonds selon la catégorie d'origine sélectionnée (prioritaire)
+var categoriePlafonds = {{ categorie_plafonds_json|safe }};
+(function() {
+    var categorieField = document.getElementById('id_categorie_origine');
+    if (!categorieField) return;
+
+    var plafondFields = [
+        'cotisation_mensuelle', 'taux_prise_en_charge', 'soins_ambulatoires',
+        'limite_laboratoire', 'limite_kinesitherapie', 'limite_reanimation', 'limite_imagerie_medicale',
+        'hopital_plafond_chambre', 'hpc_nuit', 'limite_hospitalisation_generale',
+        'maternite_forfait', 'pourcentage_maternite',
+        'pharmacie_forfait', 'limites_medicaments', 'limites_lunettes', 'limites_dents',
+    ];
+
+    function loadCategoriePlafonds(catId) {
+        var plafonds = categoriePlafonds[catId];
+        if (!plafonds) return;
+        plafondFields.forEach(function(field) {
+            var el = document.getElementById('id_' + field);
+            if (el && plafonds[field] !== undefined) {
+                el.value = plafonds[field];
+            }
+        });
+    }
+
+    categorieField.addEventListener('change', function() {
+        loadCategoriePlafonds(this.value);
+    });
+
+    if (categorieField.value) {
+        loadCategoriePlafonds(categorieField.value);
+    }
+})();
+
+// Pré-remplir les plafonds selon l'origine sélectionnée (seulement si pas de catégorie)
 var originPlafonds = {{ origin_plafonds_json|safe }};
 (function() {
     var origineField = document.getElementById('id_origine');
+    var categorieField = document.getElementById('id_categorie_origine');
     if (!origineField) return;
 
     var plafondFields = [
@@ -369,6 +418,9 @@ var originPlafonds = {{ origin_plafonds_json|safe }};
     ];
 
     function loadOriginPlafonds(originId) {
+        // Ne pas charger si une catégorie est déjà sélectionnée
+        if (categorieField && categorieField.value) return;
+        
         var plafonds = originPlafonds[originId];
         if (!plafonds) return;
         plafondFields.forEach(function(field) {
@@ -383,8 +435,63 @@ var originPlafonds = {{ origin_plafonds_json|safe }};
         loadOriginPlafonds(this.value);
     });
 
-    if (origineField.value) {
+    // Charger seulement si pas de catégorie sélectionnée
+    if (origineField.value && (!categorieField || !categorieField.value)) {
         loadOriginPlafonds(origineField.value);
+    }
+})();
+
+// Filtrer les catégories selon l'origine sélectionnée
+(function() {
+    var origineField = document.getElementById('id_origine');
+    var categorieField = document.getElementById('id_categorie_origine');
+    if (!origineField || !categorieField) return;
+
+    // Sauvegarder toutes les options
+    var allOptions = Array.from(categorieField.options).map(function(opt) {
+        return {
+            value: opt.value,
+            text: opt.text,
+            origine: opt.getAttribute('data-origine')
+        };
+    });
+
+    function filterCategories(originId) {
+        // Sauvegarder la valeur actuelle
+        var currentValue = categorieField.value;
+        
+        // Vider le select
+        categorieField.innerHTML = '<option value="">---------</option>';
+        
+        // Filtrer et ajouter les options correspondantes
+        allOptions.forEach(function(opt) {
+            if (!opt.value) return; // Skip empty option
+            if (!originId || opt.origine === originId) {
+                var option = document.createElement('option');
+                option.value = opt.value;
+                option.text = opt.text;
+                option.setAttribute('data-origine', opt.origine);
+                if (opt.value === currentValue) {
+                    option.selected = true;
+                }
+                categorieField.appendChild(option);
+            }
+        });
+    }
+
+    // Filtrer au changement d'origine
+    origineField.addEventListener('change', function() {
+        filterCategories(this.value);
+        // Réinitialiser la catégorie si elle ne correspond plus à la nouvelle origine
+        var selectedOption = categorieField.options[categorieField.selectedIndex];
+        if (selectedOption && selectedOption.value && selectedOption.getAttribute('data-origine') !== this.value) {
+            categorieField.value = '';
+        }
+    });
+
+    // Filtrer au chargement si une origine est déjà sélectionnée
+    if (origineField.value) {
+        filterCategories(origineField.value);
     }
 })();
 </script>

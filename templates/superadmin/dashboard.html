@@ -19,18 +19,6 @@
 </div>
 {% endif %}
 
-{% if mutualites_sans_licence %}
-<div class="alert alert-danger d-flex align-items-center gap-3 mb-4" style="border-left:4px solid #ef4444;">
-    <i class="bi bi-x-octagon-fill fs-5"></i>
-    <div>
-        <strong>{{ mutualites_sans_licence|length }} mutualité(s) sans licence active :</strong>
-        {% for m in mutualites_sans_licence %}
-        <a href="{% url 'superadmin:mutualite_detail' m.pk %}" class="badge bg-danger ms-1 text-white">{{ m.nom }}</a>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
-
 <div class="row g-4">
 
     <div class="col-sm-6 col-xl-3">
@@ -155,51 +143,6 @@
         </div>
     </div>
 </div>
-
-<!-- Expirations proches -->
-{% if expiration_proche %}
-<div class="row mt-5">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-clock-history"></i> Licences expirant dans les 7 jours
-            </div>
-            <div class="table-responsive">
-                <table class="table mb-0">
-                    <thead>
-                        <tr>
-                            <th>Mutualité</th>
-                            <th>Code</th>
-                            <th>Statut</th>
-                            <th>Expire le</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for m in expiration_proche %}
-                        <tr>
-                            <td>
-                                <a href="{% url 'superadmin:mutualite_detail' m.pk %}" class="text-decoration-none fw-semibold">
-                                    {{ m.nom }}
-                                </a>
-                            </td>
-                            <td><code>{{ m.code_mutualite|default:"—" }}</code></td>
-                            <td><span class="badge {% if m.statut == 'ACTIF' %}bg-success{% else %}bg-info{% endif %}">{{ m.get_statut_display }}</span></td>
-                            <td>{{ m.date_expiration|date:"d/m/Y"|default:"—" }}</td>
-                            <td>
-                                <a href="{% url 'superadmin:mutualite_renouveler_licence' m.pk %}" class="btn btn-sm btn-gold">
-                                    <i class="bi bi-arrow-repeat"></i> Renouveler
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
 
 <!-- Derniers audits -->
 {% if derniers_audits %}

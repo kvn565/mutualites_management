@@ -4,7 +4,6 @@ from core.models import Mutualite
 
 class MutualiteListSerializer(serializers.ModelSerializer):
     statut_display = serializers.SerializerMethodField()
-    jours_restants = serializers.ReadOnlyField()
 
     class Meta:
         model = Mutualite
@@ -15,7 +14,7 @@ class MutualiteListSerializer(serializers.ModelSerializer):
             'statut', 'statut_display',
             'essai_gratuit', 'date_debut_essai', 'date_fin_essai',
             'type_abonnement', 'date_activation', 'date_expiration',
-            'jours_restants', 'max_utilisateurs',
+            'max_utilisateurs',
             'date_creation',
         ]
 
@@ -25,8 +24,6 @@ class MutualiteListSerializer(serializers.ModelSerializer):
 
 class MutualiteDetailSerializer(serializers.ModelSerializer):
     statut_display = serializers.SerializerMethodField()
-    jours_restants = serializers.ReadOnlyField()
-    licence_valide = serializers.ReadOnlyField()
     total_utilisateurs = serializers.SerializerMethodField()
 
     class Meta:
@@ -36,10 +33,9 @@ class MutualiteDetailSerializer(serializers.ModelSerializer):
             'nom_responsable', 'fonction_responsable', 'telephone', 'email',
             'province', 'commune', 'adresse',
             'essai_gratuit', 'date_debut_essai', 'date_fin_essai',
-            'cle_activation', 'date_activation', 'date_expiration',
+            'date_activation', 'date_expiration',
             'type_abonnement', 'max_utilisateurs',
             'statut', 'statut_display',
-            'licence_valide', 'jours_restants',
             'username_admin', 'email_admin',
             'total_utilisateurs',
             'date_creation', 'date_modification',
@@ -66,9 +62,9 @@ class MutualiteCreateSerializer(serializers.ModelSerializer):
             'province', 'commune', 'adresse',
             'username_admin', 'email_admin', 'password_admin',
             'max_utilisateurs',
-            'statut', 'essai_gratuit', 'code_mutualite', 'cle_activation',
+            'statut', 'essai_gratuit', 'code_mutualite',
         ]
-        read_only_fields = ['statut', 'essai_gratuit', 'code_mutualite', 'cle_activation']
+        read_only_fields = ['statut', 'essai_gratuit', 'code_mutualite']
 
     def create(self, validated_data):
         import secrets

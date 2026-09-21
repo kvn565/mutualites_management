@@ -230,48 +230,6 @@ def profil_view(request):
     })
 
 
-def activer_licence(request):
-    from core.models import CleActivation
-    if not request.user.is_authenticated:
-        return render(request, 'core/licence_activer.html', {'mutualite': None})
-    mutualite = request.user.mutualite
-    if not mutualite or request.user.est_super_admin:
-        messages.error(request, "⛔ Accès non autorisé.")
-        return redirect('dashboard:index')
-
-    if request.method == 'POST':
-        cle = request.POST.get('cle_activation', '').strip().upper()
-        if not cle:
-            messages.error(request, "Veuillez entrer une clé d'activation.")
-        else:
-            obj = CleActivation.objects.filter(cle_visible=cle, utilisee=False, active=True).first()
-            if obj and obj.mutualite == mutualite:
-                obj.utilisee = True
-                obj.date_utilisation = timezone.now()
-                obj.statut = 'ACTIVE'
-                obj.save()
-                mutualite.essai_gratuit = (obj.type_plan == 'ESSAI')
-                mutualite.cle_activation = obj.cle_visible
-                mutualite.date_activation = obj.date_debut
-                mutualite.date_expiration = obj.date_fin
-                mutualite.type_abonnement = obj.type_plan
-                mutualite.statut = 'ACTIF'
-                mutualite.save()
-                JournalAudit.objects.create(
-                    mutualite=mutualite, utilisateur=request.user,
-                    action='MODIFICATION', module='core',
-                    description=f"Licence activée avec la clé {cle}",
-                    objet_type='Mutualite', objet_id=mutualite.pk,
-                    adresse_ip=request.META.get('REMOTE_ADDR', ''),
-                )
-                messages.success(request, f"✅ Licence activée avec succès jusqu'au {mutualite.date_expiration.strftime('%d/%m/%Y')}.")
-                return redirect('dashboard:index')
-            else:
-                messages.error(request, "❌ Clé invalide ou déjà utilisée. Contactez l'administrateur.")
-
-    return render(request, 'core/licence_activer.html', {'mutualite': mutualite})
-
-
 @login_required
 def parametres_mutualite(request):
     if not request.user.est_admin and not request.user.est_super_admin:
@@ -555,14 +513,6 @@ class CrudDeleteView(ModificationRequiredMixin, CrudMixin, DeleteView):
         )
         messages.success(request, self.success_message_delete.format(obj=obj_str))
         return redirect(self.get_success_url())
-
-
-@login_required
-@require_POST
-def dismiss_notification_licence(request):
-    """Masque la notification de licence pour 24h."""
-    request.session['licence_notif_dismissed'] = timezone.now().isoformat()
-    return JsonResponse({'ok': True})
 
 
 # ─────────────────────────────────────────────

@@ -16,7 +16,6 @@ urlpatterns = [
     # Actions sur les mutualités
     path('mutualites/<int:pk>/suspendre/', views.mutualite_suspendre, name='mutualite_suspendre'),
     path('mutualites/<int:pk>/reactiver/', views.mutualite_reactiver, name='mutualite_reactiver'),
-    path('mutualites/<int:pk>/renouveler-licence/', views.mutualite_renouveler_licence, name='mutualite_renouveler_licence'),
     path('mutualites/<int:pk>/prolonger-essai/', views.mutualite_essai_prolonger, name='mutualite_essai_prolonger'),
 
     # Utilisateurs (CRUD)
@@ -31,11 +30,7 @@ urlpatterns = [
     path('validations/partenaires/', views.validations_partenaires, name='validations_partenaires'),
     path('validations/partenaires/<int:pk>/activer/', views.valider_partenaire, name='valider_partenaire'),
 
-    # Clés d'activation
-    path('cles/', views.cles_liste, name='cles_liste'),
-    path('cles/generer/', views.cle_generer, name='cles_generer'),
-    path('cles/<int:pk>/activer/', views.cle_activer, name='cle_activer'),
-    path('cles/<int:pk>/revoquer/', views.cle_revoquer, name='cle_revoquer'),
+
 
     # Suivi par mutualité
     path('mutualites/<int:pk>/factures/', views.mutualite_factures, name='mutualite_factures'),
@@ -54,7 +49,6 @@ urlpatterns = [
     path('mutualites/<int:pk>/export-excel/', views.export_mutualite_excel, name='export_mutualite_excel'),
     path('reinitialiser-selection/', views.reinitialiser_selection, name='reinitialiser_selection'),
     path('mutualites/<int:pk>/reinitialiser/', views.mutualite_reinitialiser, name='mutualite_reinitialiser'),
-    path('cles/<int:pk>/irrevoquer/', views.cle_irrevoquer, name='cle_irrevoquer'),
     path('ajax-verifier-nif/', views.ajax_verifier_nif, name='ajax_verifier_nif'),
 
     # Partenaires (CRUD & Actions)

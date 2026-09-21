@@ -132,8 +132,8 @@
                                                 <i class="bi bi-arrow-clockwise me-1"></i> Réactiver
                                             </a>
                                         {% elif m.statut == 'EXPIRE' %}
-                                            <a href="{% url 'superadmin:mutualite_renouveler_licence' m.pk %}" class="btn btn-outline-primary btn-sm" title="Renouveler">
-                                                <i class="bi bi-arrow-repeat me-1"></i> Renouveler
+                                            <a href="{% url 'superadmin:mutualite_reactiver' m.pk %}" class="btn btn-outline-primary btn-sm" title="Réactiver">
+                                                <i class="bi bi-arrow-repeat me-1"></i> Réactiver
                                             </a>
                                         {% elif m.statut == 'BLOQUE' %}
                                             <span class="badge bg-dark px-3 py-2 d-flex align-items-center">

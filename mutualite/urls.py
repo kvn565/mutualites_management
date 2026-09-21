@@ -2,14 +2,13 @@ from django.contrib import admin
 from django.urls import path, include, reverse_lazy
 from django.conf import settings
 from django.conf.urls.static import static
-from core.views import landing_view, parametres_mutualite, activer_licence
+from core.views import landing_view, parametres_mutualite
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', landing_view, name='landing'),
     path('connexion/', include('core.urls')),
     path('parametres-mutualite/', parametres_mutualite, name='parametres_mutualite'),
-    path('licence/', activer_licence, name='activer_licence'),
     path('dashboard/', include('dashboard.urls')),
     path('affilies/', include('affilies.urls')),
     path('ayants-droit/', include('ayants_droit.urls')),
@@ -29,6 +28,7 @@ urlpatterns = [
     path('chambres/', include('gestion_chambres.urls')),
     path('superadmin/', include('superadmin.urls')),
     path('api/superadmin/', include('superadmin.api_urls')),
+    path('single-tenant/', include('single_tenant.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 admin.site.site_header = "Mutualité de Santé — Administration"

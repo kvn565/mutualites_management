@@ -8,10 +8,11 @@ def populate_menus(apps, schema_editor):
     menus = [
         # Principal
         ('Tableau de bord', 'dashboard:index', 'bi-grid-fill', 'PRINCIPAL', 1),
-        # Membres
-        ('Affiliés', 'affilies:liste', 'bi-people-fill', 'MEMBRES', 10),
-        ('Ayants droit', 'ayants_droit:liste', 'bi-person-heart', 'MEMBRES', 20),
-        ('Origines', 'origines:liste', 'bi-diagram-3-fill', 'MEMBRES', 30),
+        # Membres - new order: Origines, Catégories, Affiliés, Ayants droit
+        ('Origines', 'origines:liste', 'bi-diagram-3-fill', 'MEMBRES', 10),
+        ('Catégories d\'origine', 'origines:categories', 'bi-tags-fill', 'MEMBRES', 15),
+        ('Affiliés', 'affilies:liste', 'bi-people-fill', 'MEMBRES', 20),
+        ('Ayants droit', 'ayants_droit:liste', 'bi-person-heart', 'MEMBRES', 30),
         # Santé
         ('Nos services', 'services_sante:liste', 'bi-hospital-fill', 'SANTE', 40),
         ('Partenaires', 'partenaires:liste', 'bi-building-fill-cross', 'SANTE', 50),
@@ -27,7 +28,6 @@ def populate_menus(apps, schema_editor):
         ('Ventilations', 'ventilations:index', 'bi-pie-chart-fill', 'FINANCE', 120),
         # Administration
         ('Ma mutualité', 'parametres_mutualite', 'bi-building-gear', 'ADMIN', 130),
-        ('Licence', 'activer_licence', 'bi-shield-check', 'ADMIN', 140),
         ('Groupes', 'groupe:liste', 'bi-people-fill', 'ADMIN', 150),
         ('Utilisateurs', 'utilisateurs:index', 'bi-shield-person-fill', 'ADMIN', 160),
         # Outils

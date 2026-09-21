@@ -10,8 +10,6 @@ urlpatterns = [
     path('inscription/attente/', views.inscription_attente, name='inscription_attente'),
     path('deconnexion/', views.logout_view, name='logout'),
     path('profil/', views.profil_view, name='profil'),
-    path('activer-licence/', views.activer_licence, name='activer_licence'),
-    path('dismiss-notification-licence/', views.dismiss_notification_licence, name='dismiss_notification_licence'),
 
     # Notifications plafond
     path('notifications/', views.notification_liste, name='notification_liste'),

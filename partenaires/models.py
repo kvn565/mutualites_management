@@ -184,16 +184,50 @@ class Partenaire(SoftDeleteMixin):
             self.code_partenaire = self.generer_code(self.type_partenaire)
         super().save(*args, **kwargs)
 
-    def soft_delete(self):
+    def delete(self, using=None, keep_parents=False, hard=False, user=None):
+        if hard:
+            super(SoftDeleteMixin, self).delete(using=using, keep_parents=keep_parents)
+        else:
+            self.soft_delete(user=user)
+
+    def soft_delete(self, user=None):
+        # Sauvegarder le statut original avant de le changer
+        self._statut_avant_suppression = self.statut
         self.supprime = True
         self.statut = 'EXPIRE'
         self.date_suppression = timezone.now()
         self.save(update_fields=['supprime', 'statut', 'date_suppression'])
+        # Enregistrer dans DeletedItem pour la corbeille
+        from comptabilite.models import DeletedItem
+        DeletedItem.objects.enregistrer(self, user)
 
-    def restore(self):
+    def restore(self, user=None):
         self.supprime = False
         self.date_suppression = None
-        self.save(update_fields=['supprime', 'date_suppression'])
+        # Restaurer le statut original
+        if hasattr(self, '_statut_avant_suppression'):
+            self.statut = self._statut_avant_suppression
+        else:
+            # Fallback : lire depuis DeletedItem
+            from comptabilite.models import DeletedItem
+            from django.contrib.contenttypes.models import ContentType
+            ct = ContentType.objects.get_for_model(self)
+            deleted = DeletedItem.objects.filter(
+                content_type=ct, object_id=self.pk, mutualite=self.mutualite, restored_at__isnull=True
+            ).first()
+            if deleted and deleted.objet_data.get('statut'):
+                self.statut = deleted.objet_data['statut']
+        self.save(update_fields=['supprime', 'date_suppression', 'statut'])
+        # Marquer comme restauré dans DeletedItem
+        from comptabilite.models import DeletedItem
+        from django.contrib.contenttypes.models import ContentType
+        ct = ContentType.objects.get_for_model(self)
+        DeletedItem.objects.filter(
+            content_type=ct,
+            object_id=self.pk,
+            mutualite=self.mutualite,
+            restored_at__isnull=True
+        ).update(restored_at=timezone.now(), restored_by=user)
 
     def _serialiser_pour_corbeille(self):
         return {
@@ -211,14 +245,24 @@ class Partenaire(SoftDeleteMixin):
     @classmethod
     def generer_code(cls, type_partenaire):
         prefix = cls.CODE_PREFIX_MAP.get(type_partenaire, 'AUT')
-        last = cls.objects.filter(
-            code_partenaire__startswith=f'{prefix}-',
-        ).order_by('code_partenaire').last()
-        if last:
-            num = int(last.code_partenaire.split('-')[1]) + 1
-        else:
-            num = 1
-        return f"{prefix}-{num:04d}"
+        base = f"{prefix}-"
+        codes = cls._base_manager.filter(
+            code_partenaire__startswith=base
+        ).values_list('code_partenaire', flat=True)
+        max_num = 0
+        for c in codes:
+            try:
+                num_part = int(c.split('-')[-1])
+                if num_part > max_num:
+                    max_num = num_part
+            except (ValueError, IndexError):
+                pass
+        num = max(max_num + 1, 1)
+        code = f"{base}{num:04d}"
+        while cls._base_manager.filter(code_partenaire=code).exists():
+            num += 1
+            code = f"{base}{num:04d}"
+        return code
 
     @property
     def convention_active(self):
@@ -228,10 +272,8 @@ class Partenaire(SoftDeleteMixin):
 
     @property
     def nb_factures(self):
-        try:
-            return self.factures.count()
-        except Exception:
-            return 0
+        from factures.models import Facture
+        return Facture._base_manager.filter(partenaire=self).count()
 
     @property
     def mutualites_liees(self):
@@ -349,10 +391,24 @@ class Convention(models.Model):
     def _generer_numero(self):
         today = timezone.now()
         annee = today.year
-        count = Convention.objects.filter(
-            date_debut__year=annee,
-        ).count() + 1
-        return f"CONV-{annee}-{count:04d}"
+        base = f"CONV-{annee}-"
+        codes = Convention._base_manager.filter(
+            numero_convention__startswith=base
+        ).values_list('numero_convention', flat=True)
+        max_num = 0
+        for c in codes:
+            try:
+                num_part = int(c.split('-')[-1])
+                if num_part > max_num:
+                    max_num = num_part
+            except (ValueError, IndexError):
+                pass
+        num = max(max_num + 1, len(codes) + 1, 1)
+        numero = f"{base}{num:04d}"
+        while Convention._base_manager.filter(numero_convention=numero).exists():
+            num += 1
+            numero = f"{base}{num:04d}"
+        return numero
 
 
 class UtilisateurPartenaire(models.Model):

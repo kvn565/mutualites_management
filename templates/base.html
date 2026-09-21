@@ -202,51 +202,6 @@
         }
         .page-subtitle:empty { display: none; }
 
-        /* ── Notification licence expirant ── */
-        .licence-overlay {
-            position: fixed; inset: 0; z-index: 10000;
-            background: rgba(0,0,0,0.55);
-            display: flex; align-items: center; justify-content: center;
-            backdrop-filter: blur(2px);
-        }
-        .licence-modal {
-            background: #fff;
-            border-radius: 20px;
-            padding: 40px 36px 32px;
-            max-width: 460px; width: 90%;
-            text-align: center;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
-            animation: modalIn 0.35s ease;
-        }
-        .licence-modal .icon {
-            width: 72px; height: 72px;
-            border-radius: 50%;
-            background: #fff3e0;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 2rem; color: #e67e22;
-        }
-        .licence-modal h4 { font-weight: 700; margin-bottom: 8px; }
-        .licence-modal p  { color: #64748b; font-size: 0.9rem; margin-bottom: 24px; }
-        .licence-modal .btn-ok {
-            background: var(--or); border: none; color: #fff;
-            padding: 10px 40px; border-radius: 10px;
-            font-weight: 600; cursor: pointer; transition: all 0.2s;
-        }
-        .licence-modal .btn-ok:hover { background: var(--or-clair); transform: translateY(-1px); }
-        .licence-modal .jours {
-            font-size: 2.4rem; font-weight: 800; color: #e67e22;
-            line-height: 1;
-        }
-        .licence-modal .jours-label {
-            font-size: 0.85rem; color: #94a3b8; text-transform: uppercase;
-            letter-spacing: 1px; margin-bottom: 12px;
-        }
-        @keyframes modalIn {
-            from { transform: scale(0.92) translateY(15px); opacity: 0; }
-            to   { transform: scale(1) translateY(0); opacity: 1; }
-        }
-
         /* ── Responsive ── */
         @media (max-width: 768px) {
             .app-content-header .col-sm-6.text-sm-end {
@@ -399,21 +354,6 @@
                     </div>
                 </li>
                 {% endif %}
-                {% if mutualite and not user.est_super_admin %}
-                <li class="nav-item d-none d-md-flex align-items-center me-2">
-                    <span class="nav-link small {% if mutualite.jours_restants <= 3 %}text-danger fw-bold{% else %}text-body-secondary{% endif %}">
-                        <i class="bi bi-shield-check me-1"></i>
-                        {{ mutualite.jours_restants }} jour{{ mutualite.jours_restants|pluralize }} restant{{ mutualite.jours_restants|pluralize }}
-                    </span>
-                </li>
-                {% if mutualite and not user.est_super_admin and mutualite.jours_restants <= 7 %}
-                <li class="nav-item d-none d-md-flex align-items-center me-2">
-                    <span class="nav-link small text-warning fw-bold">
-                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                        Licence bientôt expirée
-                    </span>
-                {% endif %}
-                {% endif %}
                 <li class="nav-item d-none d-md-flex align-items-center">
                     <span class="nav-link text-body-secondary small">
                         <i class="bi bi-calendar3 me-1"></i>
@@ -472,29 +412,30 @@
             <nav class="mt-2">
                 <ul class="nav sidebar-menu flex-column" role="navigation" aria-label="Navigation principale">
                     {% block sidebar_nav %}
-                    {% if not user.est_super_admin %}
-                    {% menu_autorise 'dashboard:index' as show_dashboard %}
-                    {% section_autorise 'affilies:liste' 'ayants_droit:liste' 'origines:liste' as show_membres %}
-                    {% menu_autorise 'affilies:liste' as show_affilies %}
-                    {% menu_autorise 'ayants_droit:liste' as show_ayants %}
-                    {% menu_autorise 'origines:liste' as show_origines %}
-                    {% section_autorise 'services_sante:liste' 'partenaires:liste' 'pharmacie:liste' as show_sante %}
+{% if not user.est_super_admin %}
+{% menu_autorise 'dashboard:index' as show_dashboard %}
+{% section_autorise 'affilies:liste' 'ayants_droit:liste' 'origines:liste' 'origines:categories' as show_membres %}
+{% menu_autorise 'affilies:liste' as show_affilies %}
+{% menu_autorise 'ayants_droit:liste' as show_ayants %}
+{% menu_autorise 'origines:liste' as show_origines %}
+{% menu_autorise 'origines:categories' as show_categories %}
+{% section_autorise 'services_sante:liste' 'partenaires:liste' 'pharmacie:liste' as show_sante %}
                     {% menu_autorise 'services_sante:liste' as show_services %}
                     {% menu_autorise 'partenaires:liste' as show_partenaires %}
                     {% menu_autorise 'pharmacie:liste' as show_pharmacie %}
                     {% section_autorise 'factures:liste' 'factures:journal' as show_facturation %}
                     {% menu_autorise 'factures:liste' as show_factures %}
                     {% menu_autorise 'factures:journal' as show_journal_factures %}
-                    {% section_autorise 'cotisations:liste' 'cotisations:journal' as show_cotisations %}
+                    {% section_autorise 'cotisations:liste' 'cotisations:journal' 'cotisations:rapport_periodique' as show_cotisations %}
                     {% menu_autorise 'cotisations:liste' as show_cotisation_liste %}
                     {% menu_autorise 'cotisations:journal' as show_journal_cotisations %}
+                    {% menu_autorise 'cotisations:rapport_periodique' as show_rapport_periodique %}
                     {% section_autorise 'comptabilite:dashboard' 'ventilations:index' as show_finance %}
                     {% menu_autorise 'comptabilite:dashboard' as show_compta %}
                     {% menu_autorise 'ventilations:index' as show_ventilations %}
                     {% if user.est_admin and not user.est_super_admin %}
-                    {% section_autorise 'parametres_mutualite' 'activer_licence' 'groupe:liste' 'utilisateurs:index' as show_admin %}
+                    {% section_autorise 'parametres_mutualite' 'groupe:liste' 'utilisateurs:index' as show_admin %}
                     {% menu_autorise 'parametres_mutualite' as show_parametres %}
-                    {% menu_autorise 'activer_licence' as show_licence %}
                     {% menu_autorise 'groupe:liste' as show_groupes %}
                     {% menu_autorise 'utilisateurs:index' as show_utilisateurs %}
                     {% endif %}
@@ -529,6 +470,22 @@
                     <!-- Membres -->
                     {% if show_membres %}
                     <li class="nav-header">Membres</li>
+                    {% if show_origines %}
+                    <li class="nav-item">
+                        <a href="{% url 'origines:liste' %}" class="nav-link {% block nav_origines %}{% endblock %}">
+                            <i class="nav-icon bi bi-diagram-3-fill"></i>
+                            <p>Origines</p>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if show_categories %}
+                    <li class="nav-item">
+                        <a href="{% url 'origines:categories' %}" class="nav-link {% block nav_categories %}{% endblock %}">
+                            <i class="nav-icon bi bi-tags-fill"></i>
+                            <p>Catégories</p>
+                        </a>
+                    </li>
+                    {% endif %}
                     {% if show_affilies %}
                     <li class="nav-item">
                         <a href="{% url 'affilies:liste' %}" class="nav-link {% block nav_affilies %}{% endblock %}">
@@ -542,14 +499,6 @@
                         <a href="{% url 'ayants_droit:liste' %}" class="nav-link {% block nav_ayants_droit %}{% endblock %}">
                             <i class="nav-icon bi bi-person-heart"></i>
                             <p>Ayants droit</p>
-                        </a>
-                    </li>
-                    {% endif %}
-                    {% if show_origines %}
-                    <li class="nav-item">
-                        <a href="{% url 'origines:liste' %}" class="nav-link {% block nav_origines %}{% endblock %}">
-                            <i class="nav-icon bi bi-diagram-3-fill"></i>
-                            <p>Origines</p>
                         </a>
                     </li>
                     {% endif %}
@@ -624,6 +573,14 @@
                         </a>
                     </li>
                     {% endif %}
+                    {% if show_rapport_periodique %}
+                    <li class="nav-item">
+                        <a href="{% url 'cotisations:rapport_periodique' %}" class="nav-link {% block nav_rapport_periodique %}{% endblock %}">
+                            <i class="nav-icon bi bi-calendar-range"></i>
+                            <p>Rapport périodique</p>
+                        </a>
+                    </li>
+                    {% endif %}
                     {% endif %}
 
                     <!-- Finance -->
@@ -675,23 +632,6 @@
                         <a href="{% url 'parametres_mutualite' %}" class="nav-link {% block nav_parametres_mutualite %}{% endblock %}">
                             <i class="nav-icon bi bi-building-gear"></i>
                             <p>Ma mutualité</p>
-                        </a>
-                    </li>
-                    {% endif %}
-                    {% if show_licence %}
-                    <li class="nav-item">
-                        <a href="{% url 'activer_licence' %}" class="nav-link {% block nav_licence %}{% endblock %}">
-                            <i class="nav-icon bi bi-shield-check"></i>
-                            <p>
-                                Licence
-                                {% if not mutualite.licence_valide %}
-                                <span class="nav-badge badge text-bg-danger ms-2">Expirée</span>
-                                {% elif mutualite.jours_restants <= 3 %}
-                                <span class="nav-badge badge text-bg-danger ms-2">{{ mutualite.jours_restants }}j</span>
-                                {% elif mutualite.jours_restants <= 7 %}
-                                <span class="nav-badge badge text-bg-warning ms-2">{{ mutualite.jours_restants }}j</span>
-                                {% endif %}
-                            </p>
                         </a>
                     </li>
                     {% endif %}
@@ -807,49 +747,6 @@
 
 </div>
 <!-- /.app-wrapper -->
-
-{% if licence_15j %}
-<div id="licence-notif-overlay" class="licence-overlay">
-    <div class="licence-modal">
-        <div class="icon"><i class="bi bi-shield-exclamation"></i></div>
-        <div class="jours-label">Jours restants</div>
-        <div class="jours">{{ licence_15j }}</div>
-        <h4 class="mt-2">Votre licence expire bientôt</h4>
-        <p>Pensez à renouveler votre licence auprès de l'administrateur pour continuer à utiliser toutes les fonctionnalités sans interruption.</p>
-        <button class="btn-ok" id="btn-dismiss-licence">
-            <i class="bi bi-check-lg me-1"></i> OK
-        </button>
-    </div>
-</div>
-<script>
-(function() {
-    function getCookie(name) {
-        var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-        return match ? decodeURIComponent(match[2]) : null;
-    }
-    document.getElementById('btn-dismiss-licence').addEventListener('click', function() {
-        var overlay = document.getElementById('licence-notif-overlay');
-        if (!overlay) return;
-        fetch('{% url "core:dismiss_notification_licence" %}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'dismiss=1',
-        }).then(function(r) { return r.json(); }).then(function(data) {
-            if (data.ok) {
-                overlay.style.transition = 'opacity 0.3s';
-                overlay.style.opacity = '0';
-                setTimeout(function() { overlay.remove(); }, 300);
-            }
-        }).catch(function() {
-            overlay.remove();
-        });
-    });
-})();
-</script>
-{% endif %}
 
 <!-- ╔═ TOAST MESSAGES ═══════════════════════════════════════════ -->
 {% if messages %}

@@ -107,56 +107,6 @@
                 </div>
             </div>
 
-            <!-- Licence -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="bi bi-shield-check me-2" style="color:var(--or);"></i>
-                    Licence & Abonnement
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label text-muted small">Type d'abonnement</label>
-                            <p class="mb-0">{{ mutualite.type_abonnement|default:"—" }}</p>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label text-muted small">Date activation</label>
-                            <p class="mb-0">{{ mutualite.date_activation|date:"d/m/Y"|default:"—" }}</p>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label text-muted small">Date expiration</label>
-                            <p class="mb-0">
-                                {% if mutualite.date_expiration %}
-                                    {{ mutualite.date_expiration|date:"d/m/Y" }}
-                                    <span class="badge bg-{% if mutualite.jours_restants <= 3 %}danger{% elif mutualite.jours_restants <= 7 %}warning text-dark{% else %}success{% endif %} ms-2">
-                                        {{ mutualite.jours_restants }} jour{{ mutualite.jours_restants|pluralize }}
-                                    </span>
-                                {% else %}
-                                    —
-                                {% endif %}
-                            </p>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted small">Clé d'activation</label>
-                            <p class="mb-0"><code>{{ mutualite.cle_activation|default:"—" }}</code></p>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted small">Essai gratuit</label>
-                            <p class="mb-0">
-                                {% if mutualite.essai_gratuit %}
-                                    <span class="badge bg-info">Oui</span>
-                                    {% if mutualite.date_fin_essai %}
-                                        (jusqu'au {{ mutualite.date_fin_essai|date:"d/m/Y" }})
-                                    {% endif %}
-                                {% else %}
-                                    <span class="badge bg-secondary">Non</span>
-                                {% endif %}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Partenaires liés -->
             {% if partenaires %}
             <div class="card mb-4">
@@ -239,15 +189,12 @@
                             <i class="bi bi-arrow-clockwise me-1"></i> Réactiver
                         </a>
                         {% elif mutualite.statut == 'EXPIRE' %}
-                        <a href="{% url 'superadmin:mutualite_renouveler_licence' mutualite.pk %}" class="btn btn-outline-primary">
-                            <i class="bi bi-arrow-repeat me-1"></i> Renouveler licence
+                        <a href="{% url 'superadmin:mutualite_reactiver' mutualite.pk %}" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-repeat me-1"></i> Réactiver
                         </a>
                         {% elif mutualite.statut in 'ESSAI,ACTIF' %}
                         <a href="{% url 'superadmin:mutualite_suspendre' mutualite.pk %}" class="btn btn-outline-warning text-dark" onclick="return confirm('Suspendre cette mutualité ?');">
                             <i class="bi bi-pause-circle me-1"></i> Suspendre
-                        </a>
-                        <a href="{% url 'superadmin:mutualite_renouveler_licence' mutualite.pk %}" class="btn btn-outline-success">
-                            <i class="bi bi-arrow-repeat me-1"></i> Renouveler / Prolonger
                         </a>
                         {% endif %}
                         <a href="{% url 'superadmin:mutualite_factures' mutualite.pk %}" class="btn btn-outline-info">

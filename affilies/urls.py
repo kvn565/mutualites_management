@@ -16,6 +16,7 @@ urlpatterns = [
     path('<int:pk>/fiche/', views.fiche_pdf, name='fiche_pdf'),
     path('ajax/detail/<int:pk>/', views.affilie_details_ajax, name='affilie_ajax_detail'),
     path('ajax/origin-plafonds/<int:pk>/', views.origin_plafonds_ajax, name='origin_plafonds_ajax'),
+    path('ajax/categories-origine/<int:pk>/', views.categories_par_origine_ajax, name='categories_par_origine_ajax'),
 
     # Exclusions
     path('<int:affilie_pk>/exclusions/ajouter/', views.exclusion_ajouter, name='exclusion_ajouter'),

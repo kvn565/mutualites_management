@@ -11,6 +11,13 @@ urlpatterns = [
     path('<int:pk>/modifier/', views.modifier, name='modifier'),
     path('<int:pk>/supprimer/', views.supprimer, name='supprimer'),
     path('ajax/creer/', views.ajax_creer, name='ajax_creer'),
+    path('ajax/creer-categorie/', views.ajax_creer_categorie, name='ajax_creer_categorie'),
+
+    # Catégories d'origine
+    path('categories/', views.categories_liste, name='categories'),
+    path('categories/ajouter/', views.categorie_ajouter, name='categorie_ajouter'),
+    path('categories/<int:pk>/modifier/', views.categorie_modifier, name='categorie_modifier'),
+    path('categories/<int:pk>/supprimer/', views.categorie_supprimer, name='categorie_supprimer'),
 
     # Exclusions
     path('<int:origine_pk>/exclusions/ajouter/', views.exclusion_ajouter, name='exclusion_ajouter'),

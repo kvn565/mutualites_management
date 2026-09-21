@@ -158,6 +158,27 @@
     vertical-align: middle;
     border-bottom: 1px solid #e2e8f0;
 }
+td.actions-nowrap, th.actions-nowrap {
+    white-space: nowrap !important;
+    min-width: 135px;
+}
+td.actions-nowrap-wide, th.actions-nowrap-wide {
+    white-space: nowrap !important;
+    min-width: 230px;
+}
+.actions-nowrap .d-flex, .actions-nowrap-wide .d-flex {
+    flex-wrap: nowrap !important;
+}
+.actions-nowrap .btn-sm, .actions-nowrap-wide .btn-sm {
+    padding: 4px 8px !important;
+    flex-shrink: 0;
+    white-space: nowrap !important;
+}
+.actions-nowrap form, .actions-nowrap-wide form {
+    display: inline-flex !important;
+    flex-shrink: 0;
+    margin: 0;
+}
 
 /* ── Liens dans tableaux ── */
 .table a:not(.btn) {

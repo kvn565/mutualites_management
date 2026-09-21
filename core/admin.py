@@ -79,8 +79,8 @@ class MutualiteAdmin(admin.ModelAdmin):
         ('Essai gratuit', {
             'fields': ['essai_gratuit', 'date_debut_essai', 'date_fin_essai']
         }),
-        ('Licence', {
-            'fields': ['cle_activation', 'date_activation', 'date_expiration', 'type_abonnement', 'max_utilisateurs', 'module_chambres_actif']
+        ('Abonnement', {
+            'fields': ['date_activation', 'date_expiration', 'type_abonnement', 'max_utilisateurs', 'module_chambres_actif']
         }),
         ('Compte administrateur', {
             'fields': ['username_admin', 'email_admin']
