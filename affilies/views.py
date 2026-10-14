@@ -187,6 +187,12 @@ class AffilieDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'affilie'
 
     def get_object(self, queryset=None):
+        # Fix IDOR : filtre par mutualité (préserve superadmin sans mutualité)
+        if getattr(self.request.user, 'mutualite_id', None):
+            return get_object_or_404(
+                Affilie, pk=self.kwargs['pk'], supprime=False,
+                mutualite=self.request.user.mutualite,
+            )
         return get_object_or_404(Affilie, pk=self.kwargs['pk'], supprime=False)
 
     def get_context_data(self, **kwargs):

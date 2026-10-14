@@ -219,7 +219,9 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
-X_FRAME_OPTIONS             = 'SAMEORIGIN'
+# Prod : passer à 'DENY' (check --deploy W019). SAMEORIGIN conservé en dev pour prévisualisations PDF/iframe internes.
+X_FRAME_OPTIONS             = 'SAMEORIGIN' if DEBUG else 'DENY'
+SECURE_REFERRER_POLICY = 'same-origin'
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
@@ -236,7 +238,7 @@ if not DEBUG:
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 6}},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]

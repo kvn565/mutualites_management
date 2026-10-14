@@ -71,7 +71,12 @@ def changer_mutualite(request):
     else:
         request.session.pop('mutualite_active_pk', None)
     request.session.modified = True
-    return redirect(request.GET.get('next', 'portail_partenaire:dashboard'))
+    # Fix Open Redirect : n'accepte que les URL internes
+    from django.utils.http import url_has_allowed_host_and_scheme
+    nxt = request.GET.get('next', 'portail_partenaire:dashboard')
+    if url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
+        return redirect(nxt)
+    return redirect('portail_partenaire:dashboard')
 
 
 def connexion(request):
